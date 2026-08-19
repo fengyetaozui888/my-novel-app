@@ -24,6 +24,7 @@ import {
   Sparkles,
   Users,
   Check,
+  Heart,
 } from 'lucide-react-taro'
 
 interface Message {
@@ -540,6 +541,18 @@ const ChatPage = () => {
             >
               <ImageIcon size={16} color="#ec4899" />
               <Text className="text-sm text-gray-700">人设图生成</Text>
+            </View>
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={() => {
+                setShowMoreMenu(false)
+                Taro.navigateTo({
+                  url: `/pages/moments/index?characterId=${characterId}`,
+                })
+              }}
+            >
+              <Heart size={16} color="#ec4899" />
+              <Text className="text-sm text-gray-700">查看朋友圈</Text>
             </View>
             <View
               className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"

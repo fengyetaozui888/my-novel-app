@@ -1,4 +1,4 @@
-import { pgTable, serial, timestamp, varchar, text, integer, index } from "drizzle-orm/pg-core"
+import { pgTable, serial, timestamp, varchar, text, integer, index, uniqueIndex } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -54,6 +54,7 @@ export const characters = pgTable(
     biography: text("biography"),
     principles: text("principles"),
     examples: text("examples"),
+    tagline: varchar("tagline", { length: 500 }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -78,5 +79,63 @@ export const relationships = pgTable(
     index("relationships_novel_id_idx").on(table.novel_id),
     index("relationships_from_idx").on(table.from_character_id),
     index("relationships_to_idx").on(table.to_character_id),
+  ]
+);
+
+export const moments = pgTable(
+  "moments",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    character_id: varchar("character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    image_url: varchar("image_url", { length: 500 }),
+    visibility: varchar("visibility", { length: 20 }).default("public"),
+    blocked_character_ids: text("blocked_character_ids").default("[]"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("moments_novel_id_idx").on(table.novel_id),
+    index("moments_character_id_idx").on(table.character_id),
+  ]
+);
+
+export const moment_likes = pgTable(
+  "moment_likes",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    moment_id: varchar("moment_id", { length: 36 }).notNull().references(() => moments.id, { onDelete: "cascade" }),
+    character_id: varchar("character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("moment_likes_unique_idx").on(table.moment_id, table.character_id),
+  ]
+);
+
+export const moment_comments = pgTable(
+  "moment_comments",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    moment_id: varchar("moment_id", { length: 36 }).notNull().references(() => moments.id, { onDelete: "cascade" }),
+    character_id: varchar("character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("moment_comments_moment_id_idx").on(table.moment_id),
+  ]
+);
+
+export const moment_backgrounds = pgTable(
+  "moment_backgrounds",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
+    image_url: varchar("image_url", { length: 500 }).notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("moment_backgrounds_novel_id_idx").on(table.novel_id),
   ]
 );

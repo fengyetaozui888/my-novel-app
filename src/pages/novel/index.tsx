@@ -513,29 +513,29 @@ const NovelPage = () => {
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto w-full max-w-md" closeClassName="hidden">
           <DialogHeader>
-            {/* Back arrow at top-left */}
-            <View className="absolute top-4 left-3 z-10">
-              <ChevronLeft
-                size={22}
-                color="#c2185b"
-                strokeWidth={2.5}
-                onClick={() => setShowDetailDialog(false)}
-              />
-            </View>
-
-            {/* Trash icon at top-right */}
-            <View className="absolute top-4 right-3 z-10">
-              <Trash2
-                size={16}
-                color="#c2185b"
-                onClick={() => setShowDetailMenu(true)}
-              />
-            </View>
-
             <View
-              className="rounded-xl p-4 mb-4 mx-2"
+              className="rounded-xl p-4 mb-4 mx-2 relative"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
             >
+              {/* Back arrow at top-left, aligned with pink box */}
+              <View className="absolute top-3 left-3 z-10">
+                <ChevronLeft
+                  size={22}
+                  color="#c2185b"
+                  strokeWidth={2.5}
+                  onClick={() => setShowDetailDialog(false)}
+                />
+              </View>
+
+              {/* Trash icon at top-right, aligned with pink box */}
+              <View className="absolute top-3 right-3 z-10">
+                <Trash2
+                  size={16}
+                  color="#c2185b"
+                  onClick={() => setShowDetailMenu(true)}
+                />
+              </View>
+
               <View className="flex items-center gap-3">
                 {/* Avatar in detail dialog */}
                 <View

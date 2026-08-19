@@ -6,7 +6,7 @@ export default defineAppConfig({
     'pages/profile/index',
     'pages/graph/index',
     'pages/interact/index',
-    'pages/dimension/index',
+    'pages/moments/index',
   ],
   window: {
     backgroundTextStyle: 'light',
@@ -27,8 +27,8 @@ export default defineAppConfig({
         selectedIconPath: './assets/tabbar/house-active.png',
       },
       {
-        pagePath: 'pages/dimension/index',
-        text: '次元世界',
+        pagePath: 'pages/moments/index',
+        text: '朋友圈',
         iconPath: './assets/tabbar/sparkles.png',
         selectedIconPath: './assets/tabbar/sparkles-active.png',
       },
