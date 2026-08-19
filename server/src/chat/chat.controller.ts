@@ -11,6 +11,7 @@ export class ChatController {
     @Body()
     body: {
       characterId: string;
+      speakerId?: string; // 对话者角色ID（可选）
       message: string;
       history?: { role: string; content: string }[];
     },

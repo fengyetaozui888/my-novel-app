@@ -27,13 +27,30 @@ export class ChatService {
     return { character, novel };
   }
 
-  buildSystemPrompt(character: any, novelName: string): string {
+  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string): string {
     const parts: string[] = [];
 
-    parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应用户。`);
+    parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应对话。`);
     parts.push(`\n你来自小说《${novelName}》。`);
     parts.push(`\n角色名称：${character.name}`);
     parts.push(`角色分类：${character.category === 'protagonist' ? '主角' : character.category === 'supporting' ? '重要配角' : '不重要角色'}`);
+
+    // 如果有对话者（speaker），注入认知
+    if (speaker) {
+      parts.push(`\n【当前对话者认知】`);
+      parts.push(`现在正在和你对话的是「${speaker.name}」。`);
+      if (relationType) {
+        parts.push(`「${speaker.name}」与你的关系是：${relationType}。`);
+      }
+      if (speaker.persona) {
+        parts.push(`「${speaker.name}」的人设：${speaker.persona}`);
+      }
+      parts.push(`\n请根据你对「${speaker.name}」的认知和关系来回应，表现出符合这种关系的反应和态度。`);
+    } else {
+      parts.push(`\n【当前对话者认知】`);
+      parts.push(`现在正在和你对话的是一个普通用户（非小说中的角色）。`);
+      parts.push(`请以你对待陌生人的方式来回应。`);
+    }
 
     if (character.persona) {
       parts.push(`\n【人设定位】\n${character.persona}`);
@@ -54,22 +71,50 @@ export class ChatService {
     parts.push(`\n【重要要求】`);
     parts.push(`1. 始终保持角色一致性，不要跳出角色`);
     parts.push(`2. 用角色的语气和风格说话`);
-    parts.push(`3. 根据角色的背景和性格来回应`);
+    parts.push(`3. 根据角色的背景、性格和与对话者的关系来回应`);
     parts.push(`4. 回复要自然、生动，像真实的人物对话`);
-    parts.push(`5. 如果用户问到角色设定之外的内容，以角色的视角合理推断回答`);
+    parts.push(`5. 如果对话者问到角色设定之外的内容，以角色的视角合理推断回答`);
 
     return parts.join('\n');
   }
 
   async simulate(params: {
     characterId: string;
+    speakerId?: string; // 对话者角色ID（可选）
     message: string;
     history?: { role: string; content: string }[];
   }) {
     const { character, novel } = await this.getCharacterWithNovel(params.characterId);
     const novelName = novel?.name || '未知小说';
 
-    const systemPrompt = this.buildSystemPrompt(character, novelName);
+    // 获取对话者信息和关系类型
+    let speaker: any = null;
+    let relationType: string | undefined;
+
+    if (params.speakerId) {
+      const { data: speakerChar, error: speakerError } = await this.client
+        .from('characters')
+        .select('id, name, persona')
+        .eq('id', params.speakerId)
+        .maybeSingle();
+      if (!speakerError && speakerChar) {
+        speaker = speakerChar;
+      }
+
+      // 获取关系类型
+      const { data: relation } = await this.client
+        .from('relationships')
+        .select('relation_type')
+        .eq('novel_id', character.novel_id)
+        .eq('from_character_id', params.speakerId)
+        .eq('to_character_id', params.characterId)
+        .maybeSingle();
+      if (relation) {
+        relationType = relation.relation_type;
+      }
+    }
+
+    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType);
 
     const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       { role: 'system', content: systemPrompt },

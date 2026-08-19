@@ -21,6 +21,8 @@ import {
   Image as ImageIcon,
   Search,
   Sparkles,
+  Users,
+  Check,
 } from 'lucide-react-taro'
 
 interface Message {
@@ -35,6 +37,13 @@ interface StatusOption {
   icon: any
   color: string
   bgColor: string
+}
+
+interface SpeakerCharacter {
+  id: string
+  name: string
+  avatar_url: string | null
+  relation_type: string
 }
 
 const STATUS_OPTIONS: StatusOption[] = [
@@ -60,8 +69,11 @@ const ChatPage = () => {
   const [currentStatus, setCurrentStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
   const [showStatusPicker, setShowStatusPicker] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [isPinned, setIsPinned] = useState(false)
+  const [selectedSpeaker, setSelectedSpeaker] = useState<SpeakerCharacter | null>(null)
+  const [availableSpeakers, setAvailableSpeakers] = useState<SpeakerCharacter[]>([])
   const scrollId = useRef('')
 
   // Fetch user profile for avatar
@@ -79,6 +91,47 @@ const ChatPage = () => {
     }
     fetchUserProfile()
   }, [])
+
+  // Fetch available speakers from relationships
+  useEffect(() => {
+    const fetchSpeakers = async () => {
+      if (!characterId) return
+      try {
+        const res = await Network.request({
+          url: '/api/relationships',
+          method: 'GET',
+          data: { characterId },
+        })
+        const data = res.data?.data || res.data
+        if (Array.isArray(data)) {
+          // Get unique characters from relationships
+          const speakerMap = new Map<string, SpeakerCharacter>()
+          data.forEach((rel: any) => {
+            if (rel.from_character_id !== characterId && rel.from_character) {
+              speakerMap.set(rel.from_character_id, {
+                id: rel.from_character_id,
+                name: rel.from_character.name,
+                avatar_url: rel.from_character.avatar_url,
+                relation_type: rel.relation_type,
+              })
+            }
+            if (rel.to_character_id !== characterId && rel.to_character) {
+              speakerMap.set(rel.to_character_id, {
+                id: rel.to_character_id,
+                name: rel.to_character.name,
+                avatar_url: rel.to_character.avatar_url,
+                relation_type: rel.relation_type,
+              })
+            }
+          })
+          setAvailableSpeakers(Array.from(speakerMap.values()))
+        }
+      } catch (err) {
+        console.error('fetch speakers error:', err)
+      }
+    }
+    fetchSpeakers()
+  }, [characterId])
 
   const scrollToBottom = useCallback(() => {
     const id = `msg-${Date.now()}`
@@ -114,6 +167,7 @@ const ChatPage = () => {
         method: 'POST',
         data: {
           characterId,
+          speakerId: selectedSpeaker?.id || undefined,
           message: userMsg.content,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
         },
@@ -156,7 +210,31 @@ const ChatPage = () => {
     Taro.showToast({ title: '查找聊天记录（开发中）', icon: 'none' })
   }
 
+  const handleOpenSpeakerPicker = () => {
+    setShowMoreMenu(false)
+    setShowSpeakerPicker(true)
+  }
+
+  const handleSelectSpeaker = (speaker: SpeakerCharacter | null) => {
+    setSelectedSpeaker(speaker)
+    setShowSpeakerPicker(false)
+    if (speaker) {
+      Taro.showToast({
+        title: `已切换为「${speaker.name}」身份`,
+        icon: 'none',
+      })
+    } else {
+      Taro.showToast({
+        title: '已切换为你自己的身份',
+        icon: 'none',
+      })
+    }
+  }
+
   const StatusIcon = currentStatus.icon
+
+  // Get current user display info (avatar based on selected speaker)
+  const currentUserAvatar = selectedSpeaker?.avatar_url || userAvatar
 
   return (
     <View className="flex flex-col h-screen bg-stone-50">
@@ -202,12 +280,33 @@ const ChatPage = () => {
             <Ellipsis size={20} color="#666" />
           </View>
         </View>
+
+        {/* Speaker Indicator */}
+        {selectedSpeaker && (
+          <View className="flex items-center gap-2 mt-2 px-3 py-2 bg-white bg-opacity-60 rounded-full">
+            {selectedSpeaker.avatar_url ? (
+              <Image
+                src={selectedSpeaker.avatar_url}
+                className="w-5 h-5 rounded-full"
+                mode="aspectFill"
+              />
+            ) : (
+              <View className="w-5 h-5 rounded-full bg-pink-200 flex items-center justify-center">
+                <User size={10} color="#ec4899" />
+              </View>
+            )}
+            <Text className="text-xs text-gray-600">
+              以「{selectedSpeaker.name}」身份对话
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Messages */}
       <ScrollView
         scrollY
         className="flex-1 px-4 py-4"
+        style={{ marginBottom: '60px' }}
         scrollIntoView={scrollId.current}
         scrollWithAnimation
       >
@@ -225,7 +324,8 @@ const ChatPage = () => {
               )}
             </View>
             <Text className="block text-gray-500 text-center text-sm">
-              开始与「{characterName}」对话{'\n'}输入消息来模拟互动吧
+              开始与「{characterName}」对话
+              {selectedSpeaker ? `\n当前以「${selectedSpeaker.name}」身份` : '\n输入消息来模拟互动吧'}
             </Text>
           </View>
         ) : (
@@ -237,9 +337,9 @@ const ChatPage = () => {
               >
                 {/* Avatar */}
                 {msg.role === 'user' ? (
-                  userAvatar ? (
+                  currentUserAvatar ? (
                     <Image
-                      src={userAvatar}
+                      src={currentUserAvatar}
                       className="w-8 h-8 rounded-full flex-shrink-0"
                       mode="aspectFill"
                     />
@@ -300,7 +400,7 @@ const ChatPage = () => {
         <View style={{ flex: 1, backgroundColor: '#f8f5f2', borderRadius: '20px', padding: '8px 16px' }}>
           <Input
             style={{ width: '100%', fontSize: '14px', backgroundColor: 'transparent' }}
-            placeholder="输入消息..."
+            placeholder={selectedSpeaker ? `以${selectedSpeaker.name}的身份说话...` : '输入消息...'}
             value={inputText}
             onInput={(e) => setInputText(e.detail.value)}
             onConfirm={handleSend}
@@ -373,9 +473,16 @@ const ChatPage = () => {
           onClick={() => setShowMoreMenu(false)}
         >
           <View
-            className="absolute top-14 right-4 bg-white rounded-xl shadow-xl p-2 w-40"
+            className="absolute top-14 right-4 bg-white rounded-xl shadow-xl p-2 w-44"
             onClick={(e) => e.stopPropagation()}
           >
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={handleOpenSpeakerPicker}
+            >
+              <Users size={16} color="#ec4899" />
+              <Text className="text-sm text-gray-700">人设选择</Text>
+            </View>
             <View
               className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
               onClick={handleTogglePin}
@@ -397,6 +504,106 @@ const ChatPage = () => {
               <Search size={16} color="#666" />
               <Text className="text-sm text-gray-700">查找记录</Text>
             </View>
+          </View>
+        </View>
+      )}
+
+      {/* Speaker Picker Dialog */}
+      {showSpeakerPicker && (
+        <View
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowSpeakerPicker(false)}
+        >
+          <View
+            className="w-full bg-white rounded-t-3xl pb-6"
+            style={{ maxHeight: '70vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <View className="p-4 border-b border-gray-100">
+              <Text className="block text-lg font-bold text-gray-900 text-center">
+                选择对话身份
+              </Text>
+              <Text className="block text-xs text-gray-500 text-center mt-1">
+                选择后，{characterName}会以对应身份与你对话
+              </Text>
+            </View>
+
+            <ScrollView scrollY className="flex-1 px-4 py-3" style={{ maxHeight: '50vh' }}>
+              {/* Option: Self (no speaker) */}
+              <View
+                className={`flex items-center gap-3 p-3 rounded-xl mb-2 ${
+                  !selectedSpeaker ? 'bg-pink-50 border-2 border-pink-300' : 'bg-gray-50'
+                }`}
+                onClick={() => handleSelectSpeaker(null)}
+              >
+                {userAvatar ? (
+                  <Image
+                    src={userAvatar}
+                    className="w-10 h-10 rounded-full"
+                    mode="aspectFill"
+                  />
+                ) : (
+                  <View className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User size={18} color="#666" />
+                  </View>
+                )}
+                <View className="flex-1">
+                  <Text className="block text-sm font-medium text-gray-900">我自己</Text>
+                  <Text className="block text-xs text-gray-500">以你的真实身份对话</Text>
+                </View>
+                {!selectedSpeaker && <Check size={18} color="#ec4899" />}
+              </View>
+
+              {/* Available Speakers from Relationships */}
+              {availableSpeakers.length === 0 ? (
+                <View className="py-8 text-center">
+                  <Users size={32} color="#d1d5db" />
+                  <Text className="block text-sm text-gray-400 mt-2">
+                    暂无可选人设
+                  </Text>
+                  <Text className="block text-xs text-gray-400 mt-1">
+                    请先在关系图谱中添加角色关系
+                  </Text>
+                </View>
+              ) : (
+                availableSpeakers.map((speaker) => {
+                  const isSelected = selectedSpeaker?.id === speaker.id
+                  return (
+                    <View
+                      key={speaker.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl mb-2 ${
+                        isSelected ? 'bg-pink-50 border-2 border-pink-300' : 'bg-gray-50'
+                      }`}
+                      onClick={() => handleSelectSpeaker(speaker)}
+                    >
+                      {speaker.avatar_url ? (
+                        <Image
+                          src={speaker.avatar_url}
+                          className="w-10 h-10 rounded-full"
+                          mode="aspectFill"
+                        />
+                      ) : (
+                        <View className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
+                          <Text className="text-sm font-medium text-pink-600">
+                            {speaker.name.charAt(0)}
+                          </Text>
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="block text-sm font-medium text-gray-900">
+                          {speaker.name}
+                        </Text>
+                        <Text className="block text-xs text-gray-500">
+                          {speaker.relation_type}
+                        </Text>
+                      </View>
+                      {isSelected && <Check size={18} color="#ec4899" />}
+                    </View>
+                  )
+                })
+              )}
+            </ScrollView>
           </View>
         </View>
       )}
