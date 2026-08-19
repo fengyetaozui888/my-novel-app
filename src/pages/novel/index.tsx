@@ -533,7 +533,7 @@ const NovelPage = () => {
             </View>
 
             <View
-              className="rounded-xl p-4 mb-4"
+              className="rounded-xl p-4 mb-4 mx-2"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
             >
               <View className="flex items-center gap-3">
