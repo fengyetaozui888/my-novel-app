@@ -98,7 +98,9 @@ export default defineConfig<'vite'>(async (merge, _env) => {
       TARO_ENV: JSON.stringify(process.env.TARO_ENV),
     },
     copy: {
-      patterns: [],
+      patterns: [
+        { from: 'public', to: outputRoot },
+      ],
       options: {},
     },
     ...(process.env.TARO_ENV === 'tt' && {
@@ -141,6 +143,28 @@ export default defineConfig<'vite'>(async (merge, _env) => {
           },
         },
         ...(isH5
+          ? [
+              {
+                name: 'copy-pwa-files',
+                closeBundle() {
+                  const fs = require('fs');
+                  const path = require('path');
+                  const srcDir = path.resolve(__dirname, '..', 'public');
+                  const destDir = path.resolve(__dirname, '..', outputRoot);
+                  if (fs.existsSync(srcDir)) {
+                    fs.readdirSync(srcDir).forEach(file => {
+                      fs.copyFileSync(
+                        path.join(srcDir, file),
+                        path.join(destDir, file),
+                      );
+                    });
+                    console.log('PWA files copied to', destDir);
+                  }
+                },
+              },
+            ]
+          : []),
+        ...(isH5
           ? []
           : [
               UnifiedViteWeappTailwindcssPlugin({
@@ -180,6 +204,36 @@ export default defineConfig<'vite'>(async (merge, _env) => {
       staticDirectory: 'static',
       router: {
         mode: 'hash',
+      },
+      // @ts-ignore - PWA configuration
+      pwa: {
+        enable: true,
+        manifest: {
+          name: '人设工坊',
+          short_name: '人设工坊',
+          description: '小说角色人设管理与模拟对话',
+          theme_color: '#f59e0b',
+          background_color: '#ffffff',
+          display: 'standalone',
+          start_url: './',
+          icons: [
+            {
+              src: '/assets/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: '/assets/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+          ],
+        },
+        workbox: {
+          enabled: true,
+          swSrc: path.resolve(__dirname, '../src/sw.js'),
+          swDest: 'sw.js',
+        },
       },
       devServer: {
         port: 5000,
