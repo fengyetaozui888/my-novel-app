@@ -9,6 +9,7 @@ export default defineAppConfig({
     'pages/moments/index',
     'pages/affinity-book/index',
     'pages/agent-feedback/index',
+    'pages/help/index',
   ],
   window: {
     backgroundTextStyle: 'light',

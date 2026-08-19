@@ -1,0 +1,209 @@
+import { View, Text, ScrollView } from '@tarojs/components'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import {
+  BookOpen,
+  UserPlus,
+  MessageCircle,
+  Heart,
+  Camera,
+  Sparkles,
+  Circle,
+  ChevronRight,
+  Palette,
+  CircleAlert,
+} from 'lucide-react-taro'
+
+interface HelpSection {
+  icon: React.ReactNode
+  title: string
+  subtitle: string
+  content: string[]
+}
+
+const VERSION = 'v1.2.0'
+const UPDATE_DATE = '2025-01-15'
+
+const HelpPage = () => {
+  const sections: HelpSection[] = [
+    {
+      icon: <BookOpen size={20} color="#ec4899" />,
+      title: '1. 创建小说',
+      subtitle: '开启你的创作之旅',
+      content: [
+        '在首页点击「创建小说」，输入小说名称和简介。',
+        '每部小说可以拥有多个角色，角色之间可以建立关系。',
+        '创建后进入「角色管理」页面，开始设定你的角色世界。',
+      ],
+    },
+    {
+      icon: <UserPlus size={20} color="#ec4899" />,
+      title: '2. 添加角色卡',
+      subtitle: '塑造鲜活的人物',
+      content: [
+        '在角色管理页，点击右上角「+ 添加角色卡」创建新角色。',
+        '为每个角色设定：人设定位、背景故事、人物小传、行事准则、具体事例。',
+        '选择性别（♀/♂）和初始立绘（古代/现代装），也可自定义显示区域（脸部/上半身/全身）。',
+        '角色分为三类：主角、重要配角、不重要角色，可在顶部 Tab 切换查看。',
+      ],
+    },
+    {
+      icon: <MessageCircle size={20} color="#ec4899" />,
+      title: '3. 与角色对话',
+      subtitle: '沉浸式互动体验',
+      content: [
+        '在角色卡上点击「对话」图标，进入对话界面。',
+        '选择对话模式：「我自己」以你的身份对话，或「设定角色」让两个角色互相交谈。',
+        '每次对话会增加亲密度，亲密度越高，角色对你越亲近。',
+        '对话由扣子平台 AI 驱动，角色会根据人设和亲密度做出不同反应。',
+      ],
+    },
+    {
+      icon: <Heart size={20} color="#ec4899" />,
+      title: '4. 亲密度图鉴',
+      subtitle: '查看关系进展',
+      content: [
+        '在「我的」页面进入「亲密度图鉴」，查看所有角色与你的亲密度。',
+        '亲密度满 100 时，角色会对你产生特殊情感。',
+        '点击角色卡上的「编辑」按钮，可以设定「我」在该角色眼中的人设（每角色独立）。',
+        '修改「我」的人设后，会获得一次手动调整亲密度的机会。',
+      ],
+    },
+    {
+      icon: <Camera size={20} color="#ec4899" />,
+      title: '5. 朋友圈',
+      subtitle: '角色们的日常生活',
+      content: [
+        '在底部导航栏切换到「朋友圈」，查看角色们发布的动态。',
+        '角色会根据人设自动生成朋友圈内容，你也可以点击右上角「+」发布自己的动态。',
+        '左上角灰色相机图标可以更换朋友圈背景图。',
+        '可以点赞、评论角色的动态，角色之间也会互相评论互动。',
+        '点击蓝色字体（角色名）可跳转到该角色的个人朋友圈。',
+      ],
+    },
+    {
+      icon: <Sparkles size={20} color="#ec4899" />,
+      title: '6. 小说图谱',
+      subtitle: '可视化人物关系',
+      content: [
+        '在角色管理页右下角点击「关系图」，进入小说图谱页面。',
+        '图谱以可视化方式展示角色之间的关系网络。',
+        '可以查看角色之间的关联强度和关系类型。',
+      ],
+    },
+    {
+      icon: <Palette size={20} color="#ec4899" />,
+      title: '7. 3D 互动场景',
+      subtitle: '让角色活起来（开发中）',
+      content: [
+        '未来将支持为角色生成 3D 互动场景。',
+        '消耗积分可生成立绘和互动反应。',
+        '敬请期待！',
+      ],
+    },
+    {
+      icon: <CircleAlert size={20} color="#ec4899" />,
+      title: '8. Agent 反馈',
+      subtitle: '优化角色表现',
+      content: [
+        '当角色做出不符合人设的行为时，在「我的」页面进入「agent反馈」。',
+        '选择对应角色，描述问题行为，提交反馈。',
+        'AI 会分析反馈并生成行为准则，即时优化该角色的模拟表现。',
+      ],
+    },
+  ]
+
+  const faqs = [
+    {
+      q: '如何修改角色的人设？',
+      a: '在角色管理页点击角色卡，进入编辑界面，可以修改人设定位、背景故事等所有字段。',
+    },
+    {
+      q: '亲密度如何提升？',
+      a: '与角色对话会自动增加亲密度。每次对话 +1，亲密度越高角色对你越亲近。',
+    },
+    {
+      q: '为什么角色回复不符合人设？',
+      a: '可以通过「agent反馈」功能提交问题，AI 会分析并优化角色表现。也可以检查人设描述是否足够详细。',
+    },
+    {
+      q: '积分有什么用？',
+      a: '积分用于 3D 互动场景功能（开发中），如生成立绘、互动反应等。',
+    },
+    {
+      q: '如何更换朋友圈背景？',
+      a: '在朋友圈页面点击左上角灰色相机图标，选择图片即可更换背景。',
+    },
+  ]
+
+  return (
+    <View className="min-h-screen bg-stone-50 pb-20">
+      {/* Header */}
+      <View
+        className="px-6 pt-8 pb-6"
+        style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
+      >
+        <View className="flex items-center gap-3">
+          <Circle size={28} color="#ec4899" />
+          <View>
+            <Text className="block text-xl font-bold text-gray-900">使用说明</Text>
+            <Text className="block text-sm text-gray-600 mt-1">版本 {VERSION} · 更新于 {UPDATE_DATE}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Content */}
+      <ScrollView scrollY className="h-full" style={{ height: 'calc(100vh - 140px)' }}>
+        <View className="px-4 py-4">
+          {/* Sections */}
+          {sections.map((section, idx) => (
+            <Card key={idx} className="border-0 shadow-sm mb-3">
+              <CardContent className="p-4">
+                <View className="flex items-start gap-3">
+                  <View className="mt-1">{section.icon}</View>
+                  <View className="flex-1">
+                    <Text className="block text-base font-semibold text-gray-900">{section.title}</Text>
+                    <Text className="block text-xs text-gray-500 mb-2">{section.subtitle}</Text>
+                    {section.content.map((text, tIdx) => (
+                      <Text key={tIdx} className="block text-sm text-gray-700 leading-6 mb-1">
+                        · {text}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          ))}
+
+          <Separator className="my-4" />
+
+          {/* FAQ */}
+          <View className="mb-4">
+            <Text className="block text-lg font-bold text-gray-900 mb-3">常见问题</Text>
+            {faqs.map((faq, idx) => (
+              <Card key={idx} className="border-0 shadow-sm mb-2">
+                <CardContent className="p-4">
+                  <View className="flex items-start gap-2">
+                    <ChevronRight size={16} color="#ec4899" className="mt-1 flex-shrink-0" />
+                    <View className="flex-1">
+                      <Text className="block text-sm font-medium text-gray-900 mb-1">{faq.q}</Text>
+                      <Text className="block text-sm text-gray-600 leading-6">{faq.a}</Text>
+                    </View>
+                  </View>
+                </CardContent>
+              </Card>
+            ))}
+          </View>
+
+          {/* Footer */}
+          <View className="text-center py-6">
+            <Text className="block text-xs text-gray-400">人设工坊 · 让每个角色都有灵魂</Text>
+            <Text className="block text-xs text-gray-400 mt-1">如有问题请联系开发者</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  )
+}
+
+export default HelpPage

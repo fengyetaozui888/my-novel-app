@@ -468,7 +468,7 @@ export default function MomentsPage() {
         </View>
       )}
       <View
-        style={{ position: 'fixed', bottom: '60px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'fixed', bottom: '90px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         onClick={() => setShowPublish(true)}
       >
         <Plus size={24} color="#e91e63" strokeWidth={2.5} />
