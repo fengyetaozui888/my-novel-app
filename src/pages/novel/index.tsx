@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Ellipsis } from 'lucide-react-taro'
 
@@ -724,25 +725,27 @@ const NovelPage = () => {
 
       {/* Three-dot Menu Dropdown */}
       {showDetailMenu && (
-        <View
-          className="fixed inset-0 z-[60]"
-          onClick={() => setShowDetailMenu(false)}
-        >
+        <Portal>
           <View
-            className="absolute top-12 right-4 bg-white rounded-xl shadow-lg overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[60]"
+            onClick={() => setShowDetailMenu(false)}
           >
             <View
-              className="px-4 py-3 hover:bg-gray-50"
-              onClick={() => {
-                setShowDetailMenu(false)
-                setShowDeleteConfirm(true)
-              }}
+              className="absolute top-12 right-4 bg-white rounded-xl shadow-lg overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Text className="block text-sm text-gray-700">删除人设</Text>
+              <View
+                className="px-4 py-3 hover:bg-gray-50"
+                onClick={() => {
+                  setShowDetailMenu(false)
+                  setShowDeleteConfirm(true)
+                }}
+              >
+                <Text className="block text-sm text-gray-700">删除人设</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Portal>
       )}
 
       {/* Delete Confirmation Dialog */}
