@@ -17,6 +17,7 @@ interface Character {
   category: string
   avatar_key: string | null
   avatar_url: string | null
+  gender: string
   persona: string | null
   background: string | null
   biography: string | null
@@ -58,7 +59,13 @@ const NovelPage = () => {
     biography: '',
     principles: '',
     examples: '',
+    gender: 'unknown',
   })
+
+  // Field editor
+  const [showFieldEditor, setShowFieldEditor] = useState(false)
+  const [editingField, setEditingField] = useState<{ key: string; label: string; value: string } | null>(null)
+  const [fieldEditorValue, setFieldEditorValue] = useState('')
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -182,8 +189,24 @@ const NovelPage = () => {
       biography: char.biography || '',
       principles: char.principles || '',
       examples: char.examples || '',
+      gender: char.gender || 'unknown',
     })
     setShowDetailDialog(true)
+  }
+
+  // Field editor
+  const openFieldEditor = (key: string, label: string) => {
+    const value = (detailForm as any)[key] || ''
+    setEditingField({ key, label, value })
+    setFieldEditorValue(value)
+    setShowFieldEditor(true)
+  }
+
+  const saveFieldEditor = () => {
+    if (!editingField) return
+    setDetailForm({ ...detailForm, [editingField.key]: fieldEditorValue })
+    setShowFieldEditor(false)
+    setEditingField(null)
   }
 
   const handleSaveDetail = async () => {
@@ -193,6 +216,8 @@ const NovelPage = () => {
         url: `/api/characters/${selectedChar.id}`,
         method: 'PUT',
         data: {
+          name: selectedChar.name,
+          gender: detailForm.gender,
           persona: detailForm.persona,
           background: detailForm.background,
           biography: detailForm.biography,
@@ -498,7 +523,18 @@ const NovelPage = () => {
                 </View>
                 <View className="flex-1">
                   <DialogTitle>
-                    <Text className="text-gray-900 text-lg font-bold">{selectedChar?.name}</Text>
+                    <View className="flex items-center gap-2">
+                      <Text className="text-gray-900 text-lg font-bold">{selectedChar?.name}</Text>
+                      <View
+                        className="p-1 rounded-full bg-white bg-opacity-30"
+                        onClick={() => {
+                          setNewName(selectedChar?.name || '')
+                          setShowRenameDialog(true)
+                        }}
+                      >
+                        <Pencil size={14} color="#ec4899" />
+                      </View>
+                    </View>
                   </DialogTitle>
                   <DialogDescription>
                     <Text className="text-gray-600 text-sm mt-1 block">
@@ -510,71 +546,83 @@ const NovelPage = () => {
             </View>
           </DialogHeader>
 
-          <View className="flex flex-col gap-4">
-            <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-2">人设定位</Text>
-              <View className="bg-stone-50 rounded-xl p-3">
-                <Textarea
-                  style={{ width: '100%', minHeight: '60px', backgroundColor: 'transparent' }}
-                  placeholder="角色的核心人设，如：性格、说话风格..."
-                  value={detailForm.persona}
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, persona: e.detail.value }))}
-                  maxlength={500}
-                />
+          {/* Gender Selection */}
+          <View className="flex items-center justify-center gap-6 py-2">
+            <View className="flex flex-col items-center gap-2">
+              <View
+                className="relative w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background:
+                    detailForm.gender === 'female'
+                      ? 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)'
+                      : '#f5f5f5',
+                  border: detailForm.gender === 'female' ? '2px solid #ec4899' : '2px solid #e0e0e0',
+                }}
+                onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'female' }))}
+              >
+                <Text className="text-3xl">👧</Text>
+                {detailForm.gender === 'female' && (
+                  <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                    <Text className="text-white text-xs font-bold">✓</Text>
+                  </View>
+                )}
               </View>
+              <Text className="text-xs text-gray-600">女生</Text>
             </View>
 
-            <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-2">背景故事</Text>
-              <View className="bg-stone-50 rounded-xl p-3">
-                <Textarea
-                  style={{ width: '100%', minHeight: '60px', backgroundColor: 'transparent' }}
-                  placeholder="角色的出身、经历、世界观..."
-                  value={detailForm.background}
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, background: e.detail.value }))}
-                  maxlength={1000}
-                />
+            <View className="flex flex-col items-center gap-2">
+              <View
+                className="relative w-16 h-16 rounded-full flex items-center justify-center"
+                style={{
+                  background:
+                    detailForm.gender === 'male'
+                      ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'
+                      : '#f5f5f5',
+                  border: detailForm.gender === 'male' ? '2px solid #2196f3' : '2px solid #e0e0e0',
+                }}
+                onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'male' }))}
+              >
+                <Text className="text-3xl">👦</Text>
+                {detailForm.gender === 'male' && (
+                  <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                    <Text className="text-white text-xs font-bold">✓</Text>
+                  </View>
+                )}
               </View>
+              <Text className="text-xs text-gray-600">男生</Text>
             </View>
+          </View>
 
-            <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-2">小传</Text>
-              <View className="bg-stone-50 rounded-xl p-3">
-                <Textarea
-                  style={{ width: '100%', minHeight: '60px', backgroundColor: 'transparent' }}
-                  placeholder="角色的详细传记、成长轨迹..."
-                  value={detailForm.biography}
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, biography: e.detail.value }))}
-                  maxlength={1000}
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-2">行事准则</Text>
-              <View className="bg-stone-50 rounded-xl p-3">
-                <Textarea
-                  style={{ width: '100%', minHeight: '60px', backgroundColor: 'transparent' }}
-                  placeholder="角色的行为逻辑、决策原则..."
-                  value={detailForm.principles}
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, principles: e.detail.value }))}
-                  maxlength={500}
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text className="block text-sm font-medium text-gray-700 mb-2">具体事例</Text>
-              <View className="bg-stone-50 rounded-xl p-3">
-                <Textarea
-                  style={{ width: '100%', minHeight: '60px', backgroundColor: 'transparent' }}
-                  placeholder="能体现角色性格的具体事件、对话示例..."
-                  value={detailForm.examples}
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, examples: e.detail.value }))}
-                  maxlength={1000}
-                />
-              </View>
-            </View>
+          <View className="flex flex-col gap-3">
+            {/* Field rows with + button */}
+            {[
+              { key: 'persona', label: '人设定位' },
+              { key: 'background', label: '背景故事' },
+              { key: 'biography', label: '人物小传' },
+              { key: 'principles', label: '行事准则' },
+              { key: 'examples', label: '具体事例' },
+            ].map((field) => {
+              const hasContent = (detailForm as any)[field.key]
+              return (
+                <View
+                  key={field.key}
+                  className="flex items-center justify-between bg-stone-50 rounded-xl px-4 py-3"
+                  onClick={() => openFieldEditor(field.key, field.label)}
+                >
+                  <View className="flex items-center gap-3 flex-1">
+                    <Text className="text-sm font-medium text-gray-700">{field.label}</Text>
+                    {hasContent && (
+                      <Text className="text-xs text-gray-400 truncate">
+                        {String(hasContent).substring(0, 20)}...
+                      </Text>
+                    )}
+                  </View>
+                  <View className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0">
+                    <Plus size={18} color="#fff" />
+                  </View>
+                </View>
+              )
+            })}
           </View>
 
           <View className="flex gap-3 mt-6">
@@ -588,6 +636,43 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveDetail}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Field Editor Dialog */}
+      <Dialog open={showFieldEditor} onOpenChange={setShowFieldEditor}>
+        <DialogContent className="bg-white rounded-3xl p-6 max-w-lg mx-4">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="block text-lg font-semibold text-gray-800">{editingField?.label || ''}</Text>
+            </DialogTitle>
+          </DialogHeader>
+
+          <View className="mt-4">
+            <Textarea
+              style={{ width: '100%', minHeight: '200px', backgroundColor: '#fafafa', borderRadius: '16px', padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
+              placeholder={`请输入${editingField?.label || ''}...`}
+              value={fieldEditorValue}
+              onInput={(e) => setFieldEditorValue(e.detail.value)}
+              maxlength={3000}
+            />
+          </View>
+
+          <View className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowFieldEditor(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={saveFieldEditor}
             >
               <Text className="text-white">保存</Text>
             </Button>

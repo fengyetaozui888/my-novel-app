@@ -4,6 +4,7 @@ import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Send,
   User,
@@ -70,6 +71,9 @@ const ChatPage = () => {
   const [showStatusPicker, setShowStatusPicker] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
+  const [showImageGenDialog, setShowImageGenDialog] = useState(false)
+  const [imageGenDescription, setImageGenDescription] = useState('')
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false)
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
   const [isPinned, setIsPinned] = useState(false)
   const [selectedSpeaker, setSelectedSpeaker] = useState<SpeakerCharacter | null>(null)
@@ -213,6 +217,38 @@ const ChatPage = () => {
   const handleOpenSpeakerPicker = () => {
     setShowMoreMenu(false)
     setShowSpeakerPicker(true)
+  }
+
+  const handleGenerateCharacterImage = async () => {
+    if (!imageGenDescription.trim()) {
+      Taro.showToast({ title: '请描述你想要生成的人设图', icon: 'none' })
+      return
+    }
+    setIsGeneratingImage(true)
+    try {
+      const res = await Network.request({
+        url: '/api/portrait/generate-image',
+        method: 'POST',
+        data: {
+          characterId,
+          description: imageGenDescription,
+        },
+      })
+      const data = res.data?.data || res.data
+      if (data?.image_url) {
+        Taro.showToast({ title: '人设图生成成功', icon: 'success' })
+        setShowImageGenDialog(false)
+        setImageGenDescription('')
+      }
+    } catch (err: any) {
+      console.error('人设图生成失败:', err)
+      Taro.showToast({
+        title: err?.errMsg || '人设图生成失败，请稍后重试',
+        icon: 'none',
+      })
+    } finally {
+      setIsGeneratingImage(false)
+    }
   }
 
   const handleSelectSpeaker = (speaker: SpeakerCharacter | null) => {
@@ -497,6 +533,16 @@ const ChatPage = () => {
             </View>
             <View
               className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={() => {
+                setShowMoreMenu(false)
+                setShowImageGenDialog(true)
+              }}
+            >
+              <ImageIcon size={16} color="#ec4899" />
+              <Text className="text-sm text-gray-700">人设图生成</Text>
+            </View>
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
               onClick={handleTogglePin}
             >
               <Pin size={16} color={isPinned ? '#ec4899' : '#666'} />
@@ -515,6 +561,67 @@ const ChatPage = () => {
             >
               <Search size={16} color="#666" />
               <Text className="text-sm text-gray-700">查找记录</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Image Generation Dialog */}
+      {showImageGenDialog && (
+        <View
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => !isGeneratingImage && setShowImageGenDialog(false)}
+        >
+          <View
+            className="w-80 bg-white rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View className="bg-gradient-to-r from-pink-400 to-rose-400 px-5 py-4">
+              <Text className="block text-lg font-bold text-white text-center">
+                人设图生成
+              </Text>
+              <Text className="block text-xs text-white text-center mt-1 opacity-90">
+                描述角色外貌，AI 将为你生成专属人设图（消耗150积分）
+              </Text>
+            </View>
+            {/* Body */}
+            <View className="p-5">
+              <View className="bg-gray-50 rounded-xl p-3 mb-4">
+                <Text className="block text-xs text-gray-500 mb-2">
+                  描述角色外貌、穿着、气质等
+                </Text>
+                <View className="bg-white rounded-lg p-2">
+                  <Textarea
+                    className="w-full bg-transparent text-sm text-gray-800 resize-none outline-none border-none"
+                    style={{ minHeight: '100px' }}
+                    placeholder="例如：一位身穿白色仙侠长袍的少女，黑色长发飘逸，眉目清秀，气质温婉..."
+                    value={imageGenDescription}
+                    onInput={(e) => setImageGenDescription(e.detail.value)}
+                  />
+                </View>
+              </View>
+              <View className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isGeneratingImage}
+                  onClick={() => {
+                    setShowImageGenDialog(false)
+                    setImageGenDescription('')
+                  }}
+                >
+                  取消
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-pink-400 to-rose-400 text-white"
+                  disabled={isGeneratingImage}
+                  onClick={handleGenerateCharacterImage}
+                >
+                  {isGeneratingImage ? '生成中...' : '生成'}
+                </Button>
+              </View>
             </View>
           </View>
         </View>

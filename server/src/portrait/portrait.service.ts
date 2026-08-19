@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { LLMClient, VideoGenerationClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { LLMClient, VideoGenerationClient, ImageGenerationClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 import axios from 'axios';
 import { UploadService } from '@/upload/upload.service';
 import { UsersService } from '@/users/users.service';
@@ -9,6 +9,7 @@ import { UsersService } from '@/users/users.service';
 const DEVELOPER_UIDS = ['UMSZWBAF7'];
 const PORTRAIT_COST = 300; // 生成立绘消耗积分
 const INTERACT_COST = 100; // 每次互动消耗积分
+const CHARACTER_IMAGE_COST = 150; // 人设图生成消耗积分
 const VIDEO_MODEL = 'doubao-seedance-2-0-260128';
 const LLM_MODEL = 'doubao-seed-2-0-mini-260215';
 
@@ -20,6 +21,7 @@ interface CharacterRow {
   portrait_prompt: string | null;
   portrait_key: string | null;
   portrait_frame_key: string | null;
+  avatar_key: string | null;
 }
 
 @Injectable()
@@ -280,6 +282,103 @@ export class PortraitService {
     }
   }
 
+  /** 人设图生成：LLM 转译提示词 → 图像生成 AI 生成人设图 */
+  async generateCharacterImage(
+    characterId: string,
+    userDescription: string,
+    headers: Record<string, string>,
+  ) {
+    const character = await this.getCharacter(characterId);
+
+    if (!character.persona && !userDescription) {
+      throw new BadRequestException('请先在角色详情中填写人设设定，或描述你想要生成的人设图');
+    }
+
+    // 1. LLM 将用户描述 + 角色设定转译为专业图像生成提示词
+    const prompt = await this.buildCharacterImagePrompt(character, userDescription);
+
+    // 2. 图像生成 AI 生成人设图
+    const imageClient = new ImageGenerationClient(
+      new Config(),
+      HeaderUtils.extractForwardHeaders(headers),
+    );
+    const response = await imageClient.generate({
+      prompt,
+      size: '2K',
+      watermark: false,
+    });
+
+    const helper = imageClient.getResponseHelper(response);
+    if (!helper.success || !helper.imageUrls.length) {
+      throw new BadRequestException(`人设图生成失败: ${helper.errorMessages.join('; ')}`);
+    }
+
+    const imageUrl = helper.imageUrls[0];
+
+    // 3. 下载图片并转存到对象存储
+    const imageBuffer = await this.downloadFile(imageUrl);
+    const imageSave = await this.uploadService.uploadBuffer(
+      imageBuffer,
+      `uploads/character-images/${Date.now()}_${this.randomId()}.png`,
+      'image/png',
+    );
+
+    // 4. 扣积分（开发者免费）
+    const credit = await this.chargeCredits(CHARACTER_IMAGE_COST, '人设图生成');
+
+    // 5. 保存到角色
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('characters')
+      .update({ avatar_key: imageSave.key })
+      .eq('id', characterId);
+
+    if (error) throw new BadRequestException(`人设图保存失败: ${error.message}`);
+
+    return {
+      character_id: characterId,
+      image_url: imageSave.url,
+      prompt,
+      credits_left: credit.credits,
+      charged: credit.charged,
+    };
+  }
+
+  /** LLM：将用户描述转译为人设图生成提示词 */
+  private async buildCharacterImagePrompt(character: CharacterRow, userDescription: string): Promise<string> {
+    const llm = new LLMClient(new Config());
+    const systemPrompt = `你是一位顶尖的 AI 图像生成提示词工程师，专精于高质量角色人设图生成。
+用户会提供小说角色的设定信息和额外的外貌描述，这些信息是给"人"看的，不能直接喂给图像生成模型。
+你的任务：把用户的自然语言描述转译成图像生成模型听得懂的专业提示词。
+
+要求：
+1. 输出一段连贯的中文提示词（150-300字），不要输出任何解释、标题或多余内容
+2. 风格：高质量角色立绘、精致面容、专业打光、清晰背景
+3. 必须包含：性别年龄感、五官气质、发型发色、服装材质与配色、配饰、表情、姿态
+4. 用户没写的外貌细节，根据人设气质合理补全（保持角色调性）
+5. 提示词中不出现角色姓名，只用外观描述
+6. 注重画面质感：光影、色彩、构图、细节`;
+
+    const userPrompt = `角色名：${character.name}
+人设：${character.persona || '（未填写）'}
+背景：${character.background || '（未填写）'}
+用户额外描述：${userDescription || '（无额外描述）'}
+
+请转译为图像生成提示词：`;
+
+    const response = await llm.invoke(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      { model: LLM_MODEL, temperature: 0.7 },
+    );
+
+    const prompt = (response?.content || '').trim();
+    if (!prompt) throw new BadRequestException('提示词生成失败，请稍后重试');
+    return prompt;
+  }
+
   /** 扣积分：开发者白名单免费 */
   private async chargeCredits(cost: number, action: string): Promise<{ credits: number; charged: boolean }> {
     const profile = await this.usersService.getProfile();
@@ -297,7 +396,7 @@ export class PortraitService {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('characters')
-      .select('id, name, persona, background, portrait_prompt, portrait_key, portrait_frame_key')
+      .select('id, name, persona, background, portrait_prompt, portrait_key, portrait_frame_key, avatar_key')
       .eq('id', characterId)
       .single();
 

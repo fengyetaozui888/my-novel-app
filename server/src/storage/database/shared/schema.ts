@@ -44,6 +44,7 @@ export const characters = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     category: varchar("category", { length: 20 }).notNull().default("protagonist"),
     avatar_key: varchar("avatar_key", { length: 500 }),
+    gender: varchar("gender", { length: 10 }).default("unknown"),
     portrait_prompt: text("portrait_prompt"),
     portrait_key: varchar("portrait_key", { length: 500 }),
     portrait_frame_key: varchar("portrait_frame_key", { length: 500 }),

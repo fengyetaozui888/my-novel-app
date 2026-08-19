@@ -46,4 +46,19 @@ export class PortraitController {
     );
     return { code: 200, msg: 'success', data };
   }
+
+  /** 人设图生成：LLM 转译提示词 + 图像生成 AI（消耗 150 积分，开发者免费） */
+  @Post('generate-image')
+  @HttpCode(200)
+  async generateCharacterImage(
+    @Body() body: { characterId: string; description?: string },
+    @Req() req: Request,
+  ) {
+    const data = await this.portraitService.generateCharacterImage(
+      body.characterId,
+      body.description || '',
+      req.headers as Record<string, string>,
+    );
+    return { code: 200, msg: 'success', data };
+  }
 }

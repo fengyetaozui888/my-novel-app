@@ -206,19 +206,19 @@ const InteractPage = () => {
 
       {/* Generate button (only when no portrait) */}
       {!portraitVideo && !isGenerating && (
-        <View className="absolute left-0 right-0 flex justify-center" style={{ top: '55%' }}>
-          <Button
-            onClick={handleGeneratePortrait}
-            className="rounded-full bg-pink-500 text-white shadow-lg shadow-pink-500"
-            style={{ display: 'flex' }}
-          >
-            <View className="flex flex-row items-center px-4 py-1">
-              <Sparkles size={16} color="#ffffff" className="mr-2" />
-              <Text className="text-sm font-semibold text-white">
+        <View
+          onClick={handleGeneratePortrait}
+          className="absolute left-0 right-0 flex justify-center"
+          style={{ top: '55%', zIndex: 100 }}
+        >
+          <View className="rounded-full bg-pink-500 shadow-lg px-6 py-3" style={{ boxShadow: '0 10px 15px -3px rgba(236, 72, 153, 0.5)' }}>
+            <View className="flex flex-row items-center">
+              <Sparkles size={16} color="#ffffff" />
+              <Text className="text-sm font-semibold text-white ml-2">
                 {isDeveloper ? '生成3D立绘（开发者免费）' : '生成3D立绘（消耗100积分）'}
               </Text>
             </View>
-          </Button>
+          </View>
         </View>
       )}
 
