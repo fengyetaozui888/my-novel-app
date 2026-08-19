@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Ellipsis } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2 } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -513,11 +513,11 @@ const NovelPage = () => {
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto" closeClassName="hidden">
           <DialogHeader>
-            {/* Three-dot menu at top-right */}
+            {/* Trash icon at top-right */}
             <View className="absolute top-4 right-4 z-10">
-              <Ellipsis
+              <Trash2
                 size={20}
-                color="#9e8e92"
+                color="#c2185b"
                 onClick={() => setShowDetailMenu(true)}
               />
             </View>
