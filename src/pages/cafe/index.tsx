@@ -227,14 +227,32 @@ const CafePage = () => {
 
           {/* Content */}
           <View className="mt-4">
-            <View className="bg-amber-50 rounded-xl p-4 border-2 border-amber-200">
-              <Textarea
-                className="w-full bg-transparent border-none"
-                placeholder="写下你的愿望、随笔、笑话... 什么都可以~"
-                value={content}
-                onInput={(e) => setContent(e.detail.value)}
-                style={{ minHeight: '120px' }}
-              />
+            <View className="bg-amber-50 rounded-xl border-2 border-amber-200 overflow-hidden">
+              <ScrollView
+                scrollY
+                className="p-4"
+                style={{ maxHeight: '120px' }}
+                onScroll={() => {
+                  // 滚动时显示滚动条
+                  const textarea = document.querySelector('textarea')
+                  if (textarea) {
+                    textarea.style.overflowY = 'scroll'
+                    // 停止滚动2秒后隐藏滚动条
+                    clearTimeout((textarea as any)._scrollTimer)
+                    ;(textarea as any)._scrollTimer = setTimeout(() => {
+                      textarea.style.overflowY = 'hidden'
+                    }, 2000)
+                  }
+                }}
+              >
+                <Textarea
+                  className="w-full bg-transparent border-none"
+                  placeholder="写下你的愿望、随笔、笑话... 什么都可以~"
+                  value={content}
+                  onInput={(e) => setContent(e.detail.value)}
+                  style={{ minHeight: '120px' }}
+                />
+              </ScrollView>
             </View>
           </View>
 

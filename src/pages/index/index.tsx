@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { BookOpen, Plus, Pencil, Trash2, Camera, Coffee } from 'lucide-react-taro'
+import { Sparkles, Plus, Pencil, Trash2, Camera, Coffee } from 'lucide-react-taro'
 
 interface Novel {
   id: string
@@ -137,7 +137,7 @@ const IndexPage = () => {
       {/* Header */}
       <View className="flex items-center justify-between mb-6">
         <View className="flex items-center gap-2">
-          <BookOpen size={24} color="#e8587a" />
+          <Sparkles size={24} color="#e8587a" />
           <Text className="block text-xl font-bold text-gray-900">小世界</Text>
         </View>
         <Button
@@ -175,7 +175,7 @@ const IndexPage = () => {
         </View>
       ) : novels.length === 0 ? (
         <View className="flex flex-col items-center justify-center py-20">
-          <BookOpen size={48} color="#9e8e92" />
+          <Sparkles size={48} color="#9e8e92" />
           <Text className="block text-gray-400 text-center mt-4 text-base">
             还没有小世界{'\n'}点击下方按钮创建第一个吧
           </Text>
@@ -201,7 +201,7 @@ const IndexPage = () => {
                         mode="aspectFill"
                       />
                     ) : (
-                      <BookOpen size={24} color="#e8587a" />
+                      <Sparkles size={24} color="#e8587a" />
                     )}
                     {/* Camera overlay */}
                     <View className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 active:opacity-100">
