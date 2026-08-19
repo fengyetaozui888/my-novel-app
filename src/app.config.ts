@@ -7,6 +7,7 @@ export default defineAppConfig({
     'pages/graph/index',
     'pages/interact/index',
     'pages/moments/index',
+    'pages/affinity-book/index',
   ],
   window: {
     backgroundTextStyle: 'light',

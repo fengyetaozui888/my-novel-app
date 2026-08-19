@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { User, Pencil, Camera, Coins, CreditCard } from 'lucide-react-taro'
+import { User, Pencil, Camera, Coins, CreditCard, BookHeart } from 'lucide-react-taro'
+import { Separator } from '@/components/ui/separator'
 
 interface UserProfile {
   id: string
@@ -297,6 +298,17 @@ const ProfilePage = () => {
                 <Text className="text-base text-gray-700">修改头像</Text>
               </View>
               <Text className="text-sm text-gray-400">点击上传</Text>
+            </View>
+            <Separator />
+            <View
+              className="flex items-center justify-between p-4"
+              onClick={() => Taro.navigateTo({ url: '/pages/affinity-book/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <BookHeart size={18} color="#ec4899" />
+                <Text className="text-base text-gray-700">亲密度图鉴</Text>
+              </View>
+              <Text className="text-sm text-gray-400">查看全部</Text>
             </View>
           </CardContent>
         </Card>

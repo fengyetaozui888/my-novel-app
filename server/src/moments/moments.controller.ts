@@ -17,20 +17,40 @@ export class MomentsController {
       characterId: body.characterId,
       novelId: body.novelId,
       content: body.content,
+      imageUrl: body.imageUrl ?? '',
+    })
+    return { code: 200, msg: 'success', data: moment }
+  }
+
+  /** 用户以"我自己"的身份发布朋友圈，角色会按亲密度回复 */
+  @Post('user')
+  async createUserMoment(@Body() body: { uid?: string; novelId: string; content: string; imageUrl?: string }) {
+    const moment = await this.momentsService.createUserMoment({
+      uid: body.uid,
+      novelId: body.novelId,
+      content: body.content,
       imageUrl: body.imageUrl,
     })
     return { code: 200, msg: 'success', data: moment }
   }
 
   @Post(':id/like')
-  async likeMoment(@Param('id') id: string, @Body() body: { characterId: string }) {
-    const result = await this.momentsService.likeMoment(id, body.characterId)
+  async likeMoment(@Param('id') id: string, @Body() body: { characterId?: string }) {
+    const result = await this.momentsService.toggleLikeMoment(id, body.characterId)
     return { code: 200, msg: 'success', data: result }
   }
 
   @Post(':id/comment')
-  async commentMoment(@Param('id') id: string, @Body() body: { characterId: string; content: string }) {
-    const comment = await this.momentsService.commentMoment(id, body.characterId, body.content)
+  async commentMoment(
+    @Param('id') id: string,
+    @Body() body: { characterId?: string; content: string; uid?: string },
+  ) {
+    const comment = await this.momentsService.commentMoment(
+      id,
+      body.characterId || null,
+      body.content,
+      body.uid,
+    )
     return { code: 200, msg: 'success', data: comment }
   }
 

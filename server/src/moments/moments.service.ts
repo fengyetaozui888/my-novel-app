@@ -109,9 +109,127 @@ ${relationContext}
     return data;
   }
 
+  /** 用户以"我"的身份发布朋友圈，并触发角色按亲密度回复 */
+  async createUserMoment(params: {
+    novelId: string;
+    uid?: string;
+    content: string;
+    imageUrl?: string;
+  }) {
+    // 查用户昵称（uid 为空时使用默认用户）
+    const userId = params.uid || (await this.getUserId());
+    const { data: user } = await this.client
+      .from('users')
+      .select('nickname')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const { data, error } = await this.client
+      .from('moments')
+      .insert({
+        character_id: null,
+        novel_id: params.novelId,
+        content: params.content,
+        image_url: params.imageUrl || null,
+        visibility: 'public',
+        author_type: 'user',
+        author_name: user?.nickname || '我',
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(`发布朋友圈失败: ${error.message}`);
+
+    // 异步生成角色回复（不阻塞发布）
+    this.generateUserMomentReplies(data.id, params.novelId, userId, params.content).catch(() => undefined);
+
+    return data;
+  }
+
+  /** 根据亲密度生成角色对用户朋友圈的评论 */
+  private async generateUserMomentReplies(
+    momentId: string,
+    novelId: string,
+    uid: string,
+    userContent: string,
+  ) {
+    // 取该小说下有立绘/有关系的主要角色（最多8个）
+    const { data: characters } = await this.client
+      .from('characters')
+      .select('id, name, persona, tagline')
+      .eq('novel_id', novelId)
+      .limit(8);
+
+    if (!characters || characters.length === 0) return;
+
+    // 取这些角色与用户的亲密度
+    const { data: affinities } = await this.client
+      .from('affinity')
+      .select('character_id, value')
+      .eq('user_id', uid)
+      .in('character_id', characters.map((c: any) => c.id));
+
+    const affinityMap = new Map<string, number>(
+      (affinities || []).map((a: any) => [a.character_id, a.value ?? 50]),
+    );
+
+    // 亲密度高的优先，选 1~3 个角色回复
+    const sorted = characters
+      .map((c: any) => ({ ...c, affinity: affinityMap.get(c.id) ?? 50 }))
+      .sort((a: any, b: any) => b.affinity - a.affinity);
+    const replyCount = Math.min(sorted.length, 1 + Math.floor(Math.random() * 3));
+    const repliers = sorted.slice(0, replyCount);
+
+    const llmClient = new LLMClient(new Config());
+
+    for (const c of repliers) {
+      const levelDesc =
+        c.affinity >= 80 ? '挚友（对你十分亲近，语气亲昵热情）'
+        : c.affinity >= 60 ? '好友（熟络自然，语气轻松）'
+        : c.affinity >= 40 ? '普通朋友（友好但保持分寸）'
+        : c.affinity >= 20 ? '泛泛之交（客气疏离）'
+        : '陌生人（冷淡客气）';
+
+      const prompt = `你是"${c.name}"（${c.persona || c.tagline || ''}）。用户（你的${levelDesc}，亲密度${c.affinity}/100）发了一条朋友圈：
+"${userContent}"
+
+请以该角色身份写一条评论（30字以内），语气必须符合当前亲密度：${levelDesc}。直接输出评论内容。`;
+
+      try {
+        const response = await llmClient.invoke(
+          [{ role: 'user' as const, content: prompt }],
+          { model: LLM_MODEL, temperature: 0.8 },
+        );
+        const reply = (response?.content || '').trim();
+        if (reply) {
+          await this.client.from('moment_comments').insert({
+            moment_id: momentId,
+            character_id: c.id,
+            content: reply,
+            author_type: 'character',
+            author_name: c.name,
+          });
+        }
+      } catch {
+        // 单个角色回复失败忽略
+      }
+    }
+  }
+
+  /** 单用户模式：取 users 表中的第一个用户 id */
+  private async getUserId(): Promise<string> {
+    const { data } = await this.client
+      .from('users')
+      .select('id, nickname')
+      .limit(1);
+    if (!data || data.length === 0) return '';
+    return (data[0] as any).id;
+  }
+
   async getMoments(novelId: string, characterId?: string, page = 1, pageSize = 20) {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const uid = await this.getUserId();
 
     let query = this.client
       .from('moments')
@@ -138,8 +256,28 @@ ${relationContext}
             avatar_url = null;
           }
         }
+
+        // 聚合点赞数 / 评论数 / 当前用户是否已赞
+        const [{ count: likesCount }, { count: commentsCount }] = await Promise.all([
+          this.client.from('moment_likes').select('*', { count: 'exact', head: true }).eq('moment_id', moment.id),
+          this.client.from('moment_comments').select('*', { count: 'exact', head: true }).eq('moment_id', moment.id),
+        ]);
+        let isLiked = false;
+        if (uid) {
+          const { data: myLike } = await this.client
+            .from('moment_likes')
+            .select('id')
+            .eq('moment_id', moment.id)
+            .eq('user_id', uid)
+            .maybeSingle();
+          isLiked = !!myLike;
+        }
+
         return {
           ...moment,
+          likes_count: likesCount ?? 0,
+          comments_count: commentsCount ?? 0,
+          is_liked: isLiked,
           character: {
             ...moment.character,
             avatar_url,
@@ -151,26 +289,36 @@ ${relationContext}
     return moments;
   }
 
-  async likeMoment(momentId: string, characterId: string) {
-    const { data, error } = await this.client
-      .from('moment_likes')
-      .insert({ moment_id: momentId, character_id: characterId })
-      .select()
-      .single();
+  /** 点赞/取消点赞（characterId 为空表示用户点赞） */
+  async toggleLikeMoment(momentId: string, characterId?: string) {
+    const uid = characterId ? null : await this.getUserId();
 
+    const existing = await this.client
+      .from('moment_likes')
+      .select('id')
+      .eq('moment_id', momentId);
+    if (existing.error) throw new Error(`点赞查询失败: ${existing.error.message}`);
+
+    const mine = (existing.data || []).find((l: any) =>
+      characterId ? l.character_id === characterId : uid && l.user_id === uid,
+    );
+
+    if (mine) {
+      const { error } = await this.client
+        .from('moment_likes')
+        .delete()
+        .eq('id', (mine as any).id);
+      if (error) throw new Error(`取消点赞失败: ${error.message}`);
+      return { liked: false };
+    }
+
+    const { error } = await this.client.from('moment_likes').insert({
+      moment_id: momentId,
+      character_id: characterId || null,
+      user_id: uid || null,
+    });
     if (error) throw new Error(`点赞失败: ${error.message}`);
-    return data;
-  }
-
-  async unlikeMoment(momentId: string, characterId: string) {
-    const { error } = await this.client
-      .from('moment_likes')
-      .delete()
-      .eq('moment_id', momentId)
-      .eq('character_id', characterId);
-
-    if (error) throw new Error(`取消点赞失败: ${error.message}`);
-    return true;
+    return { liked: true };
   }
 
   async getMomentLikes(momentId: string) {
@@ -183,25 +331,117 @@ ${relationContext}
     return data || [];
   }
 
-  async commentMoment(momentId: string, characterId: string, content: string) {
+  /** 评论：characterId 存在时以角色身份评论，否则以"我"（用户）的身份评论 */
+  async commentMoment(
+    momentId: string,
+    characterId: string | null,
+    content: string,
+    uid?: string,
+  ) {
+    const userId = uid || (characterId ? '' : await this.getUserId());
+    let authorName: string | null = null;
+    if (userId) {
+      const { data: user } = await this.client
+        .from('users')
+        .select('nickname')
+        .eq('id', userId)
+        .maybeSingle();
+      authorName = user?.nickname || '我';
+    }
+
     const { data, error } = await this.client
       .from('moment_comments')
       .insert({
         moment_id: momentId,
         character_id: characterId,
         content,
+        author_type: userId ? 'user' : 'character',
+        author_name: authorName,
       })
       .select()
       .single();
 
     if (error) throw new Error(`评论失败: ${error.message}`);
+
+    // 用户评论角色的朋友圈时，让被评论的角色按亲密度回复（异步）
+    if (userId) {
+      const { data: moment } = await this.client
+        .from('moments')
+        .select('character_id, content')
+        .eq('id', momentId)
+        .maybeSingle();
+      if (moment?.character_id) {
+        this.generateCharacterReplyToUserComment(
+          momentId,
+          moment.character_id,
+          userId,
+          content,
+        ).catch(() => undefined);
+      }
+    }
+
     return data;
+  }
+
+  /** 角色按亲密度回复用户的评论 */
+  private async generateCharacterReplyToUserComment(
+    momentId: string,
+    characterId: string,
+    uid: string,
+    userComment: string,
+  ) {
+    const { data: character } = await this.client
+      .from('characters')
+      .select('id, name, persona, tagline')
+      .eq('id', characterId)
+      .maybeSingle();
+    if (!character) return;
+
+    const { data: affinity } = await this.client
+      .from('affinity')
+      .select('value')
+      .eq('user_id', uid)
+      .eq('character_id', characterId)
+      .maybeSingle();
+
+    const value = (affinity as any)?.value ?? 50;
+    const levelDesc =
+      value >= 80 ? '挚友（对你十分亲近，语气亲昵热情）'
+      : value >= 60 ? '好友（熟络自然，语气轻松）'
+      : value >= 40 ? '普通朋友（友好但保持分寸）'
+      : value >= 20 ? '泛泛之交（客气疏离）'
+      : '陌生人（冷淡客气）';
+
+    const llmClient = new LLMClient(new Config());
+    const prompt = `你是"${character.name}"（${character.persona || character.tagline || ''}）。用户（你的${levelDesc}，亲密度${value}/100）在你的朋友圈下评论了你：
+"${userComment}"
+
+请以该角色身份回复这条评论（30字以内），语气必须符合当前亲密度：${levelDesc}。直接输出回复内容。`;
+
+    try {
+      const response = await llmClient.invoke(
+        [{ role: 'user' as const, content: prompt }],
+        { model: LLM_MODEL, temperature: 0.8 },
+      );
+      const reply = (response?.content || '').trim();
+      if (reply) {
+        await this.client.from('moment_comments').insert({
+          moment_id: momentId,
+          character_id: characterId,
+          content: reply,
+          author_type: 'character',
+          author_name: character.name,
+        });
+      }
+    } catch {
+      // 回复失败忽略
+    }
   }
 
   async getMomentComments(momentId: string) {
     const { data, error } = await this.client
       .from('moment_comments')
-      .select('character:characters(id, name, avatar_key), content, created_at')
+      .select('character:characters(id, name, avatar_key), author_type, author_name, content, created_at')
       .eq('moment_id', momentId)
       .order('created_at', { ascending: true });
 

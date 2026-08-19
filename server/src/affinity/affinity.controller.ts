@@ -1,35 +1,32 @@
-import { Controller, Get, Post, Body, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, HttpCode } from '@nestjs/common'
 import { AffinityService } from './affinity.service'
 
 @Controller('affinity')
 export class AffinityController {
   constructor(private readonly affinityService: AffinityService) {}
 
-  @Get()
-  @HttpCode(HttpStatus.OK)
-  async getAffinity(@Body() body: { userId: string; characterId: string }) {
-    const result = await this.affinityService.getAffinity(body.userId, body.characterId)
-    return {
-      code: 200,
-      msg: 'success',
-      data: result,
-    }
+  /** 亲密度图鉴：某小说下所有角色的亲密度 */
+  @Get('book/:novelId')
+  async getBook(@Param('novelId') novelId: string) {
+    const data = await this.affinityService.getBook(novelId)
+    return { code: 200, msg: 'success', data }
   }
 
-  @Post('update')
-  @HttpCode(HttpStatus.OK)
-  async updateAffinity(
-    @Body() body: { userId: string; characterId: string; delta: number },
+  /** 获取某角色与用户的亲密度 */
+  @Get(':characterId')
+  async getAffinity(@Param('characterId') characterId: string) {
+    const data = await this.affinityService.getAffinity(characterId)
+    return { code: 200, msg: 'success', data }
+  }
+
+  /** 手动调整亲密度（调试用） */
+  @Post(':characterId/adjust')
+  @HttpCode(200)
+  async adjust(
+    @Param('characterId') characterId: string,
+    @Body() body: { delta: number }
   ) {
-    const result = await this.affinityService.updateAffinity(
-      body.userId,
-      body.characterId,
-      body.delta,
-    )
-    return {
-      code: 200,
-      msg: 'success',
-      data: result,
-    }
+    const data = await this.affinityService.adjustAffinity(characterId, body.delta ?? 0)
+    return { code: 200, msg: 'success', data }
   }
 }

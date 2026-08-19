@@ -1,100 +1,119 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Image, ScrollView } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Heart, MessageCircle, X } from 'lucide-react-taro'
+import { Heart, MessageCircle, Camera, ImagePlus, X } from 'lucide-react-taro'
 
 interface Comment {
   id: string
-  characterId: string
   characterName: string
-  characterAvatar: string
+  authorType: string
   content: string
   createdAt: string
 }
 
 interface Moment {
   id: string
-  characterId: string
   characterName: string
   characterAvatar: string
+  authorType: string
   content: string
   imageUrl?: string
   createdAt: string
   likes: number
-  comments: number
   isLiked: boolean
-  commentList?: Comment[]
+  commentList: Comment[]
+}
+
+/** 后端 snake_case → 前端结构 */
+const mapMoment = (m: any): Moment => ({
+  id: m.id,
+  characterName: m.author_type === 'user' ? (m.author_name || '我') : (m.character?.name || m.author_name || ''),
+  characterAvatar: m.character?.avatar_url || '',
+  authorType: m.author_type,
+  content: m.content,
+  imageUrl: m.image_url || undefined,
+  createdAt: m.created_at,
+  likes: m.likes_count ?? 0,
+  isLiked: !!m.is_liked,
+  commentList: [],
+})
+
+const mapComment = (c: any): Comment => ({
+  id: `${c.created_at}-${Math.random().toString(36).slice(2, 7)}`,
+  characterName: c.author_type === 'user' ? (c.author_name || '我') : (c.character?.name || c.author_name || ''),
+  authorType: c.author_type,
+  content: c.content,
+  createdAt: c.created_at,
+})
+
+const formatTime = (iso: string) => {
+  const d = new Date(iso)
+  const now = new Date()
+  const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000)
+  if (diffMin < 1) return '刚刚'
+  if (diffMin < 60) return `${diffMin}分钟前`
+  const diffHour = Math.floor(diffMin / 60)
+  if (diffHour < 24) return `${diffHour}小时前`
+  return `${d.getMonth() + 1}月${d.getDate()}日`
 }
 
 export default function MomentsPage() {
+  const router = useRouter()
+  const characterIdParam = router.params.characterId || ''
+  const [novelId, setNovelId] = useState('')
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState<string>('')
+  const [expandedMomentId, setExpandedMomentId] = useState<string>('')
   const [showCommentInput, setShowCommentInput] = useState(false)
-  const [selectedMomentId, setSelectedMomentId] = useState<string>('')
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
-  const [commentMoment, setCommentMoment] = useState<Moment | null>(null)
+  const [showPublish, setShowPublish] = useState(false)
+  const [publishText, setPublishText] = useState('')
+  const [publishImage, setPublishImage] = useState('')
+  const [submittingPublish, setSubmittingPublish] = useState(false)
 
   useEffect(() => {
-    loadMoments()
-    loadBackground()
+    initContext()
   }, [])
 
-  const loadMoments = async () => {
+  /** 获取小说上下文：优先从参数，否则取第一本小说 */
+  const initContext = async () => {
+    let nid = ''
+    try {
+      const res = await Network.request({ url: '/api/novels', method: 'GET' })
+      const list = res.data?.data
+      nid = Array.isArray(list) && list.length > 0 ? list[0].id : ''
+    } catch (error) {
+      console.error('Failed to load novels:', error)
+    }
+    setNovelId(nid)
+    if (nid) {
+      loadMoments(nid)
+      loadBackground(nid)
+    }
+  }
+
+  const loadMoments = async (nid?: string) => {
+    const id = nid || novelId
+    if (!id) return
     try {
       setLoading(true)
       const res = await Network.request({
-        url: '/api/moments',
+        url: `/api/moments?novelId=${id}${characterIdParam ? `&characterId=${characterIdParam}` : ''}`,
         method: 'GET'
       })
       console.log('Moments response:', res.data)
-      if (res.data?.code === 200 && res.data?.data) {
-        setMoments(res.data.data)
+      if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+        setMoments(res.data.data.map(mapMoment))
       } else {
-        // 示例数据
-        setMoments([
-          {
-            id: '1',
-            characterId: 'char-1',
-            characterName: '贾宝玉',
-            characterAvatar: '',
-            content: '今日在园中赏花，见黛玉独自葬花，心中不忍。这世间美好的事物，为何总是转瞬即逝？',
-            imageUrl: '',
-            createdAt: '2小时前',
-            likes: 12,
-            comments: 5,
-            isLiked: false,
-            commentList: [
-              {
-                id: 'c1',
-                characterId: 'char-2',
-                characterName: '林黛玉',
-                characterAvatar: '',
-                content: '你既这么说，又何必来惹我伤心',
-                createdAt: '1小时前'
-              }
-            ]
-          },
-          {
-            id: '2',
-            characterId: 'char-2',
-            characterName: '林黛玉',
-            characterAvatar: '',
-            content: '花谢花飞花满天，红消香断有谁怜？',
-            imageUrl: '',
-            createdAt: '3小时前',
-            likes: 28,
-            comments: 8,
-            isLiked: true,
-            commentList: []
-          }
-        ])
+        setMoments([])
       }
     } catch (error) {
       console.error('Failed to load moments:', error)
@@ -103,14 +122,16 @@ export default function MomentsPage() {
     }
   }
 
-  const loadBackground = async () => {
+  const loadBackground = async (nid?: string) => {
+    const id = nid || novelId
+    if (!id) return
     try {
       const res = await Network.request({
-        url: '/api/moments/background',
+        url: `/api/moments/background?novelId=${id}`,
         method: 'GET'
       })
-      if (res.data?.code === 200 && res.data?.data?.url) {
-        setBackgroundImage(res.data.data.url)
+      if (res.data?.code === 200 && res.data?.data?.image_url) {
+        setBackgroundImage(res.data.data.image_url)
       }
     } catch (error) {
       console.error('Failed to load background:', error)
@@ -119,13 +140,15 @@ export default function MomentsPage() {
 
   const handleLike = async (momentId: string) => {
     try {
-      await Network.request({
+      const res = await Network.request({
         url: `/api/moments/${momentId}/like`,
-        method: 'POST'
+        method: 'POST',
+        data: {}
       })
-      setMoments(moments.map(m => 
-        m.id === momentId 
-          ? { ...m, isLiked: !m.isLiked, likes: m.isLiked ? m.likes - 1 : m.likes + 1 }
+      const liked = res.data?.data?.liked
+      setMoments(prev => prev.map(m =>
+        m.id === momentId
+          ? { ...m, isLiked: liked, likes: liked ? m.likes + 1 : Math.max(0, m.likes - 1) }
           : m
       ))
     } catch (error) {
@@ -133,87 +156,176 @@ export default function MomentsPage() {
     }
   }
 
-  const handleCommentClick = (momentId: string) => {
-    const moment = moments.find(m => m.id === momentId)
-    setSelectedMomentId(momentId)
-    setCommentMoment(moment || null)
+  // 微信风格：切换展开评论区（点击评论图标时调用）
+  const toggleComments = async (momentId: string) => {
+    const target = expandedMomentId === momentId ? '' : momentId
+    setExpandedMomentId(target)
+    if (target) {
+      try {
+        const res = await Network.request({
+          url: `/api/moments/${momentId}/comments`,
+          method: 'GET'
+        })
+        if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+          setMoments(prev => prev.map(m =>
+            m.id === momentId ? { ...m, commentList: res.data.data.map(mapComment) } : m
+          ))
+        }
+      } catch (error) {
+        console.error('Failed to load comments:', error)
+      }
+    }
+  }
+
+  const openInputBar = (momentId: string) => {
+    setExpandedMomentId(momentId)
     setShowCommentInput(true)
     setCommentText('')
+    // 同时拉取评论
+    Network.request({
+      url: `/api/moments/${momentId}/comments`,
+      method: 'GET'
+    }).then(res => {
+      if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+        setMoments(prev => prev.map(m =>
+          m.id === momentId ? { ...m, commentList: res.data.data.map(mapComment) } : m
+        ))
+      }
+    }).catch(() => {})
   }
 
   const handleSubmitComment = async () => {
-    if (!commentText.trim()) return
-    
+    if (!commentText.trim() || !expandedMomentId) return
+
     try {
       setSubmittingComment(true)
+      // 不传 characterId：以"我"的身份评论
       const res = await Network.request({
-        url: `/api/moments/${selectedMomentId}/comment`,
+        url: `/api/moments/${expandedMomentId}/comment`,
         method: 'POST',
         data: { content: commentText }
       })
-      
+      console.log('Comment response:', res.data)
+
       if (res.data?.code === 200) {
-        // 刷新评论列表
-        await loadMoments()
+        // 重新加载评论（角色回复是异步生成的，稍后可再次展开刷新）
+        const commentsRes = await Network.request({
+          url: `/api/moments/${expandedMomentId}/comments`,
+          method: 'GET'
+        })
+        if (commentsRes.data?.code === 200 && Array.isArray(commentsRes.data.data)) {
+          setMoments(prev => prev.map(m =>
+            m.id === expandedMomentId ? { ...m, commentList: commentsRes.data.data.map(mapComment) } : m
+          ))
+        }
         setShowCommentInput(false)
         setCommentText('')
-        Taro.showToast({
-          title: '评论成功',
-          icon: 'success'
-        })
+        Taro.showToast({ title: '评论成功', icon: 'success' })
       }
     } catch (error) {
       console.error('Failed to submit comment:', error)
-      Taro.showToast({
-        title: '评论失败',
-        icon: 'error'
-      })
+      Taro.showToast({ title: '评论失败', icon: 'error' })
     } finally {
       setSubmittingComment(false)
     }
   }
 
-  const handleChangeBackground = async () => {
+  // 以"我"的身份发布朋友圈
+  const handleChoosePublishImage = async () => {
     try {
       const res = await Taro.chooseImage({
         count: 1,
         sizeType: ['compressed'],
         sourceType: ['album', 'camera']
       })
-      
-      const tempFilePath = res.tempFilePaths[0]
-      
-      const uploadRes = await Network.uploadFile({
-        url: '/api/moments/background',
-        filePath: tempFilePath,
-        name: 'file'
-      })
-      
-      console.log('Upload response:', uploadRes)
-      
-      if (uploadRes.data) {
-        const data = JSON.parse(uploadRes.data)
-        if (data.url) {
-          setBackgroundImage(data.url)
-          Taro.showToast({
-            title: '背景设置成功',
-            icon: 'success'
-          })
-        }
-      }
+      setPublishImage(res.tempFilePaths[0])
     } catch (error) {
-      console.error('Failed to change background:', error)
-      Taro.showToast({
-        title: '设置失败',
-        icon: 'error'
-      })
+      console.error('Failed to choose image:', error)
     }
   }
 
+  const handlePublish = async () => {
+    if (!publishText.trim() || !novelId) return
+
+    try {
+      setSubmittingPublish(true)
+      let imageUrl = ''
+      if (publishImage) {
+        const uploadRes = await Network.uploadFile({
+          url: '/api/upload',
+          filePath: publishImage,
+          name: 'file'
+        })
+        if (uploadRes.data) {
+          const data = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+          imageUrl = data?.data?.url || data?.url || ''
+        }
+      }
+
+      const res = await Network.request({
+        url: '/api/moments/user',
+        method: 'POST',
+        data: { novelId, content: publishText, imageUrl }
+      })
+      console.log('Publish response:', res.data)
+
+      if (res.data?.code === 200) {
+        setShowPublish(false)
+        setPublishText('')
+        setPublishImage('')
+        await loadMoments()
+        Taro.showToast({ title: '发布成功', icon: 'success' })
+      }
+    } catch (error) {
+      console.error('Failed to publish:', error)
+      Taro.showToast({ title: '发布失败', icon: 'error' })
+    } finally {
+      setSubmittingPublish(false)
+    }
+  }
+
+  const handleChangeBackground = async () => {
+    if (!novelId) return
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera']
+      })
+      const tempFilePath = res.tempFilePaths[0]
+
+      // 先上传拿 URL，再保存为朋友圈背景
+      const uploadRes = await Network.uploadFile({
+        url: '/api/upload',
+        filePath: tempFilePath,
+        name: 'file'
+      })
+      if (!uploadRes.data) return
+      const data = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+      const url = data?.data?.url || data?.url
+      if (!url) return
+
+      const saveRes = await Network.request({
+        url: '/api/moments/background',
+        method: 'POST',
+        data: { novelId, imageUrl: url }
+      })
+      if (saveRes.data?.code === 200) {
+        setBackgroundImage(url)
+        Taro.showToast({ title: '背景设置成功', icon: 'success' })
+      }
+    } catch (error) {
+      console.error('Failed to change background:', error)
+      Taro.showToast({ title: '设置失败', icon: 'error' })
+    }
+  }
+
+  const isUserMoment = (m: Moment) => m.authorType === 'user'
+
   return (
-    <View className="min-h-screen bg-gray-50">
-      {/* Header with background */}
-      <View className="relative h-48 overflow-hidden">
+    <View className="min-h-screen bg-pink-50">
+      {/* 顶部背景区 */}
+      <View className="relative h-56 overflow-hidden">
         {backgroundImage ? (
           <Image
             src={backgroundImage}
@@ -223,91 +335,110 @@ export default function MomentsPage() {
         ) : (
           <View
             className="absolute inset-0 w-full h-full"
-            style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #fda085 100%)' }}
+            style={{ background: 'linear-gradient(160deg, #fce4ec 0%, #f8bbd0 40%, #f48fb1 100%)' }}
           />
         )}
-        <View className="absolute inset-0 bg-black bg-opacity-20" />
-        
-        {/* Header content */}
-        <View className="relative h-full flex flex-col justify-end p-4">
-          <Text className="text-white text-xl font-bold mb-2">朋友圈</Text>
-          <Text className="text-white text-opacity-80 text-sm">查看角色们的日常动态</Text>
+
+        {/* 头部内容 */}
+        <View className="relative h-full flex flex-col justify-end px-4 pb-4">
+          <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>朋友圈</Text>
+          <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>角色们的日常动态</Text>
         </View>
 
-        {/* Change background button */}
+        {/* 左上角换背景 */}
         <View
-          className="absolute top-4 right-4 bg-white bg-opacity-30 backdrop-blur-sm rounded-full px-3 py-2"
+          className="absolute top-4 left-4 bg-white bg-opacity-40 rounded-full px-3 py-2"
           onClick={handleChangeBackground}
         >
-          <Text className="text-white text-xs">换背景</Text>
+          <Text className="text-white text-xs" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>换背景</Text>
+        </View>
+
+        {/* 右上角相机：以"我"的身份发布朋友圈 */}
+        <View
+          className="absolute top-4 right-4 bg-white bg-opacity-40 rounded-full p-2"
+          onClick={() => setShowPublish(true)}
+        >
+          <Camera size={20} color="#ffffff" />
         </View>
       </View>
 
-      {/* Moments list */}
-      <ScrollView scrollY className="h-full" style={{ height: 'calc(100vh - 12rem)' }}>
-        <View className="p-4 space-y-4">
+      {/* 朋友圈列表 */}
+      <ScrollView scrollY className="h-full" style={{ height: 'calc(100vh - 14rem)' }}>
+        <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {moments.map((moment) => (
             <Card key={moment.id} className="bg-white rounded-xl shadow-sm">
               <CardContent className="p-4">
-                {/* Header */}
-                <View className="flex items-center gap-3 mb-3">
+                {/* 头像 + 名字（微信结构：无右上角气泡） */}
+                <View style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                   <Avatar className="w-10 h-10">
                     <AvatarImage src={moment.characterAvatar} />
                     <AvatarFallback>{moment.characterName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <View className="flex-1">
-                    <Text className="font-semibold text-gray-900">{moment.characterName}</Text>
-                    <Text className="text-xs text-gray-500">{moment.createdAt}</Text>
+                    <Text className="block font-semibold text-sm" style={{ color: '#17323c' }}>{moment.characterName}</Text>
+                    {/* 时间与名字拉开距离 */}
+                    <Text className="block text-xs text-gray-400 mt-2">{formatTime(moment.createdAt)}</Text>
                   </View>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MessageCircle size={16} color="#9ca3af" />
-                  </Button>
                 </View>
 
-                {/* Content */}
-                <Text className="text-gray-800 text-sm leading-relaxed mb-3 block">
+                {/* 内容 */}
+                <Text className="block text-gray-800 text-sm leading-relaxed mt-3 mb-2">
                   {moment.content}
                 </Text>
 
-                {/* Image */}
+                {/* 图片 */}
                 {moment.imageUrl && (
                   <Image
                     src={moment.imageUrl}
-                    className="w-full h-48 rounded-lg mb-3"
+                    className="w-full h-48 rounded-lg mb-2"
                     mode="aspectFill"
                   />
                 )}
 
-                {/* Comments preview */}
-                {moment.commentList && moment.commentList.length > 0 && (
-                  <View className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
-                    {moment.commentList.map((comment) => (
-                      <View key={comment.id} className="flex gap-2">
-                        <Text className="text-xs font-semibold text-gray-700">{comment.characterName}:</Text>
-                        <Text className="text-xs text-gray-600 flex-1">{comment.content}</Text>
+                {/* 微信风格：点赞 + 评论合并浅灰区块 */}
+                {(moment.likes > 0 || (moment.commentList && moment.commentList.length > 0)) && (
+                  <View className="bg-gray-100 rounded-lg p-3 mt-2">
+                    {moment.likes > 0 && (
+                      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px' }}>
+                        <Heart size={13} color="#ec4899" filled />
+                        <Text className="text-xs" style={{ color: '#576b95' }}>
+                          {moment.isLiked && moment.likes === 1 ? '我' : `${moment.likes}人觉得很赞`}
+                        </Text>
+                      </View>
+                    )}
+                    {moment.commentList && moment.commentList.map((comment, idx) => (
+                      <View
+                        key={comment.id}
+                        style={{ display: 'flex', flexDirection: 'row', marginTop: moment.isLiked || idx > 0 ? '6px' : '0' }}
+                      >
+                        <Text
+                          className="text-xs"
+                          style={{ color: '#576b95' }}
+                          onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
+                        >
+                          {comment.characterName}:
+                        </Text>
+                        <Text className="text-xs text-gray-700 flex-1">{comment.content}</Text>
                       </View>
                     ))}
                   </View>
                 )}
 
-                {/* Actions */}
-                <View className="flex items-center gap-4 pt-3 border-t border-gray-100">
+                {/* 操作栏（微信：右下角两个小图标） */}
+                <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-end', gap: '20px', marginTop: '10px' }}>
                   <View
-                    className="flex items-center gap-1"
+                    style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px', padding: '4px 8px' }}
                     onClick={() => handleLike(moment.id)}
                   >
-                    <Heart
-                      size={18}
-                      color={moment.isLiked ? '#ec4899' : '#9ca3af'}
-                    />
-                    <Text className="text-xs text-gray-600">{moment.likes}</Text>
+                    <Heart size={18} color={moment.isLiked ? '#ec4899' : '#9ca3af'} filled={moment.isLiked} />
+                    <Text className="text-xs text-gray-500">{moment.likes > 0 ? moment.likes : '赞'}</Text>
                   </View>
                   <View
-                    className="flex items-center gap-1"
-                    onClick={() => handleCommentClick(moment.id)}
+                    style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px', padding: '4px 8px' }}
+                    onClick={() => toggleComments(moment.id)}
                   >
                     <MessageCircle size={18} color="#9ca3af" />
-                    <Text className="text-xs text-gray-600">{moment.comments}</Text>
+                    <Text className="text-xs text-gray-500">评论</Text>
                   </View>
                 </View>
               </CardContent>
@@ -322,64 +453,111 @@ export default function MomentsPage() {
         </View>
       </ScrollView>
 
-      {/* Comment input modal */}
+      {/* 微信风格评论输入栏：底部固定弹出的单行输入 */}
       {showCommentInput && (
-        <View className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col">
-          {/* Show the moment content */}
-          <View className="flex-1 overflow-auto p-4 pb-4">
-            {commentMoment && (
-              <Card className="bg-white rounded-xl shadow-sm">
-                <CardContent className="p-4">
-                  <View className="flex items-center gap-3 mb-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={commentMoment.characterAvatar} />
-                      <AvatarFallback>{commentMoment.characterName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <View className="flex-1">
-                      <Text className="font-semibold text-gray-900">{commentMoment.characterName}</Text>
-                      <Text className="text-xs text-gray-500">{commentMoment.createdAt}</Text>
-                    </View>
-                  </View>
-                  <Text className="text-gray-800 text-sm leading-relaxed mb-3 block">
-                    {commentMoment.content}
-                  </Text>
-                  {commentMoment.imageUrl && (
-                    <Image
-                      src={commentMoment.imageUrl}
-                      className="w-full h-48 rounded-lg mb-3"
-                      mode="aspectFill"
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            )}
+        <View
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 200,
+            backgroundColor: '#ffffff',
+            borderTop: '1px solid #f3f4f6',
+            padding: '10px 12px',
+            paddingBottom: 'calc(env(safe-area-inset-bottom) + 56px)',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <View className="flex-1 bg-gray-100 rounded-lg px-3 py-2">
+            <Input
+              className="w-full bg-transparent"
+              placeholder="评论..."
+              value={commentText}
+              focus
+              onInput={(e) => setCommentText(e.detail.value)}
+            />
           </View>
+          <Button
+            size="sm"
+            onClick={handleSubmitComment}
+            disabled={submittingComment || !commentText.trim()}
+            className="bg-pink-500 text-white rounded-lg"
+          >
+            <Text className="text-white text-sm">{submittingComment ? '...' : '发送'}</Text>
+          </Button>
+          <View onClick={() => setShowCommentInput(false)}>
+            <X size={20} color="#9ca3af" />
+          </View>
+        </View>
+      )}
 
-          {/* Comment input at bottom */}
-          <View className="bg-white rounded-t-2xl p-4 w-full border-t border-gray-200" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 60px)' }}>
-            <View className="flex items-center justify-between mb-3">
-              <Text className="text-base font-semibold">发表评论</Text>
-              <Button variant="ghost" size="icon" onClick={() => setShowCommentInput(false)}>
+      {/* 发布朋友圈弹窗（以"我"的身份） */}
+      {showPublish && (
+        <View
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '24px'
+          }}
+        >
+          <View className="bg-white rounded-2xl w-full p-5">
+            <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <Text className="text-base font-semibold text-gray-900">发表朋友圈</Text>
+              <View onClick={() => setShowPublish(false)}>
                 <X size={20} color="#9ca3af" />
-              </Button>
-            </View>
-            <View className="flex gap-2">
-              <View className="flex-1 bg-gray-100 rounded-xl px-4 py-3">
-                <Input
-                  className="w-full bg-transparent"
-                  placeholder="写下你的评论..."
-                  value={commentText}
-                  onInput={(e) => setCommentText(e.detail.value)}
-                />
               </View>
-              <Button
-                onClick={handleSubmitComment}
-                disabled={submittingComment || !commentText.trim()}
-                className="bg-pink-500 text-white"
-              >
-                <Text>{submittingComment ? '发送中...' : '发送'}</Text>
-              </Button>
             </View>
+
+            <View className="bg-pink-50 rounded-xl p-3 mb-3">
+              <Textarea
+                style={{ width: '100%', minHeight: '100px', backgroundColor: 'transparent' }}
+                placeholder="这一刻的想法..."
+                value={publishText}
+                maxlength={500}
+                onInput={(e) => setPublishText(e.detail.value)}
+              />
+            </View>
+
+            {publishImage ? (
+              <View className="relative mb-3">
+                <Image src={publishImage} className="w-full h-40 rounded-xl" mode="aspectFill" />
+                <View
+                  style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, padding: 4 }}
+                  onClick={() => setPublishImage('')}
+                >
+                  <X size={14} color="#ffffff" />
+                </View>
+              </View>
+            ) : (
+              <View
+                className="flex flex-col items-center justify-center border border-dashed border-pink-200 rounded-xl py-6 mb-3"
+                onClick={handleChoosePublishImage}
+              >
+                <ImagePlus size={24} color="#f48fb1" />
+                <Text className="text-xs text-pink-300 mt-2">添加图片（可选）</Text>
+              </View>
+            )}
+
+            <Button
+              className="w-full bg-pink-500 text-white rounded-xl"
+              disabled={submittingPublish || !publishText.trim()}
+              onClick={handlePublish}
+            >
+              <Text className="text-white">{submittingPublish ? '发布中...' : '发布'}</Text>
+            </Button>
+            <Text className="block text-xs text-gray-400 text-center mt-3">
+              发布后，与「我」有亲密度的角色可能会前来评论
+            </Text>
           </View>
         </View>
       )}

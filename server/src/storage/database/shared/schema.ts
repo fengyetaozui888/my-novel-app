@@ -86,12 +86,14 @@ export const moments = pgTable(
   "moments",
   {
     id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
-    character_id: varchar("character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    character_id: varchar("character_id", { length: 36 }).references(() => characters.id, { onDelete: "cascade" }),
     novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     image_url: varchar("image_url", { length: 500 }),
     visibility: varchar("visibility", { length: 20 }).default("public"),
     blocked_character_ids: text("blocked_character_ids").default("[]"),
+    author_type: varchar("author_type", { length: 20 }).default("character"),
+    author_name: varchar("author_name", { length: 100 }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -118,8 +120,10 @@ export const moment_comments = pgTable(
   {
     id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
     moment_id: varchar("moment_id", { length: 36 }).notNull().references(() => moments.id, { onDelete: "cascade" }),
-    character_id: varchar("character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    character_id: varchar("character_id", { length: 36 }).references(() => characters.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    author_type: varchar("author_type", { length: 20 }).default("character"),
+    author_name: varchar("author_name", { length: 100 }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
