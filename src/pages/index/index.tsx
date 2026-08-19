@@ -1,16 +1,18 @@
 import { useState, useCallback } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { BookOpen, Plus, Pencil, Trash2 } from 'lucide-react-taro'
+import { BookOpen, Plus, Pencil, Trash2, Camera } from 'lucide-react-taro'
 
 interface Novel {
   id: string
   name: string
+  cover_key: string | null
+  cover_url: string | null
   created_at: string
   updated_at: string
 }
@@ -23,6 +25,7 @@ const IndexPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [newName, setNewName] = useState('')
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null)
+  const [uploadingCover, setUploadingCover] = useState(false)
 
   const fetchNovels = useCallback(async () => {
     try {
@@ -90,6 +93,41 @@ const IndexPage = () => {
     }
   }
 
+  const handleChooseCover = async (novel: Novel) => {
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+      })
+      const tempFilePath = res.tempFilePaths[0]
+      setUploadingCover(true)
+
+      const uploadRes = await Network.uploadFile({
+        url: '/api/upload',
+        filePath: tempFilePath,
+        name: 'file',
+      })
+      console.log('uploadCover response:', uploadRes.data)
+      const uploadData = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+      const result = uploadData?.data || uploadData
+      if (result?.key) {
+        await Network.request({
+          url: `/api/novels/${novel.id}`,
+          method: 'PUT',
+          data: { cover_key: result.key },
+        })
+        fetchNovels()
+        Taro.showToast({ title: '封面已更新', icon: 'success' })
+      }
+    } catch (err) {
+      console.error('uploadCover error:', err)
+      Taro.showToast({ title: '上传失败', icon: 'none' })
+    } finally {
+      setUploadingCover(false)
+    }
+  }
+
   const goToNovel = (novel: Novel) => {
     Taro.navigateTo({ url: `/pages/novel/index?id=${novel.id}&name=${encodeURIComponent(novel.name)}` })
   }
@@ -119,7 +157,7 @@ const IndexPage = () => {
       {loading ? (
         <View className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
-            <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+            <View key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
           ))}
         </View>
       ) : novels.length === 0 ? (
@@ -137,23 +175,38 @@ const IndexPage = () => {
               className="bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow"
             >
               <CardContent className="p-4">
-                <View className="flex items-center justify-between">
+                <View className="flex items-center gap-3">
+                  {/* Cover Image */}
                   <View
-                    className="flex-1 flex items-center gap-3"
-                    onClick={() => goToNovel(novel)}
+                    className="relative w-16 h-20 rounded-xl overflow-hidden bg-pink-50 flex items-center justify-center flex-shrink-0"
+                    onClick={() => handleChooseCover(novel)}
                   >
-                    <View className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center">
-                      <BookOpen size={20} color="#e8587a" />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="block text-base font-semibold text-gray-900">
-                        {novel.name}
-                      </Text>
-                      <Text className="block text-xs text-gray-400 mt-1">
-                        点击管理角色
-                      </Text>
+                    {novel.cover_url ? (
+                      <Image
+                        src={novel.cover_url}
+                        className="w-full h-full"
+                        mode="aspectFill"
+                      />
+                    ) : (
+                      <BookOpen size={24} color="#e8587a" />
+                    )}
+                    {/* Camera overlay */}
+                    <View className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 active:opacity-100">
+                      <Camera size={16} color="#ffffff" />
                     </View>
                   </View>
+
+                  {/* Novel Info */}
+                  <View className="flex-1" onClick={() => goToNovel(novel)}>
+                    <Text className="block text-base font-semibold text-gray-900">
+                      {novel.name}
+                    </Text>
+                    <Text className="block text-xs text-gray-400 mt-1">
+                      点击管理角色
+                    </Text>
+                  </View>
+
+                  {/* Actions */}
                   <View className="flex items-center gap-1">
                     <Button
                       variant="ghost"
@@ -186,6 +239,14 @@ const IndexPage = () => {
         </View>
       )}
 
+      {uploadingCover && (
+        <View className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <View className="bg-white rounded-2xl px-6 py-4">
+            <Text className="block text-gray-600 text-center">上传封面中...</Text>
+          </View>
+        </View>
+      )}
+
       {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="bg-white rounded-2xl">
@@ -200,20 +261,20 @@ const IndexPage = () => {
           <View className="mt-4">
             <View className="bg-stone-50 rounded-xl px-4 py-3">
               <Input
-                className="w-full bg-transparent text-gray-900"
+                className="w-full bg-transparent"
                 placeholder="输入小说名称"
                 value={newName}
                 onInput={(e) => setNewName(e.detail.value)}
               />
             </View>
           </View>
-          <View className="flex gap-3 mt-4">
+          <View className="flex gap-3 mt-6">
             <Button
               variant="outline"
-              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              className="flex-1 border-gray-200 text-gray-600 rounded-xl"
               onClick={() => setShowAddDialog(false)}
             >
-              <Text className="text-gray-700">取消</Text>
+              <Text className="text-gray-600">取消</Text>
             </Button>
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
@@ -239,26 +300,26 @@ const IndexPage = () => {
           <View className="mt-4">
             <View className="bg-stone-50 rounded-xl px-4 py-3">
               <Input
-                className="w-full bg-transparent text-gray-900"
+                className="w-full bg-transparent"
                 placeholder="输入新名称"
                 value={newName}
                 onInput={(e) => setNewName(e.detail.value)}
               />
             </View>
           </View>
-          <View className="flex gap-3 mt-4">
+          <View className="flex gap-3 mt-6">
             <Button
               variant="outline"
-              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              className="flex-1 border-gray-200 text-gray-600 rounded-xl"
               onClick={() => setShowRenameDialog(false)}
             >
-              <Text className="text-gray-700">取消</Text>
+              <Text className="text-gray-600">取消</Text>
             </Button>
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleRename}
             >
-              <Text className="text-white">确认</Text>
+              <Text className="text-white">保存</Text>
             </Button>
           </View>
         </DialogContent>
@@ -273,17 +334,17 @@ const IndexPage = () => {
             </DialogTitle>
             <DialogDescription>
               <Text className="text-gray-400 text-sm">
-                确定要删除「{selectedNovel?.name}」吗？{'\n'}该小说下的所有角色也会被删除，此操作不可恢复。
+                确定要删除「{selectedNovel?.name}」吗？{'\n'}该操作将同时删除所有角色数据，不可恢复。
               </Text>
             </DialogDescription>
           </DialogHeader>
-          <View className="flex gap-3 mt-4">
+          <View className="flex gap-3 mt-6">
             <Button
               variant="outline"
-              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              className="flex-1 border-gray-200 text-gray-600 rounded-xl"
               onClick={() => setShowDeleteDialog(false)}
             >
-              <Text className="text-gray-700">取消</Text>
+              <Text className="text-gray-600">取消</Text>
             </Button>
             <Button
               className="flex-1 bg-red-500 text-white rounded-xl"

@@ -30,7 +30,10 @@ export class NovelsController {
 
   @Put(':id')
   @HttpCode(200)
-  async update(@Param('id') id: string, @Body() body: { name?: string }) {
+  async update(
+    @Param('id') id: string,
+    @Body() body: { name?: string; cover_key?: string | null },
+  ) {
     const data = await this.novelsService.update(id, body);
     return { code: 200, msg: 'success', data };
   }

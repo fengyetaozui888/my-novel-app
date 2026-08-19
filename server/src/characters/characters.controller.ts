@@ -45,6 +45,7 @@ export class CharactersController {
     @Body()
     body: {
       name?: string;
+      avatar_key?: string | null;
       persona?: string;
       background?: string;
       biography?: string;

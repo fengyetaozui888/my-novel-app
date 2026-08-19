@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { UploadService } from '@/upload/upload.service';
 
 @Injectable()
 export class NovelsService {
+  constructor(private readonly uploadService: UploadService) {}
+
   private get client() {
     return getSupabaseClient();
   }
@@ -10,10 +13,26 @@ export class NovelsService {
   async findAll() {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, created_at, updated_at')
+      .select('id, name, cover_key, created_at, updated_at')
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询小说列表失败: ${error.message}`);
-    return data || [];
+
+    // Generate presigned URLs for cover images
+    const novelsWithUrls = await Promise.all(
+      (data || []).map(async (novel) => {
+        let cover_url: string | null = null;
+        if (novel.cover_key) {
+          try {
+            cover_url = await this.uploadService.getPresignedUrl(novel.cover_key);
+          } catch {
+            cover_url = null;
+          }
+        }
+        return { ...novel, cover_url };
+      }),
+    );
+
+    return novelsWithUrls;
   }
 
   async create(name: string) {
@@ -23,10 +42,10 @@ export class NovelsService {
       .select()
       .single();
     if (error) throw new Error(`创建小说失败: ${error.message}`);
-    return data;
+    return { ...data, cover_url: null };
   }
 
-  async update(id: string, updates: { name?: string }) {
+  async update(id: string, updates: { name?: string; cover_key?: string | null }) {
     const { data, error } = await this.client
       .from('novels')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -34,7 +53,16 @@ export class NovelsService {
       .select()
       .single();
     if (error) throw new Error(`更新小说失败: ${error.message}`);
-    return data;
+
+    let cover_url: string | null = null;
+    if (data?.cover_key) {
+      try {
+        cover_url = await this.uploadService.getPresignedUrl(data.cover_key);
+      } catch {
+        cover_url = null;
+      }
+    }
+    return { ...data, cover_url };
   }
 
   async remove(id: string) {

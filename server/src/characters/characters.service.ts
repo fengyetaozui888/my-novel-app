@@ -1,30 +1,50 @@
 import { Injectable } from '@nestjs/common';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { UploadService } from '@/upload/upload.service';
 
 @Injectable()
 export class CharactersService {
+  constructor(private readonly uploadService: UploadService) {}
+
   private get client() {
     return getSupabaseClient();
+  }
+
+  private async enrichWithAvatarUrl(character: Record<string, unknown>) {
+    let avatar_url: string | null = null;
+    if (character.avatar_key) {
+      try {
+        avatar_url = await this.uploadService.getPresignedUrl(character.avatar_key as string);
+      } catch {
+        avatar_url = null;
+      }
+    }
+    return { ...character, avatar_url };
   }
 
   async findByNovelId(novelId: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, avatar_key, persona, background, biography, principles, examples, created_at, updated_at')
       .eq('novel_id', novelId)
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询角色列表失败: ${error.message}`);
-    return data || [];
+
+    const characters = await Promise.all(
+      (data || []).map((c) => this.enrichWithAvatarUrl(c as unknown as Record<string, unknown>)),
+    );
+    return characters;
   }
 
   async findById(id: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, avatar_key, persona, background, biography, principles, examples, created_at, updated_at')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error(`查询角色详情失败: ${error.message}`);
-    return data;
+    if (!data) return null;
+    return this.enrichWithAvatarUrl(data as unknown as Record<string, unknown>);
   }
 
   async create(params: {
@@ -38,17 +58,21 @@ export class CharactersService {
       .select()
       .single();
     if (error) throw new Error(`创建角色失败: ${error.message}`);
-    return data;
+    return { ...data, avatar_url: null };
   }
 
-  async update(id: string, updates: {
-    name?: string;
-    persona?: string;
-    background?: string;
-    biography?: string;
-    principles?: string;
-    examples?: string;
-  }) {
+  async update(
+    id: string,
+    updates: {
+      name?: string;
+      avatar_key?: string | null;
+      persona?: string;
+      background?: string;
+      biography?: string;
+      principles?: string;
+      examples?: string;
+    },
+  ) {
     const { data, error } = await this.client
       .from('characters')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -56,7 +80,7 @@ export class CharactersService {
       .select()
       .single();
     if (error) throw new Error(`更新角色失败: ${error.message}`);
-    return data;
+    return this.enrichWithAvatarUrl(data as unknown as Record<string, unknown>);
   }
 
   async remove(id: string) {

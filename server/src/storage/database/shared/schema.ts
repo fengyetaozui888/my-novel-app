@@ -13,6 +13,7 @@ export const novels = pgTable(
   {
     id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
     name: varchar("name", { length: 255 }).notNull(),
+    cover_key: varchar("cover_key", { length: 500 }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -28,6 +29,7 @@ export const characters = pgTable(
     novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 255 }).notNull(),
     category: varchar("category", { length: 20 }).notNull().default("protagonist"),
+    avatar_key: varchar("avatar_key", { length: 500 }),
     persona: text("persona"),
     background: text("background"),
     biography: text("biography"),

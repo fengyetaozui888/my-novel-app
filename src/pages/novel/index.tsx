@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
@@ -8,13 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, MessageCircle, Star, Users, Circle } from 'lucide-react-taro'
+import { Plus, Pencil, Trash2, MessageCircle, Star, Users, Circle, Camera } from 'lucide-react-taro'
 
 interface Character {
   id: string
   novel_id: string
   name: string
   category: string
+  avatar_key: string | null
+  avatar_url: string | null
   persona: string | null
   background: string | null
   biography: string | null
@@ -47,6 +49,7 @@ const NovelPage = () => {
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -128,6 +131,46 @@ const NovelPage = () => {
       fetchCharacters()
     } catch (err) {
       console.error('deleteCharacter error:', err)
+    }
+  }
+
+  const handleChooseAvatar = async () => {
+    if (!selectedChar) return
+    try {
+      const res = await Taro.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+      })
+      const tempFilePath = res.tempFilePaths[0]
+      setUploadingAvatar(true)
+
+      const uploadRes = await Network.uploadFile({
+        url: '/api/upload',
+        filePath: tempFilePath,
+        name: 'file',
+      })
+      console.log('uploadAvatar response:', uploadRes.data)
+      const uploadData = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+      const result = uploadData?.data || uploadData
+      if (result?.key) {
+        await Network.request({
+          url: `/api/characters/${selectedChar.id}`,
+          method: 'PUT',
+          data: { avatar_key: result.key },
+        })
+        fetchCharacters()
+        // Update selectedChar with new avatar
+        setSelectedChar((prev) =>
+          prev ? { ...prev, avatar_key: uploadData.key, avatar_url: uploadData.url } : null,
+        )
+        Taro.showToast({ title: '头像已更新', icon: 'success' })
+      }
+    } catch (err) {
+      console.error('uploadAvatar error:', err)
+      Taro.showToast({ title: '上传失败', icon: 'none' })
+    } finally {
+      setUploadingAvatar(false)
     }
   }
 
@@ -222,7 +265,7 @@ const NovelPage = () => {
         {loading ? (
           <View className="flex flex-col gap-3">
             {[1, 2].map((i) => (
-              <View key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />
+              <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
             ))}
           </View>
         ) : filteredCharacters.length === 0 ? (
@@ -239,20 +282,36 @@ const NovelPage = () => {
                 <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm">
                   <CardContent className="p-4">
                     <View className="flex items-center justify-between">
-                      <View className="flex-1" onClick={() => openDetail(char)}>
-                        <View className="flex items-center gap-2">
-                          <Text className="block text-base font-semibold text-gray-900">
-                            {char.name}
-                          </Text>
-                          {hasDetail && (
-                            <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
-                              <Text className="text-xs text-rose-500">已设定</Text>
-                            </Badge>
+                      <View className="flex-1 flex items-center gap-3" onClick={() => openDetail(char)}>
+                        {/* Avatar */}
+                        <View className="w-12 h-12 rounded-full overflow-hidden bg-pink-50 flex items-center justify-center flex-shrink-0">
+                          {char.avatar_url ? (
+                            <Image
+                              src={char.avatar_url}
+                              className="w-full h-full"
+                              mode="aspectFill"
+                            />
+                          ) : (
+                            <Text className="block text-lg font-bold text-rose-300">
+                              {char.name.charAt(0)}
+                            </Text>
                           )}
                         </View>
-                        <Text className="block text-xs text-gray-400 mt-1">
-                          点击编辑人设详情
-                        </Text>
+                        <View className="flex-1">
+                          <View className="flex items-center gap-2">
+                            <Text className="block text-base font-semibold text-gray-900">
+                              {char.name}
+                            </Text>
+                            {hasDetail && (
+                              <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
+                                <Text className="text-xs text-rose-500">已设定</Text>
+                              </Badge>
+                            )}
+                          </View>
+                          <Text className="block text-xs text-gray-400 mt-1">
+                            点击编辑人设详情
+                          </Text>
+                        </View>
                       </View>
                       <View className="flex items-center gap-1">
                         <Button
@@ -415,14 +474,39 @@ const NovelPage = () => {
               className="rounded-xl p-4 -mx-2 -mt-2 mb-4"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
             >
-              <DialogTitle>
-                <Text className="text-gray-900 text-lg font-bold">{selectedChar?.name}</Text>
-              </DialogTitle>
-              <DialogDescription>
-                <Text className="text-gray-600 text-sm mt-1 block">
-                  {CATEGORY_CONFIG[selectedChar?.category as CategoryType]?.label} · 编辑人设信息
-                </Text>
-              </DialogDescription>
+              <View className="flex items-center gap-3">
+                {/* Avatar in detail dialog */}
+                <View
+                  className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
+                  onClick={handleChooseAvatar}
+                >
+                  {selectedChar?.avatar_url ? (
+                    <Image
+                      src={selectedChar.avatar_url}
+                      className="w-full h-full"
+                      mode="aspectFill"
+                    />
+                  ) : (
+                    <Text className="block text-2xl font-bold text-rose-400">
+                      {selectedChar?.name?.charAt(0) || '?'}
+                    </Text>
+                  )}
+                  {/* Camera overlay */}
+                  <View className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                    <Camera size={18} color="#ffffff" />
+                  </View>
+                </View>
+                <View className="flex-1">
+                  <DialogTitle>
+                    <Text className="text-gray-900 text-lg font-bold">{selectedChar?.name}</Text>
+                  </DialogTitle>
+                  <DialogDescription>
+                    <Text className="text-gray-600 text-sm mt-1 block">
+                      {CATEGORY_CONFIG[selectedChar?.category as CategoryType]?.label} · 点击头像可更换
+                    </Text>
+                  </DialogDescription>
+                </View>
+              </View>
             </View>
           </DialogHeader>
 
@@ -510,6 +594,15 @@ const NovelPage = () => {
           </View>
         </DialogContent>
       </Dialog>
+
+      {/* Upload Loading Overlay */}
+      {uploadingAvatar && (
+        <View className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <View className="bg-white rounded-2xl px-6 py-4">
+            <Text className="block text-gray-600 text-center">上传头像中...</Text>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
