@@ -525,20 +525,19 @@ const NovelPage = () => {
                   <DialogTitle>
                     <View className="flex items-center gap-2">
                       <Text className="text-gray-900 text-lg font-bold">{selectedChar?.name}</Text>
-                      <View
-                        className="p-1 rounded-full bg-white bg-opacity-30"
+                      <Pencil
+                        size={14}
+                        color="#c2185b"
                         onClick={() => {
                           setNewName(selectedChar?.name || '')
                           setShowRenameDialog(true)
                         }}
-                      >
-                        <Pencil size={14} color="#ec4899" />
-                      </View>
+                      />
                     </View>
                   </DialogTitle>
                   <DialogDescription>
                     <Text className="text-gray-600 text-sm mt-1 block">
-                      {CATEGORY_CONFIG[selectedChar?.category as CategoryType]?.label} · 点击头像可更换
+                      {CATEGORY_CONFIG[selectedChar?.category as CategoryType]?.label}
                     </Text>
                   </DialogDescription>
                 </View>
@@ -560,7 +559,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'female' }))}
               >
-                <Text className="text-3xl">👧</Text>
+                <Text className="text-3xl">👧🏻</Text>
                 {detailForm.gender === 'female' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
@@ -582,7 +581,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'male' }))}
               >
-                <Text className="text-3xl">👦</Text>
+                <Text className="text-3xl">👦🏻</Text>
                 {detailForm.gender === 'male' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
@@ -606,7 +605,7 @@ const NovelPage = () => {
               return (
                 <View
                   key={field.key}
-                  className="flex items-center justify-between bg-stone-50 rounded-xl px-4 py-3"
+                  className="flex items-center justify-between bg-pink-50 rounded-xl px-4 py-3"
                   onClick={() => openFieldEditor(field.key, field.label)}
                 >
                   <View className="flex items-center gap-3 flex-1">
@@ -617,8 +616,8 @@ const NovelPage = () => {
                       </Text>
                     )}
                   </View>
-                  <View className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center flex-shrink-0">
-                    <Plus size={18} color="#fff" />
+                  <View className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+                    <Pencil size={16} color="#c2185b" />
                   </View>
                 </View>
               )
