@@ -531,7 +531,8 @@ export default function MomentsPage() {
 
             <View className="bg-pink-50 rounded-xl p-3 mb-3">
               <Textarea
-                style={{ width: '100%', minHeight: '100px', backgroundColor: 'transparent' }}
+                className="w-full h-24 border-none ring-0 focus-within:ring-0"
+                style={{ backgroundColor: 'transparent' }}
                 placeholder="这一刻的想法..."
                 value={publishText}
                 maxlength={500}

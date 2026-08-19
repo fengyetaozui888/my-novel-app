@@ -697,7 +697,7 @@ const NovelPage = () => {
           <View className="mt-4">
             <View className="bg-pink-50 rounded-xl p-4">
               <Textarea
-                className="w-full bg-transparent text-sm min-h-24"
+                className="w-full h-24 bg-transparent text-sm border-none ring-0 focus-within:ring-0"
                 placeholder="输入角色的一句话简介..."
                 value={detailForm.tagline}
                 onInput={(e) => setDetailForm({ ...detailForm, tagline: e.detail.value })}
@@ -797,7 +797,8 @@ const NovelPage = () => {
 
           <View className="mt-4">
             <Textarea
-              style={{ width: '100%', minHeight: '200px', backgroundColor: '#fafafa', borderRadius: '16px', padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
+              className="border-none ring-0 focus-within:ring-0"
+              style={{ width: '100%', height: '180px', backgroundColor: '#fafafa', borderRadius: '16px', padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
               placeholder={`请输入${editingField?.label || ''}...`}
               value={fieldEditorValue}
               onInput={(e) => setFieldEditorValue(e.detail.value)}

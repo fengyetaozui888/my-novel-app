@@ -265,7 +265,8 @@ export default function AffinityBook() {
           </DialogHeader>
           <View className="bg-pink-50 rounded-2xl p-4">
             <Textarea
-              style={{ width: '100%', minHeight: '100px', backgroundColor: 'transparent' }}
+              className="w-full h-24 border-none ring-0 focus-within:ring-0"
+              style={{ backgroundColor: 'transparent' }}
               placeholder="例如：来自未来的旅者，知晓这个世界的结局……"
               maxlength={200}
               value={personaText}
