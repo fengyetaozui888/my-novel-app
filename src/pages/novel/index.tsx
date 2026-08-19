@@ -18,6 +18,7 @@ interface Character {
   avatar_key: string | null
   avatar_url: string | null
   gender: string
+  tags: string | null
   persona: string | null
   background: string | null
   biography: string | null
@@ -66,6 +67,13 @@ const NovelPage = () => {
   const [showFieldEditor, setShowFieldEditor] = useState(false)
   const [editingField, setEditingField] = useState<{ key: string; label: string; value: string } | null>(null)
   const [fieldEditorValue, setFieldEditorValue] = useState('')
+
+  // Tag editor
+  const [showTagEditor, setShowTagEditor] = useState(false)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [customTagInput, setCustomTagInput] = useState('')
+
+const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -191,6 +199,12 @@ const NovelPage = () => {
       examples: char.examples || '',
       gender: char.gender || 'unknown',
     })
+    try {
+      const parsed = JSON.parse(char.tags || '[]')
+      setSelectedTags(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setSelectedTags([])
+    }
     setShowDetailDialog(true)
   }
 
@@ -209,6 +223,39 @@ const NovelPage = () => {
     setEditingField(null)
   }
 
+  // Tag handlers
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    )
+  }
+
+  const addCustomTag = () => {
+    const trimmed = customTagInput.trim()
+    if (!trimmed) return
+    if (!selectedTags.includes(trimmed)) {
+      setSelectedTags((prev) => [...prev, trimmed])
+    }
+    setCustomTagInput('')
+  }
+
+  const handleSaveTags = async () => {
+    if (!selectedChar) return
+    try {
+      await Network.request({
+        url: `/api/characters/${selectedChar.id}`,
+        method: 'PUT',
+        data: { tags: JSON.stringify(selectedTags) },
+      })
+      setShowTagEditor(false)
+      setSelectedChar({ ...selectedChar, tags: JSON.stringify(selectedTags) })
+      Taro.showToast({ title: '标签已保存', icon: 'success' })
+    } catch (err) {
+      console.error('saveTags error:', err)
+      Taro.showToast({ title: '保存失败', icon: 'none' })
+    }
+  }
+
   const handleSaveDetail = async () => {
     if (!selectedChar) return
     try {
@@ -218,6 +265,7 @@ const NovelPage = () => {
         data: {
           name: selectedChar.name,
           gender: detailForm.gender,
+          tags: JSON.stringify(selectedTags),
           persona: detailForm.persona,
           background: detailForm.background,
           biography: detailForm.biography,
@@ -535,11 +583,23 @@ const NovelPage = () => {
                       />
                     </View>
                   </DialogTitle>
-                  <DialogDescription>
-                    <Text className="text-gray-600 text-sm mt-1 block">
-                      {CATEGORY_CONFIG[selectedChar?.category as CategoryType]?.label}
-                    </Text>
-                  </DialogDescription>
+                  {/* Tags bar */}
+                  <View className="flex items-center gap-2 mt-2 flex-wrap">
+                    {selectedTags.map((tag) => (
+                      <View
+                        key={tag}
+                        className="px-3 py-1 rounded-full bg-rose-500 bg-opacity-90"
+                      >
+                        <Text className="text-xs text-white font-medium">{tag}</Text>
+                      </View>
+                    ))}
+                    <View
+                      className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center"
+                      onClick={() => setShowTagEditor(true)}
+                    >
+                      <Plus size={14} color="#666" />
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -635,6 +695,96 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveDetail}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tag Editor Dialog */}
+      <Dialog open={showTagEditor} onOpenChange={setShowTagEditor}>
+        <DialogContent className="bg-white rounded-2xl max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="block text-lg font-bold text-gray-800">编辑标签</Text>
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Builtin tags */}
+          <View className="mt-4">
+            <Text className="block text-xs text-gray-500 mb-2">选择标签</Text>
+            <View className="flex flex-wrap gap-2">
+              {BUILTIN_TAGS.map((tag) => {
+                const isSelected = selectedTags.includes(tag)
+                return (
+                  <View
+                    key={tag}
+                    className={`px-3 py-2 rounded-full ${
+                      isSelected ? 'bg-rose-500' : 'bg-gray-100'
+                    }`}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    <Text className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>
+                      {tag}
+                    </Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+
+          {/* Custom tag input */}
+          <View className="mt-4">
+            <Text className="block text-xs text-gray-500 mb-2">自定义标签</Text>
+            <View className="flex gap-2">
+              <View className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+                <Input
+                  className="w-full bg-transparent text-sm"
+                  placeholder="输入自定义标签"
+                  value={customTagInput}
+                  onInput={(e) => setCustomTagInput(e.detail.value)}
+                />
+              </View>
+              <View
+                className="px-3 py-2 bg-rose-500 rounded-lg"
+                onClick={addCustomTag}
+              >
+                <Text className="text-white text-sm">添加</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Selected tags display */}
+          {selectedTags.length > 0 && (
+            <View className="mt-4">
+              <Text className="block text-xs text-gray-500 mb-2">已选标签</Text>
+              <View className="flex flex-wrap gap-2">
+                {selectedTags.map((tag) => (
+                  <View
+                    key={tag}
+                    className="px-3 py-2 rounded-full bg-rose-500 flex items-center gap-1"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    <Text className="text-xs text-white font-medium">{tag}</Text>
+                    <Text className="text-white text-xs">×</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowTagEditor(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={handleSaveTags}
             >
               <Text className="text-white">保存</Text>
             </Button>
