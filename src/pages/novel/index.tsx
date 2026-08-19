@@ -510,7 +510,7 @@ const NovelPage = () => {
 
       {/* Character Detail Dialog (Pink Theme) */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto">
+        <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto" closeClassName="hidden">
           <DialogHeader>
             {/* Three-dot menu at top-right */}
             <View className="absolute top-4 right-4 z-10">
