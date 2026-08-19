@@ -165,6 +165,111 @@ export class ChatService {
     return parts.join('\n');
   }
 
+  /** 调用扣子 Bot API 进行对话 */
+  private async callCozeBot(
+    botId: string,
+    userId: string,
+    messages: { role: string; content: string }[],
+  ): Promise<string> {
+    const token = process.env.COZE_WORKLOAD_API_TOKEN;
+    const baseUrl = process.env.COZE_API_BASE_URL || 'https://api.coze.cn';
+
+    if (!token) {
+      throw new Error('COZE_WORKLOAD_API_TOKEN 未配置');
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    // 构造 additional_messages：system prompt + 历史 + 当前消息
+    const additionalMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      content_type: 'text',
+    }));
+
+    console.log('[CozeBot] 调用 Bot API, bot_id:', botId, ', user_id:', userId, ', 消息数:', additionalMessages.length);
+
+    // Step 1: 创建对话
+    const chatResponse = await fetch(`${baseUrl}/v3/chat`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        bot_id: botId,
+        user_id: userId,
+        stream: false,
+        additional_messages: additionalMessages,
+        auto_save_history: true,
+      }),
+    });
+
+    const chatResult = await chatResponse.json();
+    console.log('[CozeBot] 对话创建结果:', JSON.stringify(chatResult));
+
+    if (chatResult.code !== 0) {
+      throw new Error(`扣子 Bot 对话创建失败: ${chatResult.msg}`);
+    }
+
+    const conversationId = chatResult.data.conversation_id;
+    const chatId = chatResult.data.id;
+
+    // Step 2: 轮询等待对话完成
+    const terminalStatuses = ['completed', 'failed', 'canceled'];
+    let retrieveResult: any;
+
+    for (let i = 0; i < 60; i++) {
+      const params = new URLSearchParams({
+        conversation_id: conversationId,
+        chat_id: chatId,
+      });
+
+      const retrieveResponse = await fetch(
+        `${baseUrl}/v3/chat/retrieve?${params}`,
+        { headers },
+      );
+
+      retrieveResult = await retrieveResponse.json();
+      if (terminalStatuses.includes(retrieveResult.data?.status)) {
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    if (retrieveResult?.data?.status !== 'completed') {
+      throw new Error(`扣子 Bot 对话未完成: ${retrieveResult?.data?.status}`);
+    }
+
+    // Step 3: 获取回复消息
+    const messageParams = new URLSearchParams({
+      conversation_id: conversationId,
+      chat_id: chatId,
+    });
+
+    const messageResponse = await fetch(
+      `${baseUrl}/v3/chat/message/list?${messageParams}`,
+      { headers },
+    );
+
+    const messageResult = await messageResponse.json();
+    console.log('[CozeBot] 消息结果:', JSON.stringify(messageResult));
+
+    // 找到 assistant 的最后一条消息
+    const assistantMessages = messageResult.data?.filter(
+      (m: any) => m.role === 'assistant' && m.type === 'answer',
+    ) || [];
+
+    if (assistantMessages.length === 0) {
+      return '（Bot 未返回内容）';
+    }
+
+    // 取最后一条 assistant 消息
+    const lastMessage = assistantMessages[assistantMessages.length - 1];
+    return lastMessage.content || '（Bot 返回空内容）';
+  }
+
   async simulate(params: {
     characterId: string;
     speakerId?: string; // 对话者角色ID（可选）
@@ -216,7 +321,7 @@ export class ChatService {
 
     const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona);
 
-    const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    const messages: { role: string; content: string }[] = [
       { role: 'system', content: systemPrompt },
     ];
 
@@ -232,12 +337,10 @@ export class ChatService {
     // Add current message
     messages.push({ role: 'user', content: params.message });
 
-    const config = new Config();
-    const llmClient = new LLMClient(config);
-
-    const response = await llmClient.invoke(messages, {
-      temperature: 0.8,
-    });
+    // 调用扣子 Bot API
+    const BOT_ID = '7675587755577458722';
+    const userId = params.userId || 'default_user';
+    const content = await this.callCozeBot(BOT_ID, userId, messages);
 
     // 更新亲密度（仅当以用户身份对话时）
     if (params.userId && !params.speakerId) {
@@ -245,7 +348,7 @@ export class ChatService {
       await this.updateAffinity(params.userId, params.characterId, 1);
     }
 
-    return { content: response.content };
+    return { content };
   }
 
   async generateNovelGraph(novelId: string) {
