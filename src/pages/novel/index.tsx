@@ -18,7 +18,7 @@ interface Character {
   avatar_key: string | null
   avatar_url: string | null
   gender: string
-  tags: string | null
+  tagline: string | null
   persona: string | null
   background: string | null
   biography: string | null
@@ -61,6 +61,7 @@ const NovelPage = () => {
     principles: '',
     examples: '',
     gender: 'unknown',
+    tagline: '',
   })
 
   // Field editor
@@ -68,16 +69,12 @@ const NovelPage = () => {
   const [editingField, setEditingField] = useState<{ key: string; label: string; value: string } | null>(null)
   const [fieldEditorValue, setFieldEditorValue] = useState('')
 
-  // Tag editor
+  // Tagline editor
   const [showTagEditor, setShowTagEditor] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [customTagInput, setCustomTagInput] = useState('')
 
   // Detail dialog three-dot menu
   const [showDetailMenu, setShowDetailMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -202,13 +199,8 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
       principles: char.principles || '',
       examples: char.examples || '',
       gender: char.gender || 'unknown',
+      tagline: char.tagline || '',
     })
-    try {
-      const parsed = JSON.parse(char.tags || '[]')
-      setSelectedTags(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      setSelectedTags([])
-    }
     setShowDetailDialog(true)
   }
 
@@ -225,22 +217,6 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
     setDetailForm({ ...detailForm, [editingField.key]: fieldEditorValue })
     setShowFieldEditor(false)
     setEditingField(null)
-  }
-
-  // Tag handlers
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    )
-  }
-
-  const addCustomTag = () => {
-    const trimmed = customTagInput.trim()
-    if (!trimmed) return
-    if (!selectedTags.includes(trimmed)) {
-      setSelectedTags((prev) => [...prev, trimmed])
-    }
-    setCustomTagInput('')
   }
 
   // Delete character
@@ -260,23 +236,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
     }
   }
 
-  const handleSaveTags = async () => {
-    if (!selectedChar) return
-    try {
-      await Network.request({
-        url: `/api/characters/${selectedChar.id}`,
-        method: 'PUT',
-        data: { tags: JSON.stringify(selectedTags) },
-      })
-      setShowTagEditor(false)
-      setSelectedChar({ ...selectedChar, tags: JSON.stringify(selectedTags) })
-      Taro.showToast({ title: '标签已保存', icon: 'success' })
-    } catch (err) {
-      console.error('saveTags error:', err)
-      Taro.showToast({ title: '保存失败', icon: 'none' })
-    }
-  }
-
+  // Save detail
   const handleSaveDetail = async () => {
     if (!selectedChar) return
     try {
@@ -286,7 +246,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
         data: {
           name: selectedChar.name,
           gender: detailForm.gender,
-          tags: JSON.stringify(selectedTags),
+          tagline: detailForm.tagline,
           persona: detailForm.persona,
           background: detailForm.background,
           biography: detailForm.biography,
@@ -402,21 +362,12 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
                               </Badge>
                             )}
                           </View>
-                          {/* Tags display */}
-                          <View className="flex items-center gap-1 mt-1 flex-wrap">
-                            {(() => {
-                              try {
-                                const tags = JSON.parse(char.tags || '[]')
-                                return (Array.isArray(tags) ? tags : []).slice(0, 3).map((tag: string) => (
-                                  <View key={tag} className="px-2 py-1 rounded bg-rose-500 bg-opacity-80">
-                                    <Text className="text-xs text-white">{tag}</Text>
-                                  </View>
-                                ))
-                              } catch {
-                                return null
-                              }
-                            })()}
-                          </View>
+                          {/* Tagline display */}
+                          {char.tagline && (
+                            <View className="mt-1">
+                              <Text className="text-xs text-gray-500 line-clamp-1">{char.tagline}</Text>
+                            </View>
+                          )}
                         </View>
                       </View>
                       <View className="flex items-center gap-1">
@@ -610,21 +561,16 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
                       />
                     </View>
                   </DialogTitle>
-                  {/* Tags bar */}
-                  <View className="flex items-center gap-2 mt-2 flex-wrap">
-                    {selectedTags.map((tag) => (
-                      <View
-                        key={tag}
-                        className="px-3 py-1 rounded-full bg-rose-500 bg-opacity-90"
-                      >
-                        <Text className="text-xs text-white font-medium">{tag}</Text>
-                      </View>
-                    ))}
+                  {/* Tagline */}
+                  <View className="mt-2">
                     <View
-                      className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center"
+                      className="bg-pink-50 rounded-xl px-3 py-2 flex items-center gap-2"
                       onClick={() => setShowTagEditor(true)}
                     >
-                      <Plus size={14} color="#666" />
+                      <Text className="flex-1 text-xs text-gray-600 line-clamp-1">
+                        {detailForm.tagline || '点击添加一句话简介...'}
+                      </Text>
+                      <Pencil size={12} color="#c2185b" />
                     </View>
                   </View>
                 </View>
@@ -729,77 +675,34 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
         </DialogContent>
       </Dialog>
 
-      {/* Tag Editor Dialog */}
+      {/* Tagline Editor Dialog */}
       <Dialog open={showTagEditor} onOpenChange={setShowTagEditor}>
         <DialogContent className="bg-white rounded-2xl max-w-sm mx-4" closeClassName="hidden">
           <DialogHeader>
             <DialogTitle>
-              <Text className="block text-lg font-bold text-gray-800">编辑标签</Text>
+              <Text className="block text-lg font-bold text-gray-800">一句话简介</Text>
             </DialogTitle>
+            <DialogDescription>
+              <Text className="block text-xs text-gray-500">
+                可以是人设概括、特殊行为或口头禅
+              </Text>
+            </DialogDescription>
           </DialogHeader>
 
-          {/* Builtin tags */}
-          <View className="mt-3">
-            <Text className="block text-xs text-gray-500 mb-2">选择标签</Text>
-            <View className="flex flex-wrap gap-2">
-              {BUILTIN_TAGS.map((tag) => {
-                const isSelected = selectedTags.includes(tag)
-                return (
-                  <View
-                    key={tag}
-                    className={`px-3 py-2 rounded-full ${
-                      isSelected ? 'bg-rose-500' : 'bg-gray-100'
-                    }`}
-                    onClick={() => toggleTag(tag)}
-                  >
-                    <Text className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>
-                      {tag}
-                    </Text>
-                  </View>
-                )
-              })}
+          <View className="mt-4">
+            <View className="bg-pink-50 rounded-xl p-4">
+              <Textarea
+                className="w-full bg-transparent text-sm min-h-24"
+                placeholder="输入角色的一句话简介..."
+                value={detailForm.tagline}
+                onInput={(e) => setDetailForm({ ...detailForm, tagline: e.detail.value })}
+                maxlength={200}
+              />
             </View>
+            <Text className="block text-xs text-gray-400 mt-2 text-right">
+              {detailForm.tagline?.length || 0}/200
+            </Text>
           </View>
-
-          {/* Custom tag input */}
-          <View className="mt-3">
-            <Text className="block text-xs text-gray-500 mb-2">自定义标签</Text>
-            <View className="flex gap-2">
-              <View className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
-                <Input
-                  className="w-full bg-transparent text-sm"
-                  placeholder="输入自定义标签"
-                  value={customTagInput}
-                  onInput={(e) => setCustomTagInput(e.detail.value)}
-                />
-              </View>
-              <View
-                className="px-3 py-2 bg-rose-500 rounded-lg"
-                onClick={addCustomTag}
-              >
-                <Text className="text-white text-sm">添加</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Selected tags display */}
-          {selectedTags.length > 0 && (
-            <View className="mt-3">
-              <Text className="block text-xs text-gray-500 mb-2">已选标签</Text>
-              <View className="flex flex-wrap gap-2">
-                {selectedTags.map((tag) => (
-                  <View
-                    key={tag}
-                    className="px-3 py-2 rounded-full bg-rose-500 flex items-center gap-1"
-                    onClick={() => toggleTag(tag)}
-                  >
-                    <Text className="text-xs text-white font-medium">{tag}</Text>
-                    <Text className="text-white text-xs">×</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
 
           <View className="flex gap-3 mt-4">
             <Button
@@ -811,9 +714,9 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
             </Button>
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
-              onClick={handleSaveTags}
+              onClick={() => setShowTagEditor(false)}
             >
-              <Text className="text-white">保存</Text>
+              <Text className="text-white">确定</Text>
             </Button>
           </View>
         </DialogContent>
