@@ -5,7 +5,7 @@ import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Coffee, Plus, MessageCircle } from 'lucide-react-taro'
+import { Coffee, Plus, MessageCircle, Users, Trash2 } from 'lucide-react-taro'
 
 
 interface CafeMessage {
@@ -15,6 +15,19 @@ interface CafeMessage {
   novel_id: string
   novel_name: string | null
   content: string
+  created_at: string
+}
+
+interface CafeInteraction {
+  id: number
+  character_a_id: string
+  character_a_name: string
+  character_b_id: string
+  character_b_name: string
+  novel_a_name: string | null
+  novel_b_name: string | null
+  content: string
+  interaction_type: string
   created_at: string
 }
 
@@ -38,13 +51,16 @@ const COLORS = [
 
 const CafePage = () => {
   const [messages, setMessages] = useState<CafeMessage[]>([])
+  const [interactions, setInteractions] = useState<CafeInteraction[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'wall' | 'interaction'>('wall')
   const [showWriteDialog, setShowWriteDialog] = useState(false)
   const [showCharactersDialog, setShowCharactersDialog] = useState(false)
   const [characters, setCharacters] = useState<Character[]>([])
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [generating, setGenerating] = useState(false)
   // 自绘滚动条：滚动时显示，停止 2 秒后消失（通过原生 scroll 事件监听 textarea）
   const [scrollbar, setScrollbar] = useState({ show: false, top: 0, height: 24 })
   const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -115,8 +131,26 @@ const CafePage = () => {
     }
   }, [])
 
+  const fetchInteractions = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await Network.request({ url: '/api/cafe/interactions' })
+      console.log('fetchCafeInteractions response:', res.data)
+      const data = res.data?.data || res.data || []
+      setInteractions(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('fetchCafeInteractions error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useDidShow(() => {
-    fetchMessages()
+    if (activeTab === 'wall') {
+      fetchMessages()
+    } else {
+      fetchInteractions()
+    }
   })
 
   const handleWrite = () => {
@@ -155,6 +189,45 @@ const CafePage = () => {
     }
   }
 
+  const handleGenerateInteraction = async () => {
+    try {
+      setGenerating(true)
+      await Network.request({
+        url: '/api/cafe/interactions/generate',
+        method: 'POST',
+      })
+      fetchInteractions()
+    } catch (err) {
+      console.error('generateInteraction error:', err)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleDeleteMessage = async (id: number) => {
+    try {
+      await Network.request({
+        url: `/api/cafe/messages/${id}`,
+        method: 'DELETE',
+      })
+      fetchMessages()
+    } catch (err) {
+      console.error('deleteMessage error:', err)
+    }
+  }
+
+  const handleDeleteInteraction = async (id: number) => {
+    try {
+      await Network.request({
+        url: `/api/cafe/interactions/${id}`,
+        method: 'DELETE',
+      })
+      fetchInteractions()
+    } catch (err) {
+      console.error('deleteInteraction error:', err)
+    }
+  }
+
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr)
     const now = new Date()
@@ -185,45 +258,143 @@ const CafePage = () => {
         </View>
       </View>
 
-      {/* Sticky Note Wall */}
-      <ScrollView scrollY className="h-[calc(100vh-200px)] px-4 pb-24">
-        {loading ? (
-          <View className="flex flex-col gap-4 mt-4">
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
-            ))}
-          </View>
-        ) : messages.length === 0 ? (
-          <View className="flex flex-col items-center justify-center py-20">
-            <Coffee size={48} color="#d97706" />
-            <Text className="block text-gray-400 text-base mt-4 text-center">
-              便利贴墙还是空的{'\n'}成为第一个留下文字的人吧
+      {/* Tab Navigation */}
+      <View className="bg-white border-b border-amber-100 px-4">
+        <View className="flex gap-0">
+          <View
+            className={`flex-1 py-3 text-center cursor-pointer ${activeTab === 'wall' ? 'border-b-2 border-amber-500' : ''}`}
+            onClick={() => { setActiveTab('wall'); fetchMessages() }}
+          >
+            <Text className={`block text-sm font-medium ${activeTab === 'wall' ? 'text-amber-700' : 'text-gray-400'}`}>
+              便签墙
             </Text>
           </View>
-        ) : (
-          <View className="flex flex-col gap-4 mt-4">
-            {messages.map((msg, index) => (
-              <View
-                key={msg.id}
-                className={`rounded-xl border-2 p-4 shadow-sm ${COLORS[index % COLORS.length]}`}
-                style={{ transform: `rotate(${(index % 2 === 0 ? 1 : -1) * (0.5 + (index % 3) * 0.3)}deg)` }}
-              >
-                <View className="flex items-center gap-2 mb-2">
-                  <MessageCircle size={14} color="#78350f" />
-                  <Text className="block text-sm font-bold text-amber-900">{msg.character_name}</Text>
-                  {msg.novel_name && (
-                    <Text className="block text-xs text-amber-600">· {msg.novel_name}</Text>
-                  )}
-                </View>
-                <Text className="block text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
-                  {msg.content}
-                </Text>
-                <Text className="block text-xs text-amber-500 mt-2 text-right">
-                  {formatTime(msg.created_at)}
-                </Text>
-              </View>
-            ))}
+          <View
+            className={`flex-1 py-3 text-center cursor-pointer ${activeTab === 'interaction' ? 'border-b-2 border-amber-500' : ''}`}
+            onClick={() => { setActiveTab('interaction'); fetchInteractions() }}
+          >
+            <Text className={`block text-sm font-medium ${activeTab === 'interaction' ? 'text-amber-700' : 'text-gray-400'}`}>
+              角色互动
+            </Text>
           </View>
+        </View>
+      </View>
+
+      {/* Content */}
+      <ScrollView scrollY className="h-[calc(100vh-280px)] px-4 pb-24">
+        {activeTab === 'wall' ? (
+          /* ===== 便签墙 ===== */
+          loading ? (
+            <View className="flex flex-col gap-4 mt-4">
+              {[1, 2, 3, 4].map((i) => (
+                <View key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+              ))}
+            </View>
+          ) : messages.length === 0 ? (
+            <View className="flex flex-col items-center justify-center py-20">
+              <Coffee size={48} color="#d97706" />
+              <Text className="block text-gray-400 text-base mt-4 text-center">
+                便利贴墙还是空的{'\n'}成为第一个留下文字的人吧
+              </Text>
+            </View>
+          ) : (
+            <View className="flex flex-col gap-4 mt-4">
+              {messages.map((msg, index) => (
+                <View
+                  key={msg.id}
+                  className={`rounded-xl border-2 p-4 shadow-sm ${COLORS[index % COLORS.length]}`}
+                  style={{ transform: `rotate(${(index % 2 === 0 ? 1 : -1) * (0.5 + (index % 3) * 0.3)}deg)` }}
+                >
+                  <View className="flex items-center gap-2 mb-2">
+                    <MessageCircle size={14} color="#78350f" />
+                    <Text className="block text-sm font-bold text-amber-900">{msg.character_name}</Text>
+                    {msg.novel_name && (
+                      <Text className="block text-xs text-amber-600">· {msg.novel_name}</Text>
+                    )}
+                  </View>
+                  <Text className="block text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                    {msg.content}
+                  </Text>
+                  <View className="flex items-center justify-between mt-2">
+                    <Text className="block text-xs text-amber-500">
+                      {formatTime(msg.created_at)}
+                    </Text>
+                    <View
+                      className="px-2 py-1 rounded"
+                      onClick={() => handleDeleteMessage(msg.id)}
+                    >
+                      <Trash2 size={14} color="#d97706" />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )
+        ) : (
+          /* ===== 角色互动 ===== */
+          generating ? (
+            <View className="flex flex-col gap-4 mt-4">
+              {[1, 2, 3].map((i) => (
+                <View key={i} className="bg-white rounded-xl p-4 shadow-sm">
+                  <View className="h-4 bg-gray-100 rounded w-3/4 mb-2 animate-pulse" />
+                  <View className="h-3 bg-gray-100 rounded w-full mb-2 animate-pulse" />
+                  <View className="h-3 bg-gray-100 rounded w-5/6 animate-pulse" />
+                </View>
+              ))}
+            </View>
+          ) : interactions.length === 0 ? (
+            <View className="flex flex-col items-center justify-center py-20">
+              <Users size={48} color="#d97706" />
+              <Text className="block text-gray-400 text-base mt-4 text-center">
+                还没有角色互动{'\n'}AI 会根据角色性格随机生成互动
+              </Text>
+              <Button
+                className="mt-4 bg-amber-500 text-white"
+                onClick={handleGenerateInteraction}
+                disabled={generating}
+              >
+                <Text>{generating ? '生成中...' : '生成一段互动'}</Text>
+              </Button>
+            </View>
+          ) : (
+            <View className="flex flex-col gap-4 mt-4">
+              {interactions.map((item) => (
+                <View key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+                  {/* Characters */}
+                  <View className="flex items-center gap-2 mb-3">
+                    <View className="flex items-center gap-1">
+                      <Text className="block text-sm font-bold text-amber-900">{item.character_a_name}</Text>
+                      {item.novel_a_name && (
+                        <Text className="block text-xs text-amber-500">· {item.novel_a_name}</Text>
+                      )}
+                    </View>
+                    <Text className="block text-xs text-amber-400">✦</Text>
+                    <View className="flex items-center gap-1">
+                      <Text className="block text-sm font-bold text-amber-900">{item.character_b_name}</Text>
+                      {item.novel_b_name && (
+                        <Text className="block text-xs text-amber-500">· {item.novel_b_name}</Text>
+                      )}
+                    </View>
+                  </View>
+                  {/* Content */}
+                  <Text className="block text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                    {item.content}
+                  </Text>
+                  <View className="flex items-center justify-between mt-3">
+                    <Text className="block text-xs text-amber-400">
+                      {formatTime(item.created_at)}
+                    </Text>
+                    <View
+                      className="px-2 py-1 rounded"
+                      onClick={() => handleDeleteInteraction(item.id)}
+                    >
+                      <Trash2 size={14} color="#d97706" />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )
         )}
       </ScrollView>
 
@@ -240,7 +411,13 @@ const CafePage = () => {
           size="sm"
           className="bg-amber-500 text-white rounded-full shadow-lg"
           style={{ padding: '12px' }}
-          onClick={handleWrite}
+          onClick={() => {
+            if (activeTab === 'wall') {
+              handleWrite()
+            } else {
+              handleGenerateInteraction()
+            }
+          }}
         >
           <Plus size={24} color="#ffffff" />
         </Button>

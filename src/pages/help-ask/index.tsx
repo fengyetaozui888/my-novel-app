@@ -109,9 +109,10 @@ export default function HelpAskPage() {
           borderTop: '1px solid #fde8d8',
         }}
       >
-        <View className="flex-1 bg-white rounded-full px-4 py-2">
+        <View className="flex-1 bg-white rounded-full px-4 py-2" style={{ border: 'none', outline: 'none', boxShadow: 'none' }}>
           <Input
-            style={{ width: '100%', fontSize: '14px' }}
+            className="border-none ring-0"
+            style={{ width: '100%', fontSize: '14px', border: 'none', outline: 'none', boxShadow: 'none' }}
             placeholder="输入你的问题..."
             value={input}
             onInput={(e) => {

@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common'
 import { CafeService } from './cafe.service'
+import { CafeInteractionService } from './cafe-interaction.service'
 
 @Controller('cafe')
 export class CafeController {
-  constructor(private readonly cafeService: CafeService) {}
+  constructor(
+    private readonly cafeService: CafeService,
+    private readonly interactionService: CafeInteractionService,
+  ) {}
 
   @Get('messages')
   async getMessages() {
@@ -27,6 +31,22 @@ export class CafeController {
   @Delete('messages/:id')
   async deleteMessage(@Param('id') id: string) {
     const data = await this.cafeService.deleteMessage(Number(id))
+    return { code: 200, msg: 'success', data }
+  }
+
+  @Get('interactions')
+  async getInteractions() {
+    const data = await this.interactionService.getInteractions()
+    return { code: 200, msg: 'success', data }
+  }
+
+  @Post('interactions/generate')
+  @HttpCode(HttpStatus.OK)
+  async generateInteraction() {
+    const data = await this.interactionService.generateInteraction()
+    if (data && (data as any).error) {
+      return { code: 400, msg: (data as any).error, data: null }
+    }
     return { code: 200, msg: 'success', data }
   }
 }
