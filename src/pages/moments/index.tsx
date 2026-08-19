@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Heart, MessageCircle, Camera, ImagePlus, X } from 'lucide-react-taro'
+import { Heart, MessageCircle, Camera, ImagePlus, Plus, X } from 'lucide-react-taro'
 
 interface Comment {
   id: string
@@ -345,20 +345,22 @@ export default function MomentsPage() {
           <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>角色们的日常动态</Text>
         </View>
 
-        {/* 左上角换背景 */}
+        {/* 左上角换背景：灰色相机图标 */}
         <View
-          className="absolute top-4 left-4 bg-white bg-opacity-40 rounded-full px-3 py-2"
+          className="absolute top-4 left-4 bg-white bg-opacity-70 rounded-full p-2"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={handleChangeBackground}
         >
-          <Text className="text-white text-xs" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>换背景</Text>
+          <Camera size={18} color="#8a8a8a" />
         </View>
 
-        {/* 右上角相机：以"我"的身份发布朋友圈 */}
+        {/* 右上角：圆形白底红色加号，以"我"的身份发布朋友圈 */}
         <View
-          className="absolute top-4 right-4 bg-white bg-opacity-40 rounded-full p-2"
+          className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-sm"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowPublish(true)}
         >
-          <Camera size={20} color="#ffffff" />
+          <Plus size={20} color="#e91e63" strokeWidth={2.5} />
         </View>
       </View>
 
