@@ -28,6 +28,7 @@ const Slider = React.forwardRef<
   const [rect, setRect] = React.useState<{ left: number; top: number; width: number; height: number } | null>(null)
   const rectRef = React.useRef<{ left: number; top: number; width: number; height: number } | null>(null)
   const idRef = React.useRef(`slider-${Math.random().toString(36).substr(2, 9)}`)
+  const rootRef = React.useRef<React.ElementRef<typeof View>>(null)
 
   const value = valueProp !== undefined ? valueProp : localValue
   const currentValue = value[0] ?? min
@@ -54,17 +55,35 @@ const Slider = React.forwardRef<
     return () => clearTimeout(timer)
   }, [])
 
-  const updateValue = (pageX: number, pageY: number, passedRect?: { left: number; top: number; width: number; height: number } | null) => {
-    const currentRect = passedRect || rectRef.current
+  // H5 端（含 Portal 弹层内）优先通过 DOM ref 实时测量，规避 createSelectorQuery 查不到 Portal 节点的问题
+  const getDomRect = (): { left: number; top: number; width: number; height: number } | null => {
+    try {
+      const el = rootRef.current as unknown as { getBoundingClientRect?: () => DOMRect } | null
+      if (el && typeof el.getBoundingClientRect === "function") {
+        const domRect = el.getBoundingClientRect()
+        if (domRect && domRect.width > 0) {
+          return { left: domRect.left, top: domRect.top, width: domRect.width, height: domRect.height }
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null
+  }
+
+  const resolveRect = () => getDomRect() || rectRef.current
+
+  const updateValue = (clientX: number, clientY: number, passedRect?: { left: number; top: number; width: number; height: number } | null) => {
+    const currentRect = passedRect || resolveRect()
     if (!currentRect || disabled) return
 
     let percentage = 0
     if (orientation === "horizontal") {
       const { left, width } = currentRect
-      percentage = Math.min(Math.max((pageX - left) / width, 0), 1)
+      percentage = Math.min(Math.max((clientX - left) / width, 0), 1)
     } else {
       const { top, height } = currentRect
-      percentage = Math.min(Math.max(1 - (pageY - top) / height, 0), 1)
+      percentage = Math.min(Math.max(1 - (clientY - top) / height, 0), 1)
     }
 
     const rawValue = min + percentage * (max - min)
@@ -80,52 +99,50 @@ const Slider = React.forwardRef<
     }
   }
 
+  const touchPos = (e: ITouchEvent) => {
+    const touch = e.touches[0] || e.changedTouches[0]
+    if (!touch) return null
+    return { x: touch.clientX ?? touch.pageX, y: touch.clientY ?? touch.pageY }
+  }
+
   const handleTouchStart = (e: ITouchEvent) => {
     if (disabled) return
     setIsDragging(true)
-    // Try to update rect on touch start in case of layout changes
-    const query = Taro.createSelectorQuery()
-    query
-      .select(`#${idRef.current}`)
-      .boundingClientRect((res) => {
-        const measuredRect = Array.isArray(res) ? res[0] : res
-        if (measuredRect) {
-          setRect({ left: measuredRect.left, top: measuredRect.top, width: measuredRect.width, height: measuredRect.height })
-          rectRef.current = { left: measuredRect.left, top: measuredRect.top, width: measuredRect.width, height: measuredRect.height }
-          // If we have a touch event, update value immediately after getting fresh rect
-          const touch = e.touches[0] || e.changedTouches[0]
-          if (touch) {
-             updateValue(touch.pageX, touch.pageY, rectRef.current)
-          }
-        }
-      })
-      .exec()
+    const pos = touchPos(e)
+    if (pos) {
+      updateValue(pos.x, pos.y, resolveRect())
+    }
+  }
+
+  const handleTouchMove = (e: ITouchEvent) => {
+    if (disabled) return
+    const pos = touchPos(e)
+    if (pos) {
+      updateValue(pos.x, pos.y, resolveRect())
+    }
+  }
+
+  const handleTouchEnd = (e: ITouchEvent) => {
+    if (disabled) return
+    setIsDragging(false)
+    const pos = touchPos(e)
+    if (pos) {
+      updateValue(pos.x, pos.y, resolveRect())
+    }
   }
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (disabled) return
     setIsDragging(true)
-
-    const query = Taro.createSelectorQuery()
-    query
-      .select(`#${idRef.current}`)
-      .boundingClientRect((res) => {
-        const measuredRect = Array.isArray(res) ? res[0] : res
-        if (measuredRect) {
-          setRect({ left: measuredRect.left, top: measuredRect.top, width: measuredRect.width, height: measuredRect.height })
-          rectRef.current = { left: measuredRect.left, top: measuredRect.top, width: measuredRect.width, height: measuredRect.height }
-          updateValue(e.pageX, e.pageY, rectRef.current)
-        }
-      })
-      .exec()
+    updateValue(e.clientX ?? e.pageX, e.clientY ?? e.pageY, resolveRect())
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      updateValue(moveEvent.pageX, moveEvent.pageY)
+      updateValue(moveEvent.clientX ?? moveEvent.pageX, moveEvent.clientY ?? moveEvent.pageY)
     }
 
     const onMouseUp = (upEvent: MouseEvent) => {
       setIsDragging(false)
-      updateValue(upEvent.pageX, upEvent.pageY)
+      updateValue(upEvent.clientX ?? upEvent.pageX, upEvent.clientY ?? upEvent.pageY)
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseup', onMouseUp)
     }
@@ -136,28 +153,18 @@ const Slider = React.forwardRef<
     }
   }
 
-  const handleTouchMove = (e: ITouchEvent) => {
-    if (disabled) return
-    const touch = e.touches[0] || e.changedTouches[0]
-    if (touch) {
-      updateValue(touch.pageX, touch.pageY)
-    }
-  }
-
-  const handleTouchEnd = (e: ITouchEvent) => {
-    if (disabled) return
-    setIsDragging(false)
-    const touch = e.touches[0] || e.changedTouches[0]
-    if (touch) {
-      updateValue(touch.pageX, touch.pageY)
-    }
-  }
-
   const percentage = ((currentValue - min) / (max - min)) * 100
 
   return (
     <View
-      ref={ref}
+      ref={(el: React.ElementRef<typeof View>) => {
+        rootRef.current = el
+        if (typeof ref === 'function') {
+          ref(el)
+        } else if (ref) {
+          ;(ref as React.MutableRefObject<React.ElementRef<typeof View> | null>).current = el
+        }
+      }}
       id={idRef.current}
       className={cn(
         "relative flex touch-none select-none items-center",

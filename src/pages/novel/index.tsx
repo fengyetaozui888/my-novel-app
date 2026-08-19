@@ -400,7 +400,7 @@ const NovelPage = () => {
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedChar(char)
-                        setCropOffset(char.portrait_crop_offset ?? 0)
+                        setCropOffset(Number(char.portrait_crop_offset ?? 0))
                         setDetailForm({
                           gender: char.gender || 'female',
                           persona: char.persona || '',
@@ -421,7 +421,7 @@ const NovelPage = () => {
                         className="w-full h-full"
                         mode="aspectFill"
                         style={{
-                          objectPosition: `center ${char.portrait_crop_offset ?? 0}%`,
+                          objectPosition: `center ${Number(char.portrait_crop_offset ?? 0)}%`,
                         }}
                       />
                     ) : char.avatar_url ? (
@@ -1019,7 +1019,7 @@ const NovelPage = () => {
                     onClick={() => setSelectedPortrait(portrait)}
                   >
                     <View className="aspect-[3/4] bg-gray-100">
-                      <Image src={portrait.url} className="w-full h-full" mode="aspectFill" />
+                      <Image src={portrait.url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
                     </View>
                     <View className="py-1 px-2 bg-white">
                       <Text className="text-xs text-gray-600 text-center block truncate">{portrait.label}</Text>
@@ -1035,35 +1035,45 @@ const NovelPage = () => {
               })}
           </View>
 
-          {/* 裁切界面 */}
+          {/* 裁切界面：预览效果与角色卡完全一致 */}
           {selectedPortrait && (
             <View className="mb-4">
-              <Text className="block text-xs text-gray-500 mb-2">滑动选择显示区域</Text>
-              <View className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px', width: '100%' }}>
-                <Image src={selectedPortrait.url} className="w-full h-full" mode="aspectFill" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-                {/* 裁切框指示器 */}
-                <View
-                  className="absolute left-0 right-0 border-2 border-pink-500 pointer-events-none"
-                  style={{
-                    top: `${(cropOffset / 75) * 225}px`,
-                    height: '75px',
-                    backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                  }}
-                >
-                  <View className="absolute top-0 left-0 right-0 h-1 bg-pink-500" />
-                  <View className="absolute bottom-0 left-0 right-0 h-1 bg-pink-500" />
+              <Text className="block text-xs text-gray-500 mb-2">
+                缩略图显示区域预览（与角色卡显示一致）
+              </Text>
+              <View className="relative bg-gray-100 rounded-xl overflow-hidden aspect-[4/3]">
+                <Image
+                  src={selectedPortrait.url}
+                  className="w-full h-full"
+                  mode="aspectFill"
+                  style={{ objectPosition: `center ${cropOffset}%` }}
+                />
+                <View className="absolute top-1 left-2 px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                  <Text className="text-white" style={{ fontSize: '10px' }}>角色卡显示效果</Text>
                 </View>
               </View>
+              {/* 全身参考图 */}
+              <View className="mt-3 bg-gray-100 rounded-xl overflow-hidden" style={{ height: '160px' }}>
+                <Image
+                  src={selectedPortrait.url}
+                  className="w-full h-full"
+                  mode="aspectFill"
+                  style={{ objectPosition: 'top center' }}
+                />
+              </View>
+              <Text className="block text-xs text-gray-400 mt-1 text-center">↑ 立绘全身参考（头部朝上）</Text>
               {/* 滑块控制 */}
-              <View className="px-2 mt-4">
-                <Text className="block text-xs text-gray-500 mb-2">上下拖动选择显示区域</Text>
+              <View className="mt-3 px-2">
                 <Slider
                   value={[cropOffset]}
                   min={0}
-                  max={75}
+                  max={100}
                   step={1}
                   onValueChange={(val) => setCropOffset(val[0])}
                 />
+                <Text className="block text-xs text-gray-400 text-center mt-1">
+                  ← 显示头部 / 显示脚部 →（当前 {cropOffset}%）
+                </Text>
               </View>
             </View>
           )}
