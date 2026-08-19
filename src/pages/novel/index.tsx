@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react'
-import { View, Text, Image, MovableArea, MovableView } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Slider } from '@/components/ui/slider'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
@@ -1037,28 +1038,33 @@ const NovelPage = () => {
           {/* 裁切界面 */}
           {selectedPortrait && (
             <View className="mb-4">
-              <Text className="block text-xs text-gray-500 mb-2">拖拽裁切框选择显示区域</Text>
-              <MovableArea className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px', width: '100%' }}>
+              <Text className="block text-xs text-gray-500 mb-2">滑动选择显示区域</Text>
+              <View className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px', width: '100%' }}>
                 <Image src={selectedPortrait.url} className="w-full h-full" mode="aspectFill" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
-                {/* 裁切框 */}
-                <MovableView
-                  className="border-2 border-pink-500"
+                {/* 裁切框指示器 */}
+                <View
+                  className="absolute left-0 right-0 border-2 border-pink-500 pointer-events-none"
                   style={{
-                    width: '100%',
+                    top: `${(cropOffset / 75) * 225}px`,
                     height: '75px',
                     backgroundColor: 'rgba(236, 72, 153, 0.1)',
-                  }}
-                  direction="vertical"
-                  y={(cropOffset / 100) * 300}
-                  onChange={(e) => {
-                    const newOffset = (e.detail.y / 300) * 100
-                    setCropOffset(Math.max(0, Math.min(75, newOffset)))
                   }}
                 >
                   <View className="absolute top-0 left-0 right-0 h-1 bg-pink-500" />
                   <View className="absolute bottom-0 left-0 right-0 h-1 bg-pink-500" />
-                </MovableView>
-              </MovableArea>
+                </View>
+              </View>
+              {/* 滑块控制 */}
+              <View className="px-2 mt-4">
+                <Text className="block text-xs text-gray-500 mb-2">上下拖动选择显示区域</Text>
+                <Slider
+                  value={[cropOffset]}
+                  min={0}
+                  max={75}
+                  step={1}
+                  onValueChange={(val) => setCropOffset(val[0])}
+                />
+              </View>
             </View>
           )}
 
