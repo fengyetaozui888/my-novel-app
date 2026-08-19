@@ -275,32 +275,6 @@ const ProfilePage = () => {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
             <View
-              className="flex items-center justify-between p-4 border-b border-gray-100"
-              onClick={() => {
-                setNewNickname(profile?.nickname || '')
-                setShowNicknameDialog(true)
-              }}
-            >
-              <View className="flex items-center gap-3">
-                <Pencil size={18} color="#ec4899" />
-                <Text className="text-base text-gray-700">修改昵称</Text>
-              </View>
-              <Text className="text-sm text-gray-400">
-                {daysRemaining > 0 ? `${daysRemaining}天后可改` : '可修改'}
-              </Text>
-            </View>
-            <View
-              className="flex items-center justify-between p-4"
-              onClick={handleUploadAvatar}
-            >
-              <View className="flex items-center gap-3">
-                <Camera size={18} color="#ec4899" />
-                <Text className="text-base text-gray-700">修改头像</Text>
-              </View>
-              <Text className="text-sm text-gray-400">点击上传</Text>
-            </View>
-            <Separator />
-            <View
               className="flex items-center justify-between p-4"
               onClick={() => Taro.navigateTo({ url: '/pages/affinity-book/index' })}
             >

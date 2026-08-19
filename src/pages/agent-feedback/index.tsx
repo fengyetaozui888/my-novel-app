@@ -156,7 +156,7 @@ export default function AgentFeedbackPage() {
                   onInput={e => setFeedbackText(String(e.detail.value))}
                   placeholder="例如：虞寻歌居然对陌生人毕恭毕敬，她本是不惧规矩的盗神…"
                   maxlength={500}
-                  style={{ width: '100%', minHeight: '100px', backgroundColor: 'transparent' }}
+                  className="h-24"
                 />
               </View>
             </View>

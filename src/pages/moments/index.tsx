@@ -390,35 +390,33 @@ export default function MomentsPage() {
                     {moment.likes > 0 && (
                       <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '5px' }}>
                         <Heart size={14} color="#ec4899" filled style={{ marginTop: '3px' }} />
-                        <Text className="text-sm leading-7" style={{ color: '#576b95' }}>
+                        <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
                           {(moment.likers && moment.likers.length > 0 ? moment.likers : moment.likerNames.map(n => ({ name: n, characterId: null }))).map((l, i, arr) => (
-                            <Text key={i}>
+                            <View key={i} style={{ display: 'flex', flexDirection: 'row' }}>
                               <Text
-                                style={{ color: l.characterId ? '#576b95' : '#8a8a8a' }}
-                                onClick={(e) => { if (l.characterId) { e.stopPropagation && e.stopPropagation(); Taro.navigateTo({ url: `/pages/moments/index?characterId=${l.characterId}` }) } }}
+                                className="text-sm leading-7"
+                                style={{ color: '#576b95' }}
+                                onClick={(e) => { e.stopPropagation && e.stopPropagation(); if (l.characterId) { Taro.navigateTo({ url: `/pages/moments/index?characterId=${l.characterId}` }) } }}
                               >
                                 {l.name}
                               </Text>
-                              {i < arr.length - 1 ? '，' : ''}
-                            </Text>
+                              {i < arr.length - 1 && <Text className="text-sm leading-7" style={{ color: '#576b95' }}>，</Text>}
+                            </View>
                           ))}
-                        </Text>
+                        </View>
                       </View>
                     )}
                     {moment.commentList && moment.commentList.map((comment) => (
-                      <Text
-                        key={comment.id}
-                        className="text-sm text-gray-700 leading-7"
-                        onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
-                      >
+                      <View key={comment.id} onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}>
                         <Text
-                          style={{ color: comment.characterId ? '#576b95' : '#8a8a8a' }}
-                          onClick={(e) => { if (comment.characterId) { e.stopPropagation && e.stopPropagation(); Taro.navigateTo({ url: `/pages/moments/index?characterId=${comment.characterId}` }) } }}
+                          className="text-sm leading-7"
+                          style={{ color: '#576b95' }}
+                          onClick={(e) => { e.stopPropagation && e.stopPropagation(); if (comment.characterId) { Taro.navigateTo({ url: `/pages/moments/index?characterId=${comment.characterId}` }) } }}
                         >
                           {comment.characterName}：
                         </Text>
-                        {comment.content}
-                      </Text>
+                        <Text className="text-sm text-gray-700 leading-7">{comment.content}</Text>
+                      </View>
                     ))}
                   </View>
                 )}
