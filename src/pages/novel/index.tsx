@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Ellipsis } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -72,6 +72,10 @@ const NovelPage = () => {
   const [showTagEditor, setShowTagEditor] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [customTagInput, setCustomTagInput] = useState('')
+
+  // Detail dialog three-dot menu
+  const [showDetailMenu, setShowDetailMenu] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
 const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
 
@@ -239,6 +243,23 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
     setCustomTagInput('')
   }
 
+  // Delete character
+  const handleDeleteCharacter = async () => {
+    if (!selectedChar) return
+    try {
+      await Network.request({
+        url: `/api/characters/${selectedChar.id}`,
+        method: 'DELETE'
+      })
+      Taro.showToast({ title: '删除成功', icon: 'success' })
+      setShowDetailDialog(false)
+      setShowDetailMenu(false)
+      fetchCharacters()
+    } catch (error) {
+      Taro.showToast({ title: '删除失败', icon: 'error' })
+    }
+  }
+
   const handleSaveTags = async () => {
     if (!selectedChar) return
     try {
@@ -381,9 +402,21 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
                               </Badge>
                             )}
                           </View>
-                          <Text className="block text-xs text-gray-400 mt-1">
-                            点击编辑人设详情
-                          </Text>
+                          {/* Tags display */}
+                          <View className="flex items-center gap-1 mt-1 flex-wrap">
+                            {(() => {
+                              try {
+                                const tags = JSON.parse(char.tags || '[]')
+                                return (Array.isArray(tags) ? tags : []).slice(0, 3).map((tag: string) => (
+                                  <View key={tag} className="px-2 py-1 rounded bg-rose-500 bg-opacity-80">
+                                    <Text className="text-xs text-white">{tag}</Text>
+                                  </View>
+                                ))
+                              } catch {
+                                return null
+                              }
+                            })()}
+                          </View>
                         </View>
                       </View>
                       <View className="flex items-center gap-1">
@@ -399,24 +432,9 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
                           variant="ghost"
                           size="sm"
                           className="p-2"
-                          onClick={() => {
-                            setSelectedChar(char)
-                            setNewName(char.name)
-                            setShowRenameDialog(true)
-                          }}
+                          onClick={() => openDetail(char)}
                         >
                           <Pencil size={16} color="#9e8e92" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-2"
-                          onClick={() => {
-                            setSelectedChar(char)
-                            setShowDeleteDialog(true)
-                          }}
-                        >
-                          <Trash2 size={16} color="#ef4444" />
                         </Button>
                       </View>
                     </View>
@@ -543,6 +561,15 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto">
           <DialogHeader>
+            {/* Three-dot menu at top-right */}
+            <View className="absolute top-4 right-4 z-10">
+              <Ellipsis
+                size={20}
+                color="#9e8e92"
+                onClick={() => setShowDetailMenu(true)}
+              />
+            </View>
+
             <View
               className="rounded-xl p-4 -mx-2 -mt-2 mb-4"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
@@ -704,7 +731,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
 
       {/* Tag Editor Dialog */}
       <Dialog open={showTagEditor} onOpenChange={setShowTagEditor}>
-        <DialogContent className="bg-white rounded-2xl max-w-sm mx-4">
+        <DialogContent className="bg-white rounded-2xl max-w-sm mx-4" closeClassName="hidden">
           <DialogHeader>
             <DialogTitle>
               <Text className="block text-lg font-bold text-gray-800">编辑标签</Text>
@@ -712,7 +739,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
           </DialogHeader>
 
           {/* Builtin tags */}
-          <View className="mt-4">
+          <View className="mt-3">
             <Text className="block text-xs text-gray-500 mb-2">选择标签</Text>
             <View className="flex flex-wrap gap-2">
               {BUILTIN_TAGS.map((tag) => {
@@ -735,7 +762,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
           </View>
 
           {/* Custom tag input */}
-          <View className="mt-4">
+          <View className="mt-3">
             <Text className="block text-xs text-gray-500 mb-2">自定义标签</Text>
             <View className="flex gap-2">
               <View className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
@@ -757,7 +784,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
 
           {/* Selected tags display */}
           {selectedTags.length > 0 && (
-            <View className="mt-4">
+            <View className="mt-3">
               <Text className="block text-xs text-gray-500 mb-2">已选标签</Text>
               <View className="flex flex-wrap gap-2">
                 {selectedTags.map((tag) => (
@@ -774,7 +801,7 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
             </View>
           )}
 
-          <View className="flex gap-3 mt-6">
+          <View className="flex gap-3 mt-4">
             <Button
               variant="outline"
               className="flex-1 border-gray-200 text-gray-700 rounded-xl"
@@ -787,6 +814,63 @@ const BUILTIN_TAGS = ['男主', '女主', '重要配角', '龙套', '炮灰']
               onClick={handleSaveTags}
             >
               <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Three-dot Menu Dropdown */}
+      {showDetailMenu && (
+        <View
+          className="fixed inset-0 z-50"
+          onClick={() => setShowDetailMenu(false)}
+        >
+          <View
+            className="absolute top-12 right-4 bg-white rounded-xl shadow-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <View
+              className="px-4 py-3 hover:bg-gray-50"
+              onClick={() => {
+                setShowDetailMenu(false)
+                setShowDeleteConfirm(true)
+              }}
+            >
+              <Text className="block text-sm text-gray-700">删除人设</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="bg-white rounded-2xl max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="block text-lg font-bold text-gray-800">确认删除</Text>
+            </DialogTitle>
+          </DialogHeader>
+          <View className="mt-4">
+            <Text className="block text-sm text-gray-600">
+              确定删除角色 <Text className="font-semibold text-rose-500">{selectedChar?.name}</Text> 吗？
+            </Text>
+            <Text className="block text-xs text-gray-500 mt-2">
+              一旦删除所有数据不可找回
+            </Text>
+          </View>
+          <View className="flex gap-3 mt-6">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={handleDeleteCharacter}
+            >
+              <Text className="text-white">删除</Text>
             </Button>
           </View>
         </DialogContent>
