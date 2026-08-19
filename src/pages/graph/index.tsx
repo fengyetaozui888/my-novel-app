@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Taro, { useRouter } from '@tarojs/taro'
-import { View, Text, Image, Canvas } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import { Plus, Trash2, Sparkles, Loader } from 'lucide-react-taro'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -74,7 +74,8 @@ export default function GraphPage() {
 
   const CANVAS_WIDTH = 350
   const CANVAS_HEIGHT = 500
-  const NODE_RADIUS = 35
+  const NODE_RADIUS = 20
+  const CENTER_RADIUS = 25
 
   const fetchData = useCallback(async () => {
     try {
@@ -269,14 +270,6 @@ export default function GraphPage() {
       <View className="relative mx-4 mt-4 bg-white rounded-3xl shadow-lg overflow-hidden"
         style={{ height: `${CANVAS_HEIGHT + 40}px` }}
       >
-        {/* SVG Lines */}
-        <Canvas
-          type="2d"
-          id="graphCanvas"
-          className="absolute top-0 left-0"
-          style={{ width: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT + 40}px` }}
-        />
-
         {/* Render edges as div lines */}
         {graphEdges.map((edge, idx) => {
           const fromNode = getNodeById(edge.from)
@@ -319,19 +312,21 @@ export default function GraphPage() {
         })}
 
         {/* Render nodes */}
-        {graphNodes.map(node => (
+        {graphNodes.map(node => {
+          const radius = node.id === focusCharacterId ? CENTER_RADIUS : NODE_RADIUS
+          return (
           <View
             key={node.id}
             className="absolute flex flex-col items-center"
             style={{
-              left: `${node.x - NODE_RADIUS}px`,
-              top: `${node.y + 20 - NODE_RADIUS}px`,
+              left: `${node.x - radius}px`,
+              top: `${node.y + 20 - radius}px`,
             }}
           >
             {/* Avatar */}
             <View
               className="rounded-full overflow-hidden border-2 border-pink-300 shadow-md bg-pink-100 flex items-center justify-center"
-              style={{ width: `${NODE_RADIUS * 2}px`, height: `${NODE_RADIUS * 2}px` }}
+              style={{ width: `${radius * 2}px`, height: `${radius * 2}px` }}
             >
               {node.avatar_url ? (
                 <Image
@@ -340,7 +335,10 @@ export default function GraphPage() {
                   mode="aspectFill"
                 />
               ) : (
-                <Text className="text-xl font-bold text-pink-400">
+                <Text
+                  className="font-bold text-pink-400"
+                  style={{ fontSize: node.id === focusCharacterId ? '15px' : '12px' }}
+                >
                   {node.name.charAt(0)}
                 </Text>
               )}
@@ -350,11 +348,14 @@ export default function GraphPage() {
               <Text className="text-xs text-gray-700 font-medium">{node.name}</Text>
             </View>
             {/* Category badge */}
-            <Text className="text-xs text-pink-400 mt-1">
-              {CATEGORY_LABELS[node.category] || node.category}
-            </Text>
+            {node.id === focusCharacterId && (
+              <Text className="text-xs text-pink-400 mt-1">
+                {CATEGORY_LABELS[node.category] || node.category}
+              </Text>
+            )}
           </View>
-        ))}
+          )
+        })}
       </View>
 
       {/* Relationship List */}
