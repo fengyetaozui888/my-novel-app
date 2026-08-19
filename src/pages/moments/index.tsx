@@ -391,19 +391,14 @@ export default function MomentsPage() {
                       </View>
                     )}
                     {moment.commentList && moment.commentList.map((comment) => (
-                      <View
+                      <Text
                         key={comment.id}
-                        style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}
+                        className="text-xs text-gray-700 leading-6"
+                        onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
                       >
-                        <Text
-                          className="text-xs leading-6"
-                          style={{ color: '#576b95' }}
-                          onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
-                        >
-                          {comment.characterName}:
-                        </Text>
-                        <Text className="text-xs text-gray-700 leading-6 flex-1">{comment.content}</Text>
-                      </View>
+                        <Text style={{ color: '#576b95' }}>{comment.characterName}：</Text>
+                        {comment.content}
+                      </Text>
                     ))}
                   </View>
                 )}
