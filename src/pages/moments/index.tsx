@@ -39,6 +39,7 @@ export default function MomentsPage() {
   const [selectedMomentId, setSelectedMomentId] = useState<string>('')
   const [commentText, setCommentText] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [commentMoment, setCommentMoment] = useState<Moment | null>(null)
 
   useEffect(() => {
     loadMoments()
@@ -133,7 +134,9 @@ export default function MomentsPage() {
   }
 
   const handleCommentClick = (momentId: string) => {
+    const moment = moments.find(m => m.id === momentId)
     setSelectedMomentId(momentId)
+    setCommentMoment(moment || null)
     setShowCommentInput(true)
     setCommentText('')
   }
@@ -220,10 +223,10 @@ export default function MomentsPage() {
         ) : (
           <View
             className="absolute inset-0 w-full h-full"
-            style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #fda085 100%)' }}
           />
         )}
-        <View className="absolute inset-0 bg-black bg-opacity-30" />
+        <View className="absolute inset-0 bg-black bg-opacity-20" />
         
         {/* Header content */}
         <View className="relative h-full flex flex-col justify-end p-4">
@@ -233,10 +236,10 @@ export default function MomentsPage() {
 
         {/* Change background button */}
         <View
-          className="absolute top-4 right-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-2"
+          className="absolute top-4 right-4 bg-white bg-opacity-30 backdrop-blur-sm rounded-full px-3 py-2"
           onClick={handleChangeBackground}
         >
-          <Text className="text-white text-xs px-2">换背景</Text>
+          <Text className="text-white text-xs">换背景</Text>
         </View>
       </View>
 
@@ -321,10 +324,41 @@ export default function MomentsPage() {
 
       {/* Comment input modal */}
       {showCommentInput && (
-        <View className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-          <View className="bg-white rounded-t-2xl p-4 w-full">
-            <View className="flex items-center justify-between mb-4">
-              <Text className="text-lg font-semibold">发表评论</Text>
+        <View className="fixed inset-0 bg-black bg-opacity-50 z-50 flex flex-col">
+          {/* Show the moment content */}
+          <View className="flex-1 overflow-auto p-4 pb-4">
+            {commentMoment && (
+              <Card className="bg-white rounded-xl shadow-sm">
+                <CardContent className="p-4">
+                  <View className="flex items-center gap-3 mb-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={commentMoment.characterAvatar} />
+                      <AvatarFallback>{commentMoment.characterName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-900">{commentMoment.characterName}</Text>
+                      <Text className="text-xs text-gray-500">{commentMoment.createdAt}</Text>
+                    </View>
+                  </View>
+                  <Text className="text-gray-800 text-sm leading-relaxed mb-3 block">
+                    {commentMoment.content}
+                  </Text>
+                  {commentMoment.imageUrl && (
+                    <Image
+                      src={commentMoment.imageUrl}
+                      className="w-full h-48 rounded-lg mb-3"
+                      mode="aspectFill"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </View>
+
+          {/* Comment input at bottom */}
+          <View className="bg-white rounded-t-2xl p-4 w-full border-t border-gray-200" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 60px)' }}>
+            <View className="flex items-center justify-between mb-3">
+              <Text className="text-base font-semibold">发表评论</Text>
               <Button variant="ghost" size="icon" onClick={() => setShowCommentInput(false)}>
                 <X size={20} color="#9ca3af" />
               </Button>
