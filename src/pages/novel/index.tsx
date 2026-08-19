@@ -318,7 +318,7 @@ const NovelPage = () => {
         </View>
 
         {loading ? (
-          <View className="flex flex-col gap-3">
+          <View className="grid grid-cols-3 gap-3">
             {[1, 2].map((i) => (
               <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
             ))}
@@ -334,61 +334,55 @@ const NovelPage = () => {
             {filteredCharacters.map((char) => {
               const hasDetail = char.persona || char.background || char.biography
               return (
-                <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm">
-                  <CardContent className="p-4">
-                    <View className="flex items-center justify-between">
-                      <View className="flex-1 flex items-center gap-3" onClick={() => openDetail(char)}>
-                        {/* Avatar */}
-                        <View className="w-12 h-12 rounded-full overflow-hidden bg-pink-50 flex items-center justify-center flex-shrink-0">
-                          {char.avatar_url ? (
-                            <Image
-                              src={char.avatar_url}
-                              className="w-full h-full"
-                              mode="aspectFill"
-                            />
-                          ) : (
-                            <Text className="block text-lg font-bold text-rose-300">
-                              {char.name.charAt(0)}
-                            </Text>
-                          )}
-                        </View>
-                        <View className="flex-1">
-                          <View className="flex items-center gap-2">
-                            <Text className="block text-base font-semibold text-gray-900">
-                              {char.name}
-                            </Text>
-                            {hasDetail && (
-                              <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
-                                <Text className="text-xs text-rose-500">已设定</Text>
-                              </Badge>
-                            )}
+                <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm overflow-hidden">
+                  {/* Silhouette / Avatar Header */}
+                  <View className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center relative">
+                    {char.avatar_url ? (
+                      <Image src={char.avatar_url} className="w-full h-full" mode="aspectFill" />
+                    ) : (
+                      <View className="flex items-center justify-center">
+                        {char.gender === 'male' ? (
+                          <View className="flex flex-col items-center">
+                            <View className="w-10 h-10 rounded-full bg-gray-400 bg-opacity-30" />
+                            <View className="w-14 h-6 bg-gray-400 bg-opacity-30 rounded-t-lg -mt-1" />
                           </View>
-                          {/* Tagline display */}
-                          {char.tagline && (
-                            <View className="mt-1">
-                              <Text className="text-xs text-gray-500 line-clamp-1">{char.tagline}</Text>
-                            </View>
+                        ) : (
+                          <View className="flex flex-col items-center">
+                            <View className="w-10 h-10 rounded-full bg-gray-400 bg-opacity-30" />
+                            <View className="w-16 h-8 bg-gray-400 bg-opacity-30 rounded-t-lg -mt-1" />
+                            <View className="w-12 h-4 bg-gray-400 bg-opacity-30 -mt-1" />
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                  <CardContent className="p-3">
+                    <View className="flex items-center justify-between">
+                      <View className="flex-1" onClick={() => openDetail(char)}>
+                        <View className="flex items-center gap-2">
+                          <Text className="block text-sm font-semibold text-gray-900">
+                            {char.name}
+                          </Text>
+                          {hasDetail && (
+                            <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
+                              <Text className="text-xs text-rose-500">已设定</Text>
+                            </Badge>
                           )}
                         </View>
+                        {char.tagline && (
+                          <View className="mt-1">
+                            <Text className="text-xs text-gray-500 line-clamp-1">{char.tagline}</Text>
+                          </View>
+                        )}
                       </View>
-                      <View className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-2"
-                          onClick={() => goToChat(char)}
-                        >
-                          <MessageCircle size={16} color="#e8587a" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-2"
-                          onClick={() => openDetail(char)}
-                        >
-                          <Pencil size={16} color="#9e8e92" />
-                        </Button>
-                      </View>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-2"
+                        onClick={() => goToChat(char)}
+                      >
+                        <MessageCircle size={16} color="#e8587a" />
+                      </Button>
                     </View>
                   </CardContent>
                 </Card>
