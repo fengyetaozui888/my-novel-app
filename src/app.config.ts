@@ -5,6 +5,7 @@ export default defineAppConfig({
     'pages/chat/index',
     'pages/profile/index',
     'pages/graph/index',
+    'pages/interact/index',
   ],
   window: {
     backgroundTextStyle: 'light',

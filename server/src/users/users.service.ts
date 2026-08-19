@@ -38,6 +38,32 @@ export class UsersService {
     return newUser
   }
 
+  /** 扣除积分（3D 互动等消耗场景），返回扣除后的积分余额 */
+  async deductCredits(amount: number): Promise<number> {
+    if (!amount || amount <= 0) throw new Error('扣除积分必须大于 0')
+    const user = await this.getOrCreateUser()
+    const credits = Math.max(0, user.credits - amount)
+    const { error } = await this.client
+      .from('users')
+      .update({ credits, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+    if (error) throw new Error(`积分扣除失败: ${error.message}`)
+    return credits
+  }
+
+  /** 充值积分，返回充值后的积分余额 */
+  async recharge(amount: number): Promise<number> {
+    if (!amount || amount <= 0) throw new Error('充值金额必须大于 0')
+    const user = await this.getOrCreateUser()
+    const credits = user.credits + amount
+    const { error } = await this.client
+      .from('users')
+      .update({ credits, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+    if (error) throw new Error(`充值失败: ${error.message}`)
+    return credits
+  }
+
   async getProfile() {
     const user = await this.getOrCreateUser()
 

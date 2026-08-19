@@ -18,11 +18,23 @@ interface UserProfile {
   nickname_updated_at: string | null
 }
 
+const RECHARGE_PACKAGES = [
+  { amount: 60, price: 6, label: '尝鲜礼包' },
+  { amount: 300, price: 30, label: '常用礼包' },
+  { amount: 680, price: 68, label: '畅享礼包' },
+  { amount: 1280, price: 128, label: '至尊礼包' },
+  { amount: 3280, price: 328, label: '尊贵礼包' },
+  { amount: 6480, price: 648, label: '超值礼包' },
+]
+
 const ProfilePage = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [showNicknameDialog, setShowNicknameDialog] = useState(false)
   const [newNickname, setNewNickname] = useState('')
+  const [showRechargeDialog, setShowRechargeDialog] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<number | null>(null)
+  const [recharging, setRecharging] = useState(false)
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -98,6 +110,35 @@ const ProfilePage = () => {
     }
   }
 
+  const handleRecharge = async () => {
+    if (selectedPackage === null) return
+
+    try {
+      setRecharging(true)
+      const res = await Network.request({
+        url: '/api/users/recharge',
+        method: 'POST',
+        data: { amount: selectedPackage, packageId: `pack_${selectedPackage}` },
+      })
+      console.log('recharge response:', res.data)
+
+      const data = res.data?.data || res.data
+      if (data?.credits !== undefined) {
+        setProfile(data)
+        setShowRechargeDialog(false)
+        setSelectedPackage(null)
+        Taro.showToast({ title: `充值成功 +${selectedPackage}积分`, icon: 'success' })
+      } else {
+        Taro.showToast({ title: res.data?.msg || '充值失败', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('recharge error:', err)
+      Taro.showToast({ title: '充值失败', icon: 'none' })
+    } finally {
+      setRecharging(false)
+    }
+  }
+
   const handleUpdateNickname = async () => {
     if (!newNickname.trim()) return
 
@@ -132,6 +173,8 @@ const ProfilePage = () => {
     const daysDiff = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24)
     return Math.max(0, Math.ceil(15 - daysDiff))
   }
+
+
 
   if (loading) {
     return (
@@ -214,6 +257,14 @@ const ProfilePage = () => {
                 </View>
               </View>
             </View>
+            <View className="mt-3 pt-3 border-t border-gray-100">
+              <Button
+                className="w-full bg-pink-500 text-white rounded-xl"
+                onClick={() => setShowRechargeDialog(true)}
+              >
+                <Text className="text-white font-medium">充值积分</Text>
+              </Button>
+            </View>
           </CardContent>
         </Card>
       </View>
@@ -287,6 +338,52 @@ const ProfilePage = () => {
               onClick={handleUpdateNickname}
             >
               确认修改
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Recharge Dialog */}
+      <Dialog open={showRechargeDialog} onOpenChange={setShowRechargeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>充值积分</DialogTitle>
+            <DialogDescription>
+              3D 互动场景消耗积分：生成立绘 20 积分 / 次，互动反应 5 积分 / 次
+            </DialogDescription>
+          </DialogHeader>
+          <View className="grid grid-cols-3 gap-3 py-2">
+            {RECHARGE_PACKAGES.map((pkg) => (
+              <Button
+                key={pkg.amount}
+                variant={selectedPackage === pkg.amount ? 'default' : 'outline'}
+                className={`flex flex-col items-center py-3 h-auto ${
+                  selectedPackage === pkg.amount
+                    ? 'bg-rose-500 text-white border-0'
+                    : 'border-rose-200 text-gray-700'
+                }`}
+                onClick={() => setSelectedPackage(pkg.amount)}
+              >
+                <Text className="block text-lg font-bold">{pkg.amount}</Text>
+                <Text className="block text-xs opacity-80">积分</Text>
+                <Text className="block text-xs opacity-70 mt-1">¥{pkg.price}</Text>
+              </Button>
+            ))}
+          </View>
+          <View className="flex gap-3 mt-2">
+            <Button
+              variant="outline"
+              className="flex-1 bg-gray-100 text-gray-700 border-0"
+              onClick={() => setShowRechargeDialog(false)}
+            >
+              取消
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white"
+              disabled={selectedPackage === null || recharging}
+              onClick={handleRecharge}
+            >
+              {recharging ? '充值中...' : '确认充值'}
             </Button>
           </View>
         </DialogContent>

@@ -41,6 +41,23 @@ export class UploadService {
     return { key, url };
   }
 
+  async uploadBuffer(
+    buffer: Buffer,
+    key: string,
+    contentType: string,
+  ): Promise<{ key: string; url: string }> {
+    const storedKey = await this.storage.uploadFile({
+      fileContent: buffer,
+      fileName: key,
+      contentType,
+    });
+    const url = await this.storage.generatePresignedUrl({
+      key: storedKey,
+      expireTime: 86400 * 365,
+    });
+    return { key: storedKey, url };
+  }
+
   async getPresignedUrl(key: string): Promise<string> {
     return this.storage.generatePresignedUrl({
       key,

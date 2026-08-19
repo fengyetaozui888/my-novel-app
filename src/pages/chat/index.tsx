@@ -485,6 +485,18 @@ const ChatPage = () => {
             </View>
             <View
               className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={() => {
+                setShowMoreMenu(false)
+                Taro.navigateTo({
+                  url: `/pages/interact/index?characterId=${characterId}&name=${encodeURIComponent(characterName)}`,
+                })
+              }}
+            >
+              <Sparkles size={16} color="#ec4899" />
+              <Text className="text-sm text-gray-700">3D互动</Text>
+            </View>
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
               onClick={handleTogglePin}
             >
               <Pin size={16} color={isPinned ? '#ec4899' : '#666'} />
