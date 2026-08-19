@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { View, Text, Image } from '@tarojs/components'
+import { View, Text, Image, MovableArea, MovableView } from '@tarojs/components'
 import Taro, { useRouter, useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
@@ -73,7 +73,6 @@ const NovelPage = () => {
   const [portraitStyleTab, setPortraitStyleTab] = useState<'ancient' | 'modern'>('ancient')
   const [selectedPortrait, setSelectedPortrait] = useState<InitialPortrait | null>(null)
   const [cropOffset, setCropOffset] = useState(0) // 0-100, percentage from top
-  const [isDragging, setIsDragging] = useState(false)
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -1039,30 +1038,27 @@ const NovelPage = () => {
           {selectedPortrait && (
             <View className="mb-4">
               <Text className="block text-xs text-gray-500 mb-2">拖拽裁切框选择显示区域</Text>
-              <View className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px' }}>
-                <Image src={selectedPortrait.url} className="w-full h-full" mode="aspectFill" />
+              <MovableArea className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px', width: '100%' }}>
+                <Image src={selectedPortrait.url} className="w-full h-full" mode="aspectFill" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
                 {/* 裁切框 */}
-                <View
-                  className="absolute left-0 right-0 border-2 border-pink-500"
+                <MovableView
+                  className="border-2 border-pink-500"
                   style={{
-                    top: `${cropOffset}%`,
-                    height: '25%',
+                    width: '100%',
+                    height: '75px',
                     backgroundColor: 'rgba(236, 72, 153, 0.1)',
                   }}
-                  onTouchStart={() => setIsDragging(true)}
-                  onTouchMove={(e) => {
-                    if (!isDragging) return
-                    const touch = (e as any).touches[0]
-                    const containerHeight = 300
-                    const newOffset = ((touch.clientY - 100) / containerHeight) * 100
+                  direction="vertical"
+                  y={(cropOffset / 100) * 300}
+                  onChange={(e) => {
+                    const newOffset = (e.detail.y / 300) * 100
                     setCropOffset(Math.max(0, Math.min(75, newOffset)))
                   }}
-                  onTouchEnd={() => setIsDragging(false)}
                 >
                   <View className="absolute top-0 left-0 right-0 h-1 bg-pink-500" />
                   <View className="absolute bottom-0 left-0 right-0 h-1 bg-pink-500" />
-                </View>
-              </View>
+                </MovableView>
+              </MovableArea>
             </View>
           )}
 
