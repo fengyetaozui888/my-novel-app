@@ -506,20 +506,20 @@ const NovelPage = () => {
       {/* Character Detail Dialog (Pink Theme) */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto w-full max-w-md" closeClassName="hidden">
-          <DialogHeader>
+          <DialogHeader className="relative w-full">
+            {/* Back arrow outside the pink box, on white background */}
+            <View className="absolute -left-1 top-3 z-10">
+              <ChevronLeft
+                size={22}
+                color="#c2185b"
+                strokeWidth={2.5}
+                onClick={() => setShowDetailDialog(false)}
+              />
+            </View>
             <View
-              className="rounded-xl p-4 mb-4 mx-2 relative"
+              className="rounded-xl p-4 mb-4 ml-8 mr-2 relative"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
             >
-              {/* Back arrow at top-left, aligned with pink box */}
-              <View className="absolute top-3 left-3 z-10">
-                <ChevronLeft
-                  size={22}
-                  color="#c2185b"
-                  strokeWidth={2.5}
-                  onClick={() => setShowDetailDialog(false)}
-                />
-              </View>
 
               {/* Trash icon at top-right, aligned with pink box */}
               <View className="absolute top-3 right-3 z-10">
@@ -795,10 +795,10 @@ const NovelPage = () => {
             </DialogTitle>
           </DialogHeader>
 
-          <View className="mt-4">
+          <View className="mt-4 bg-pink-50 rounded-2xl p-4">
             <Textarea
-              className="border-none ring-0 focus-within:ring-0"
-              style={{ width: '100%', height: '180px', backgroundColor: '#fafafa', borderRadius: '16px', padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
+              className="w-full h-44 bg-transparent text-sm border-none ring-0 focus-within:ring-0"
+              style={{ boxSizing: 'border-box', fontSize: '15px', lineHeight: '1.6' }}
               placeholder={`请输入${editingField?.label || ''}...`}
               value={fieldEditorValue}
               onInput={(e) => setFieldEditorValue(e.detail.value)}
