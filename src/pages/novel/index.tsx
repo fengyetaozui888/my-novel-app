@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2 } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -513,6 +513,16 @@ const NovelPage = () => {
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto" closeClassName="hidden">
           <DialogHeader>
+            {/* Back arrow at top-left */}
+            <View className="absolute top-4 left-3 z-10">
+              <ChevronLeft
+                size={22}
+                color="#c2185b"
+                strokeWidth={2.5}
+                onClick={() => setShowDetailDialog(false)}
+              />
+            </View>
+
             {/* Trash icon at top-right */}
             <View className="absolute top-6 right-3 z-10">
               <Trash2
@@ -523,7 +533,7 @@ const NovelPage = () => {
             </View>
 
             <View
-              className="rounded-xl p-4 -mx-2 -mt-2 mb-4"
+              className="rounded-xl p-4 mb-4"
               style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
             >
               <View className="flex items-center gap-3">
