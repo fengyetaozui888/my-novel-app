@@ -29,4 +29,26 @@ export class AffinityController {
     const data = await this.affinityService.adjustAffinity(characterId, body.delta ?? 0)
     return { code: 200, msg: 'success', data }
   }
+
+  /** 更新"我"在该角色眼中的专属人设（更改后获得一次修改亲密度的机会） */
+  @Post(':characterId/persona')
+  @HttpCode(200)
+  async updatePersona(
+    @Param('characterId') characterId: string,
+    @Body() body: { persona: string }
+  ) {
+    const data = await this.affinityService.updateUserPersona(characterId, body.persona ?? '')
+    return { code: 200, msg: 'success', data }
+  }
+
+  /** 使用一次性机会直接修改亲密度 */
+  @Post(':characterId/set')
+  @HttpCode(200)
+  async setAffinity(
+    @Param('characterId') characterId: string,
+    @Body() body: { value: number }
+  ) {
+    const data = await this.affinityService.setAffinityByOpportunity(characterId, body.value)
+    return { code: 200, msg: 'success', data }
+  }
 }

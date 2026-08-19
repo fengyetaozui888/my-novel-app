@@ -1,4 +1,4 @@
-import { pgTable, serial, timestamp, varchar, text, integer, index, uniqueIndex } from "drizzle-orm/pg-core"
+import { pgTable, serial, timestamp, varchar, text, integer, boolean, index, uniqueIndex } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -141,5 +141,23 @@ export const moment_backgrounds = pgTable(
   },
   (table) => [
     uniqueIndex("moment_backgrounds_novel_id_idx").on(table.novel_id),
+  ]
+);
+
+export const affinity = pgTable(
+  "affinity",
+  {
+    id: varchar("id", { length: 64 }).primaryKey().default(sql`gen_random_uuid()`),
+    user_id: varchar("user_id", { length: 100 }).notNull(),
+    character_id: varchar("character_id", { length: 64 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    novel_id: varchar("novel_id", { length: 64 }).notNull(),
+    value: integer("value").notNull().default(50),
+    level: varchar("level", { length: 20 }).default("friend"),
+    user_persona: text("user_persona"),
+    affinity_edit_available: boolean("affinity_edit_available").default(false),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("affinity_user_character_idx").on(table.user_id, table.character_id),
   ]
 );

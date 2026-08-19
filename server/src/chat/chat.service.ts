@@ -49,8 +49,30 @@ export class ChatService {
       });
   }
 
-  async getCharacterWithNovel(characterId: string) {
-    const { data: character, error: charError } = await this.client
+  /** 单用户模式：取 users 表中的唯一用户 id */
+  private async getDefaultUserId(): Promise<string> {
+    const { data, error } = await this.client
+      .from('users')
+      .select('id')
+      .limit(1);
+    if (error || !data || data.length === 0) {
+      return 'anonymous';
+    }
+    return data[0].id;
+  }
+
+  /** 获取"我"在该角色眼中的专属人设 */
+  private async getUserPersona(userId: string, characterId: string): Promise<string | undefined> {
+    const { data } = await this.client
+      .from('affinity')
+      .select('user_persona')
+      .eq('user_id', userId)
+      .eq('character_id', characterId)
+      .maybeSingle();
+    return data?.user_persona || undefined;
+  }
+
+  async getCharacterWithNovel(characterId: string) {    const { data: character, error: charError } = await this.client
       .from('characters')
       .select('id, name, category, persona, background, biography, principles, examples, novel_id')
       .eq('id', characterId)
@@ -68,7 +90,7 @@ export class ChatService {
     return { character, novel };
   }
 
-  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }): string {
+  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }, userPersona?: string): string {
     const parts: string[] = [];
 
     parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应对话。`);
@@ -89,18 +111,22 @@ export class ChatService {
       parts.push(`\n请根据你对「${speaker.name}」的认知和关系来回应，表现出符合这种关系的反应和态度。`);
     } else {
       parts.push(`\n【当前对话者认知】`);
-      parts.push(`现在正在和你对话的是一个普通用户（非小说中的角色）。`);
+      parts.push(`现在正在和你对话的是用户「我」（非小说中的角色）。`);
+      if (userPersona) {
+        parts.push(`在你眼中，这位「我」的身份是：${userPersona}`);
+        parts.push(`请基于这一认知来理解「我」的言行（「我」说话的内容、视角都符合这个身份），并按照你自己的性格自然地与「我」互动。`);
+      }
       if (affinityInfo) {
-        const levelNames: Record<string, string> = {
-          stranger: '陌生人',
-          unfamiliar: '不太熟',
-          acquaintance: '普通朋友',
-          friend: '好朋友',
-          intimate: '亲密好友',
-          soulmate: '灵魂知己'
+        const v = affinityInfo.value;
+        const levelNames: Record<number, string> = {
+          90: '灵魂知己', 70: '亲密好友', 50: '好朋友', 30: '普通朋友', 10: '不太熟', 0: '陌生人',
         };
+        let levelLabel = '陌生人';
+        for (const th of [90, 70, 50, 30, 10, 0]) {
+          if (v >= th) { levelLabel = levelNames[th]; break; }
+        }
         parts.push(`\n【亲密度系统】`);
-        parts.push(`你与该用户的亲密度：${affinityInfo.value}/100（${levelNames[affinityInfo.level] || '陌生人'}）`);
+        parts.push(`你与「我」的亲密度：${v}/100（${levelLabel}）`);
         parts.push(`请根据亲密度调整对话态度：`);
         parts.push(`- 陌生人（0-9）：保持距离，礼貌但冷淡`);
         parts.push(`- 不太熟（10-29）：略显生疏，但愿意交流`);
@@ -176,13 +202,19 @@ export class ChatService {
       }
     }
 
-    // 获取亲密度（仅当以用户身份对话时）
+    // 获取亲密度与"我"的专属人设（仅当以用户身份对话时）
     let affinityInfo = { value: 50, level: 'stranger' };
-    if (params.userId && !params.speakerId) {
+    let userPersona: string | undefined;
+    if (!params.speakerId) {
+      // 单用户模式：前端未传 userId 时自动补齐，保证亲密度系统在"我自己"对话时生效
+      if (!params.userId) {
+        params.userId = await this.getDefaultUserId();
+      }
       affinityInfo = await this.getAffinity(params.userId, params.characterId);
+      userPersona = await this.getUserPersona(params.userId, params.characterId);
     }
 
-    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo);
+    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona);
 
     const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       { role: 'system', content: systemPrompt },
