@@ -370,7 +370,7 @@ const CafePage = () => {
             <View className="mt-3 bg-white rounded-xl p-3 shadow-sm border border-amber-100">
               <View className="flex items-center gap-2">
                 <View
-                  className={`p-2 rounded-lg ${searchOpen ? 'bg-amber-500' : 'bg-amber-50'}`}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${searchOpen ? 'bg-amber-500' : 'bg-amber-50'}`}
                   onClick={() => {
                     setSearchOpen(!searchOpen)
                     if (searchOpen) setSearchKeyword('')
