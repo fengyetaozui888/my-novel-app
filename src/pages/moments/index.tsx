@@ -15,6 +15,7 @@ interface Comment {
   authorType: string
   content: string
   createdAt: string
+  characterId?: string | null
 }
 
 interface Moment {
@@ -28,6 +29,7 @@ interface Moment {
   likes: number
   isLiked: boolean
   likerNames: string[]
+  likers?: { name: string; characterId: string | null }[]
   commentList: Comment[]
 }
 
@@ -43,12 +45,14 @@ const mapMoment = (m: any): Moment => ({
   likes: m.likes_count ?? 0,
   isLiked: !!m.is_liked,
   likerNames: Array.isArray(m.liker_names) ? m.liker_names : [],
+  likers: Array.isArray(m.likers) ? m.likers.map((l: any) => ({ name: l.name, characterId: l.character_id || null })) : [],
   commentList: Array.isArray(m.comments) ? m.comments.map((c: any) => ({
     id: c.id,
     characterName: c.author_type === 'user' ? (c.author_name || '我') : (c.author_name || ''),
     authorType: c.author_type,
     content: c.content,
     createdAt: c.created_at,
+    characterId: c.character_id || null,
   })) : [],
 })
 
@@ -58,6 +62,7 @@ const mapComment = (c: any): Comment => ({
   authorType: c.author_type,
   content: c.content,
   createdAt: c.created_at,
+  characterId: c.character?.id || c.character_id || null,
 })
 
 const formatTime = (iso: string) => {
@@ -342,8 +347,8 @@ export default function MomentsPage() {
 
         {/* 头部内容 */}
         <View className="relative h-full flex flex-col justify-end px-4 pb-4">
-          <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>朋友圈</Text>
-          <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>角色们的日常动态</Text>
+          <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{characterIdParam && moments.length > 0 ? `${moments[0].characterName}的朋友圈` : '朋友圈'}</Text>
+          <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>{characterIdParam ? 'TA 发布过的动态' : '角色们的日常动态'}</Text>
         </View>
 
       </View>
@@ -386,7 +391,17 @@ export default function MomentsPage() {
                       <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '5px' }}>
                         <Heart size={14} color="#ec4899" filled style={{ marginTop: '3px' }} />
                         <Text className="text-sm leading-7" style={{ color: '#576b95' }}>
-                          {moment.likerNames.join('，')}
+                          {(moment.likers && moment.likers.length > 0 ? moment.likers : moment.likerNames.map(n => ({ name: n, characterId: null }))).map((l, i, arr) => (
+                            <Text key={i}>
+                              <Text
+                                style={{ color: l.characterId ? '#576b95' : '#8a8a8a' }}
+                                onClick={(e) => { if (l.characterId) { e.stopPropagation && e.stopPropagation(); Taro.navigateTo({ url: `/pages/moments/index?characterId=${l.characterId}` }) } }}
+                              >
+                                {l.name}
+                              </Text>
+                              {i < arr.length - 1 ? '，' : ''}
+                            </Text>
+                          ))}
                         </Text>
                       </View>
                     )}
@@ -396,7 +411,12 @@ export default function MomentsPage() {
                         className="text-sm text-gray-700 leading-7"
                         onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
                       >
-                        <Text style={{ color: '#576b95' }}>{comment.characterName}：</Text>
+                        <Text
+                          style={{ color: comment.characterId ? '#576b95' : '#8a8a8a' }}
+                          onClick={(e) => { if (comment.characterId) { e.stopPropagation && e.stopPropagation(); Taro.navigateTo({ url: `/pages/moments/index?characterId=${comment.characterId}` }) } }}
+                        >
+                          {comment.characterName}：
+                        </Text>
                         {comment.content}
                       </Text>
                     ))}
