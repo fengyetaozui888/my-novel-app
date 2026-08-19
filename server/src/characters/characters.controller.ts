@@ -46,6 +46,7 @@ export class CharactersController {
     body: {
       name?: string;
       avatar_key?: string | null;
+      portrait_key?: string | null;
       persona?: string;
       background?: string;
       biography?: string;

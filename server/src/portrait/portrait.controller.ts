@@ -6,6 +6,13 @@ import { PortraitService } from './portrait.service';
 export class PortraitController {
   constructor(private readonly portraitService: PortraitService) {}
 
+  /** 获取初始立绘列表 */
+  @Get('initial')
+  async getInitialPortraits() {
+    const data = await this.portraitService.getInitialPortraits();
+    return { code: 200, msg: 'success', data };
+  }
+
   /** 查询角色立绘状态 */
   @Get(':characterId')
   async getPortrait(@Param('characterId') characterId: string) {

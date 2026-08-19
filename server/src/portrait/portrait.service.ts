@@ -379,6 +379,33 @@ export class PortraitService {
     return prompt;
   }
 
+  /** 获取初始立绘列表 */
+  async getInitialPortraits() {
+    const portraits = [
+      { id: 'f1_ancient', gender: 'female', style: 'ancient', label: '古典女·温婉学者', key: 'portraits/f1_ancient_5d58809f.png' },
+      { id: 'f1_modern', gender: 'female', style: 'modern', label: '现代女·温婉学者', key: 'portraits/f1_modern_599a73b9.png' },
+      { id: 'f2_ancient', gender: 'female', style: 'ancient', label: '古典女·飒爽女侠', key: 'portraits/f2_ancient_19b5b709.png' },
+      { id: 'f2_modern', gender: 'female', style: 'modern', label: '现代女·飒爽女侠', key: 'portraits/f2_modern_8d2ff735.png' },
+      { id: 'f3_ancient', gender: 'female', style: 'ancient', label: '古典女·神秘画师', key: 'portraits/f3_ancient_fcc33c27.png' },
+      { id: 'f3_modern', gender: 'female', style: 'modern', label: '现代女·神秘画师', key: 'portraits/f3_modern_1db69f85.png' },
+      { id: 'm1_ancient', gender: 'male', style: 'ancient', label: '古典男·贵族公子', key: 'portraits/m1_ancient_509b9756.png' },
+      { id: 'm1_modern', gender: 'male', style: 'modern', label: '现代男·贵族公子', key: 'portraits/m1_modern_a0c77c91.png' },
+      { id: 'm2_ancient', gender: 'male', style: 'ancient', label: '古典男·冷峻剑客', key: 'portraits/m2_ancient_ac7cf603.png' },
+      { id: 'm2_modern', gender: 'male', style: 'modern', label: '现代男·冷峻剑客', key: 'portraits/m2_modern_a0f70ef7.png' },
+      { id: 'm3_ancient', gender: 'male', style: 'ancient', label: '古典男·温柔书生', key: 'portraits/m3_ancient_5ff94f13.png' },
+      { id: 'm3_modern', gender: 'male', style: 'modern', label: '现代男·温柔书生', key: 'portraits/m3_modern_7559695f.png' },
+    ];
+
+    const result = await Promise.all(
+      portraits.map(async (p) => ({
+        ...p,
+        url: await this.uploadService.getPresignedUrl(p.key),
+      })),
+    );
+
+    return result;
+  }
+
   /** 扣积分：开发者白名单免费 */
   private async chargeCredits(cost: number, action: string): Promise<{ credits: number; charged: boolean }> {
     const profile = await this.usersService.getProfile();

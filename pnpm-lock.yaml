@@ -49,6 +49,9 @@ importers:
       '@tarojs/taro':
         specifier: 4.1.9
         version: 4.1.9(@tarojs/components@4.1.9(@tarojs/helper@4.1.9)(@types/react@18.3.27)(postcss@8.5.6)(rollup@3.29.5)(webpack@5.97.1(@swc/core@1.3.96)))(@tarojs/helper@4.1.9)(@tarojs/shared@4.1.9)(@types/react@18.3.27)(postcss@8.5.6)(rollup@3.29.5)(webpack@5.97.1(@swc/core@1.3.96))
+      axios:
+        specifier: ^1.19.0
+        version: 1.19.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -4580,9 +4583,6 @@ packages:
   aws4@1.13.2:
     resolution: {integrity: sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw==}
 
-  axios@1.13.2:
-    resolution: {integrity: sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==}
-
   axios@1.19.0:
     resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
 
@@ -6390,15 +6390,6 @@ packages:
     resolution: {integrity: sha512-1ZSlKJSbET3XpglnEXC9g+QF4QRZhqHIjpFfa4pAMfO4tu/XYPafpeHEX6zOFS2EolOIXr0lPh1eSjmdWItX2w==}
     engines: {node: '>=10.10.0'}
     hasBin: true
-
-  follow-redirects@1.15.11:
-    resolution: {integrity: sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
 
   follow-redirects@1.16.0:
     resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
@@ -8986,9 +8977,6 @@ packages:
   proxy-addr@2.0.7:
     resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
     engines: {node: '>= 0.10'}
-
-  proxy-from-env@1.1.0:
-    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
 
   proxy-from-env@2.1.0:
     resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
@@ -14778,7 +14766,7 @@ snapshots:
       '@tarojs/service': 4.1.9
       '@tarojs/shared': 4.1.9
       adm-zip: 0.5.16
-      axios: 1.13.2
+      axios: 1.19.0
       cli-highlight: 2.1.11
       download-git-repo: 3.0.2
       envinfo: 7.21.0
@@ -14996,7 +14984,7 @@ snapshots:
 
   '@tarojs/plugin-mini-ci@4.1.9(patch_hash=j6dgmq33tuqqgowk7tjyyinctm)(miniprogram-ci@2.1.26(eslint@8.57.1))(tt-ide-cli@0.1.31(@types/node@24.12.4))':
     dependencies:
-      axios: 1.13.2
+      axios: 1.19.0
       jimp: 0.22.12
       jsqr: 1.4.0
       minimist: 1.2.8
@@ -15009,6 +14997,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
       - encoding
+      - supports-color
 
   '@tarojs/plugin-platform-h5@4.1.9(@tarojs/taro@4.1.9(@tarojs/components@4.1.9(@tarojs/helper@4.1.9)(@types/react@18.3.27)(postcss@8.5.6)(rollup@3.29.5)(webpack@5.97.1(@swc/core@1.3.96)))(@tarojs/helper@4.1.9)(@tarojs/shared@4.1.9)(@types/react@18.3.27)(postcss@8.5.6)(rollup@3.29.5)(webpack@5.97.1(@swc/core@1.3.96)))(@types/react@18.3.27)(postcss@8.5.6)(react@18.3.1)(rollup@3.29.5)(solid-js@1.9.10)(webpack@5.97.1(@swc/core@1.3.96))':
     dependencies:
@@ -15940,14 +15929,6 @@ snapshots:
 
   aws4@1.13.2: {}
 
-  axios@1.13.2:
-    dependencies:
-      follow-redirects: 1.15.11
-      form-data: 4.0.5
-      proxy-from-env: 1.1.0
-    transitivePeerDependencies:
-      - debug
-
   axios@1.19.0:
     dependencies:
       follow-redirects: 1.16.0
@@ -16850,7 +16831,7 @@ snapshots:
 
   centra@2.7.0:
     dependencies:
-      follow-redirects: 1.15.11
+      follow-redirects: 1.16.0
     transitivePeerDependencies:
       - debug
 
@@ -17739,7 +17720,7 @@ snapshots:
       has-property-descriptors: 1.0.2
       has-proto: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       internal-slot: 1.1.0
       is-array-buffer: 3.0.5
       is-callable: 1.2.7
@@ -17812,7 +17793,7 @@ snapshots:
 
   es-shim-unscopables@1.1.0:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   es-to-primitive@1.3.0:
     dependencies:
@@ -18405,8 +18386,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  follow-redirects@1.15.11: {}
-
   follow-redirects@1.16.0: {}
 
   for-each@0.3.5:
@@ -18520,7 +18499,7 @@ snapshots:
       call-bound: 1.0.4
       define-properties: 1.2.1
       functions-have-names: 1.2.3
-      hasown: 2.0.2
+      hasown: 2.0.4
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
@@ -19057,7 +19036,7 @@ snapshots:
   internal-slot@1.1.0:
     dependencies:
       es-errors: 1.3.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       side-channel: 1.1.0
 
   interpret@1.4.0: {}
@@ -19112,7 +19091,7 @@ snapshots:
 
   is-core-module@2.16.1:
     dependencies:
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-css-request@1.0.1: {}
 
@@ -19199,7 +19178,7 @@ snapshots:
       call-bound: 1.0.4
       gopd: 1.2.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   is-retry-allowed@1.2.0: {}
 
@@ -21217,8 +21196,6 @@ snapshots:
     dependencies:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
-
-  proxy-from-env@1.1.0: {}
 
   proxy-from-env@2.1.0: {}
 

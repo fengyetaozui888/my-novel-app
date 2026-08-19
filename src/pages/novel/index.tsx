@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Sparkles } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -18,6 +18,8 @@ interface Character {
   category: string
   avatar_key: string | null
   avatar_url: string | null
+  portrait_key: string | null
+  portrait_url: string | null
   gender: string
   tagline: string | null
   persona: string | null
@@ -27,6 +29,15 @@ interface Character {
   examples: string | null
   created_at: string
   updated_at: string
+}
+
+interface InitialPortrait {
+  id: string
+  gender: 'female' | 'male'
+  style: 'ancient' | 'modern'
+  label: string
+  key: string
+  url: string
 }
 
 type CategoryType = 'protagonist' | 'supporting' | 'minor'
@@ -53,6 +64,12 @@ const NovelPage = () => {
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  // Initial portraits
+  const [initialPortraits, setInitialPortraits] = useState<InitialPortrait[]>([])
+  const [showPortraitPicker, setShowPortraitPicker] = useState(false)
+  const [portraitTab, setPortraitTab] = useState<'female' | 'male'>('female')
+  const [portraitStyleTab, setPortraitStyleTab] = useState<'ancient' | 'modern'>('ancient')
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -93,8 +110,22 @@ const NovelPage = () => {
     }
   }, [novelId])
 
+  const fetchInitialPortraits = useCallback(async () => {
+    try {
+      const res = await Network.request({ url: '/api/portrait/initial' })
+      console.log('fetchInitialPortraits response:', res.data)
+      const data = res.data?.data || res.data || []
+      setInitialPortraits(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('fetchInitialPortraits error:', err)
+    }
+  }, [])
+
   useDidShow(() => {
-    if (novelId) fetchCharacters()
+    if (novelId) {
+      fetchCharacters()
+      fetchInitialPortraits()
+    }
   })
 
   const filteredCharacters = characters.filter((c) => c.category === activeCategory)
@@ -188,6 +219,26 @@ const NovelPage = () => {
       Taro.showToast({ title: '上传失败', icon: 'none' })
     } finally {
       setUploadingAvatar(false)
+    }
+  }
+
+  const handleSelectPortrait = async (portrait: InitialPortrait) => {
+    if (!selectedChar) return
+    try {
+      await Network.request({
+        url: `/api/characters/${selectedChar.id}`,
+        method: 'PUT',
+        data: { portrait_key: portrait.key },
+      })
+      setSelectedChar((prev) =>
+        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url } : null,
+      )
+      setShowPortraitPicker(false)
+      fetchCharacters()
+      Taro.showToast({ title: '立绘已选择', icon: 'success' })
+    } catch (err) {
+      console.error('selectPortrait error:', err)
+      Taro.showToast({ title: '选择失败', icon: 'none' })
     }
   }
 
@@ -335,9 +386,11 @@ const NovelPage = () => {
               const hasDetail = char.persona || char.background || char.biography
               return (
                 <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm overflow-hidden">
-                  {/* Silhouette / Avatar Header */}
+                  {/* Portrait / Avatar Header */}
                   <View className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center relative">
-                    {char.avatar_url ? (
+                    {char.portrait_url ? (
+                      <Image src={char.portrait_url} className="w-full h-full" mode="aspectFill" />
+                    ) : char.avatar_url ? (
                       <Image src={char.avatar_url} className="w-full h-full" mode="aspectFill" />
                     ) : (
                       <View className="flex items-center justify-center">
@@ -536,7 +589,13 @@ const NovelPage = () => {
                   className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
                   onClick={handleChooseAvatar}
                 >
-                  {selectedChar?.avatar_url ? (
+                  {selectedChar?.portrait_url ? (
+                    <Image
+                      src={selectedChar.portrait_url}
+                      className="w-full h-full"
+                      mode="aspectFill"
+                    />
+                  ) : selectedChar?.avatar_url ? (
                     <Image
                       src={selectedChar.avatar_url}
                       className="w-full h-full"
@@ -583,6 +642,23 @@ const NovelPage = () => {
             </View>
           </DialogHeader>
 
+          {/* Portrait Selection */}
+          <View className="px-4 py-2">
+            <View
+              className="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3"
+              onClick={() => setShowPortraitPicker(true)}
+            >
+              <View className="flex items-center gap-3 flex-1">
+                <Sparkles size={18} color="#7c3aed" />
+                <Text className="text-sm font-medium text-gray-700">选择初始立绘</Text>
+                {selectedChar?.portrait_url && (
+                  <Image src={selectedChar.portrait_url} className="w-8 h-8 rounded-lg" mode="aspectFill" />
+                )}
+              </View>
+              <Pencil size={16} color="#7c3aed" />
+            </View>
+          </View>
+
           {/* Gender Selection */}
           <View className="flex items-center justify-center gap-6 py-2">
             <View className="flex flex-col items-center gap-2">
@@ -597,7 +673,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'female' }))}
               >
-                <Text className="text-3xl">👧🏻</Text>
+                <Text className="text-3xl font-bold" style={{ color: '#ec4899' }}>♀</Text>
                 {detailForm.gender === 'female' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
@@ -619,7 +695,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'male' }))}
               >
-                <Text className="text-3xl">👦🏻</Text>
+                <Text className="text-3xl font-bold" style={{ color: '#2196f3' }}></Text>
                 {detailForm.gender === 'male' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
@@ -819,6 +895,105 @@ const NovelPage = () => {
               onClick={saveFieldEditor}
             >
               <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Portrait Picker Dialog */}
+      <Dialog open={showPortraitPicker} onOpenChange={setShowPortraitPicker}>
+        <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto w-full max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="block text-lg font-bold text-gray-800">选择初始立绘</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="block text-xs text-gray-500">为{selectedChar?.name}选择一张初始立绘</Text>
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Gender Tab */}
+          <View className="flex gap-2 mt-4 mb-3">
+            <View
+              className="flex-1 py-2 rounded-xl text-center"
+              style={{
+                backgroundColor: portraitTab === 'female' ? '#fce4ec' : '#f5f5f5',
+              }}
+              onClick={() => setPortraitTab('female')}
+            >
+              <Text className="text-sm font-medium" style={{ color: portraitTab === 'female' ? '#ec4899' : '#999' }}>
+                ♀ 女性立绘
+              </Text>
+            </View>
+            <View
+              className="flex-1 py-2 rounded-xl text-center"
+              style={{
+                backgroundColor: portraitTab === 'male' ? '#e3f2fd' : '#f5f5f5',
+              }}
+              onClick={() => setPortraitTab('male')}
+            >
+              <Text className="text-sm font-medium" style={{ color: portraitTab === 'male' ? '#2196f3' : '#999' }}>
+                ♂ 男性立绘
+              </Text>
+            </View>
+          </View>
+
+          {/* Style Tab */}
+          <View className="flex gap-2 mb-4">
+            <View
+              className="flex-1 py-2 rounded-xl text-center"
+              style={{
+                backgroundColor: portraitStyleTab === 'ancient' ? '#fff3e0' : '#f5f5f5',
+              }}
+              onClick={() => setPortraitStyleTab('ancient')}
+            >
+              <Text className="text-sm font-medium" style={{ color: portraitStyleTab === 'ancient' ? '#f57c00' : '#999' }}>
+                古代装
+              </Text>
+            </View>
+            <View
+              className="flex-1 py-2 rounded-xl text-center"
+              style={{
+                backgroundColor: portraitStyleTab === 'modern' ? '#e8f5e9' : '#f5f5f5',
+              }}
+              onClick={() => setPortraitStyleTab('modern')}
+            >
+              <Text className="text-sm font-medium" style={{ color: portraitStyleTab === 'modern' ? '#43a047' : '#999' }}>
+                现代装
+              </Text>
+            </View>
+          </View>
+
+          {/* Portrait Grid */}
+          <View className="grid grid-cols-3 gap-3">
+            {initialPortraits
+              .filter((p) => p.gender === portraitTab && p.style === portraitStyleTab)
+              .map((portrait) => (
+                <View
+                  key={portrait.id}
+                  className="rounded-xl overflow-hidden border-2"
+                  style={{
+                    borderColor: selectedChar?.portrait_key === portrait.key ? '#ec4899' : 'transparent',
+                  }}
+                  onClick={() => handleSelectPortrait(portrait)}
+                >
+                  <View className="aspect-[3/4] bg-gray-100">
+                    <Image src={portrait.url} className="w-full h-full" mode="aspectFill" />
+                  </View>
+                  <View className="py-1 px-2 bg-white">
+                    <Text className="text-xs text-gray-600 text-center block truncate">{portrait.label}</Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowPortraitPicker(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
             </Button>
           </View>
         </DialogContent>

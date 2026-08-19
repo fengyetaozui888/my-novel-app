@@ -10,8 +10,9 @@ export class CharactersService {
     return getSupabaseClient();
   }
 
-  private async enrichWithAvatarUrl(character: Record<string, unknown>) {
+  private async enrichWithUrls(character: Record<string, unknown>) {
     let avatar_url: string | null = null;
+    let portrait_url: string | null = null;
     if (character.avatar_key) {
       try {
         avatar_url = await this.uploadService.getPresignedUrl(character.avatar_key as string);
@@ -19,19 +20,26 @@ export class CharactersService {
         avatar_url = null;
       }
     }
-    return { ...character, avatar_url };
+    if (character.portrait_key) {
+      try {
+        portrait_url = await this.uploadService.getPresignedUrl(character.portrait_key as string);
+      } catch {
+        portrait_url = null;
+      }
+    }
+    return { ...character, avatar_url, portrait_url };
   }
 
   async findByNovelId(novelId: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, persona, background, biography, principles, examples, created_at, updated_at')
       .eq('novel_id', novelId)
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询角色列表失败: ${error.message}`);
 
     const characters = await Promise.all(
-      (data || []).map((c) => this.enrichWithAvatarUrl(c as unknown as Record<string, unknown>)),
+      (data || []).map((c) => this.enrichWithUrls(c as unknown as Record<string, unknown>)),
     );
     return characters;
   }
@@ -39,12 +47,12 @@ export class CharactersService {
   async findById(id: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, persona, background, biography, principles, examples, created_at, updated_at')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error(`查询角色详情失败: ${error.message}`);
     if (!data) return null;
-    return this.enrichWithAvatarUrl(data as unknown as Record<string, unknown>);
+    return this.enrichWithUrls(data as unknown as Record<string, unknown>);
   }
 
   async create(params: {
@@ -68,6 +76,7 @@ export class CharactersService {
       gender?: string;
       tagline?: string;
       avatar_key?: string | null;
+      portrait_key?: string | null;
       persona?: string;
       background?: string;
       biography?: string;
@@ -82,7 +91,7 @@ export class CharactersService {
       .select()
       .single();
     if (error) throw new Error(`更新角色失败: ${error.message}`);
-    return this.enrichWithAvatarUrl(data as unknown as Record<string, unknown>);
+    return this.enrichWithUrls(data as unknown as Record<string, unknown>);
   }
 
   async remove(id: string) {
