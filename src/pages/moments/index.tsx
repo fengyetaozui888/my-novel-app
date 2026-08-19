@@ -401,13 +401,14 @@ export default function MomentsPage() {
                         <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
                           {(moment.likers && moment.likers.length > 0 ? moment.likers : moment.likerNames.map(n => ({ name: n, characterId: null }))).map((l, i, arr) => (
                             <View key={i} style={{ display: 'flex', flexDirection: 'row' }}>
-                              <Text
-                                className="text-sm leading-7"
-                                style={{ color: '#576b95' }}
+                              <View
+                                style={{ display: 'inline-block' }}
                                 onClick={(e) => { e.stopPropagation && e.stopPropagation(); if (l.characterId) { Taro.navigateTo({ url: `/pages/moments/index?characterId=${l.characterId}` }) } }}
                               >
-                                {l.name}
-                              </Text>
+                                <Text className="text-sm leading-7" style={{ color: '#576b95' }}>
+                                  {l.name}
+                                </Text>
+                              </View>
                               {i < arr.length - 1 && <Text className="text-sm leading-7" style={{ color: '#576b95' }}>，</Text>}
                             </View>
                           ))}
@@ -416,13 +417,14 @@ export default function MomentsPage() {
                     )}
                     {moment.commentList && moment.commentList.map((comment) => (
                       <View key={comment.id} onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}>
-                        <Text
-                          className="text-sm leading-7"
-                          style={{ color: '#576b95' }}
+                        <View
+                          style={{ display: 'inline-block' }}
                           onClick={(e) => { e.stopPropagation && e.stopPropagation(); if (comment.characterId) { Taro.navigateTo({ url: `/pages/moments/index?characterId=${comment.characterId}` }) } }}
                         >
-                          {comment.characterName}：
-                        </Text>
+                          <Text className="text-sm leading-7" style={{ color: '#576b95' }}>
+                            {comment.characterName}：
+                          </Text>
+                        </View>
                         <Text className="text-sm text-gray-700 leading-7">{comment.content}</Text>
                       </View>
                     ))}

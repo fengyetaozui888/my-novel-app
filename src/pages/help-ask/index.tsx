@@ -109,7 +109,7 @@ export default function HelpAskPage() {
           borderTop: '1px solid #fde8d8',
         }}
       >
-        <View className="flex-1 bg-white rounded-full px-4 py-2 border border-orange-100">
+        <View className="flex-1 bg-white rounded-full px-4 py-2">
           <Input
             style={{ width: '100%', fontSize: '14px' }}
             placeholder="输入你的问题..."
