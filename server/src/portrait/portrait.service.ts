@@ -382,18 +382,18 @@ export class PortraitService {
   /** 获取初始立绘列表 */
   async getInitialPortraits() {
     const portraits = [
-      { id: 'f1_ancient', gender: 'female', style: 'ancient', label: '古典女·温婉学者', key: 'portraits/f1_ancient_5d58809f.png' },
-      { id: 'f1_modern', gender: 'female', style: 'modern', label: '现代女·温婉学者', key: 'portraits/f1_modern_599a73b9.png' },
-      { id: 'f2_ancient', gender: 'female', style: 'ancient', label: '古典女·飒爽女侠', key: 'portraits/f2_ancient_19b5b709.png' },
-      { id: 'f2_modern', gender: 'female', style: 'modern', label: '现代女·飒爽女侠', key: 'portraits/f2_modern_8d2ff735.png' },
-      { id: 'f3_ancient', gender: 'female', style: 'ancient', label: '古典女·神秘画师', key: 'portraits/f3_ancient_fcc33c27.png' },
-      { id: 'f3_modern', gender: 'female', style: 'modern', label: '现代女·神秘画师', key: 'portraits/f3_modern_1db69f85.png' },
-      { id: 'm1_ancient', gender: 'male', style: 'ancient', label: '古典男·贵族公子', key: 'portraits/m1_ancient_509b9756.png' },
-      { id: 'm1_modern', gender: 'male', style: 'modern', label: '现代男·贵族公子', key: 'portraits/m1_modern_a0c77c91.png' },
-      { id: 'm2_ancient', gender: 'male', style: 'ancient', label: '古典男·冷峻剑客', key: 'portraits/m2_ancient_ac7cf603.png' },
-      { id: 'm2_modern', gender: 'male', style: 'modern', label: '现代男·冷峻剑客', key: 'portraits/m2_modern_a0f70ef7.png' },
-      { id: 'm3_ancient', gender: 'male', style: 'ancient', label: '古典男·温柔书生', key: 'portraits/m3_ancient_5ff94f13.png' },
-      { id: 'm3_modern', gender: 'male', style: 'modern', label: '现代男·温柔书生', key: 'portraits/m3_modern_7559695f.png' },
+      { id: 'f1_ancient', gender: 'female', style: 'ancient', label: '古典女·温婉学者', key: 'portraits2/female_ancient_Gu_Dian_Nu_Wen_Wan_Xue_Zhe_29acca8c.png' },
+      { id: 'f1_modern', gender: 'female', style: 'modern', label: '现代女·阳光少女', key: 'portraits2/female_modern_Xian_Dai_Nu_Yang_Guang_Shao_Nu_325c93ce.png' },
+      { id: 'f2_ancient', gender: 'female', style: 'ancient', label: '古典女·飒爽女侠', key: 'portraits2/female_ancient_Gu_Dian_Nu_Sa_Shuang_Nu_Xia_5a89e8f5.png' },
+      { id: 'f2_modern', gender: 'female', style: 'modern', label: '现代女·知性白领', key: 'portraits2/female_modern_Xian_Dai_Nu_Zhi_Xing_Bai_Ling_d115702d.png' },
+      { id: 'f3_ancient', gender: 'female', style: 'ancient', label: '古典女·神秘画师', key: 'portraits2/female_ancient_Gu_Dian_Nu_Shen_Mi_Hua_Shi_e9392cd2.png' },
+      { id: 'f3_modern', gender: 'female', style: 'modern', label: '现代女·酷飒摇滚', key: 'portraits2/female_modern_Xian_Dai_Nu_Ku_Sa_Yao_Gun_850864a9.png' },
+      { id: 'm1_ancient', gender: 'male', style: 'ancient', label: '古典男·温润公子', key: 'portraits2/male_ancient_Gu_Dian_Nan_Wen_Run_Gong_Zi_0f57c0d6.png' },
+      { id: 'm1_modern', gender: 'male', style: 'modern', label: '现代男·阳光学长', key: 'portraits2/male_modern_Xian_Dai_Nan_Yang_Guang_Xue_Chang_5f13bcb0.png' },
+      { id: 'm2_ancient', gender: 'male', style: 'ancient', label: '古典男·冷峻将军', key: 'portraits2/male_ancient_Gu_Dian_Nan_Leng_Jun_Jiang_Jun_56d7413a.png' },
+      { id: 'm2_modern', gender: 'male', style: 'modern', label: '现代男·霸道总裁', key: 'portraits2/male_modern_Xian_Dai_Nan_Ba_Dao_Zong_Cai_6fae0cd1.png' },
+      { id: 'm3_ancient', gender: 'male', style: 'ancient', label: '古典男·逍遥剑客', key: 'portraits2/male_ancient_Gu_Dian_Nan_Xiao_Yao_Jian_Ke_aa2dd723.png' },
+      { id: 'm3_modern', gender: 'male', style: 'modern', label: '现代男·文艺青年', key: 'portraits2/male_modern_Xian_Dai_Nan_Wen_Yi_Qing_Nian_ec22c1cd.png' },
     ];
 
     const result = await Promise.all(
