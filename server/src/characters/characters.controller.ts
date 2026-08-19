@@ -47,7 +47,7 @@ export class CharactersController {
       name?: string;
       avatar_key?: string | null;
       portrait_key?: string | null;
-      portrait_crop?: string | null;
+      portrait_crop_offset?: number;
       persona?: string;
       background?: string;
       biography?: string;

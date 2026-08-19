@@ -20,7 +20,7 @@ interface Character {
   avatar_url: string | null
   portrait_key: string | null
   portrait_url: string | null
-  portrait_crop: 'face' | 'upper' | 'full' | null
+  portrait_crop_offset: number | null
   gender: string
   tagline: string | null
   persona: string | null
@@ -71,7 +71,9 @@ const NovelPage = () => {
   const [showPortraitPicker, setShowPortraitPicker] = useState(false)
   const [portraitTab, setPortraitTab] = useState<'female' | 'male'>('female')
   const [portraitStyleTab, setPortraitStyleTab] = useState<'ancient' | 'modern'>('ancient')
-  const [portraitCrop, setPortraitCrop] = useState<'face' | 'upper' | 'full'>('face')
+  const [selectedPortrait, setSelectedPortrait] = useState<InitialPortrait | null>(null)
+  const [cropOffset, setCropOffset] = useState(0) // 0-100, percentage from top
+  const [isDragging, setIsDragging] = useState(false)
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -224,18 +226,20 @@ const NovelPage = () => {
     }
   }
 
-  const handleSelectPortrait = async (portrait: InitialPortrait) => {
+  const handleConfirmPortrait = async (portrait: InitialPortrait, offset: number) => {
     if (!selectedChar) return
     try {
       await Network.request({
         url: `/api/characters/${selectedChar.id}`,
         method: 'PUT',
-        data: { portrait_key: portrait.key, portrait_crop: portraitCrop },
+        data: { portrait_key: portrait.key, portrait_crop_offset: offset },
       })
       setSelectedChar((prev) =>
-        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url, portrait_crop: portraitCrop } : null,
+        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url, portrait_crop_offset: offset } : null,
       )
       setShowPortraitPicker(false)
+      setSelectedPortrait(null)
+      setCropOffset(0)
       fetchCharacters()
       Taro.showToast({ title: '立绘已选择', icon: 'success' })
     } catch (err) {
@@ -396,7 +400,7 @@ const NovelPage = () => {
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedChar(char)
-                        setPortraitCrop(char.portrait_crop || 'face')
+                        setCropOffset(char.portrait_crop_offset ?? 0)
                         setDetailForm({
                           gender: char.gender || 'female',
                           persona: char.persona || '',
@@ -417,7 +421,7 @@ const NovelPage = () => {
                         className="w-full h-full"
                         mode="aspectFill"
                         style={{
-                          objectPosition: char.portrait_crop === 'face' ? 'top center' : char.portrait_crop === 'upper' ? 'center center' : 'bottom center',
+                          objectPosition: `center ${char.portrait_crop_offset ?? 0}%`,
                         }}
                       />
                     ) : char.avatar_url ? (
@@ -999,76 +1003,91 @@ const NovelPage = () => {
             </View>
           </View>
 
-          {/* Crop Position Selector */}
-          <View className="mb-4">
-            <Text className="block text-xs text-gray-500 mb-2">显示区域</Text>
-            <View className="flex gap-2">
-              <View
-                className="flex-1 py-2 rounded-lg text-center"
-                style={{
-                  backgroundColor: portraitCrop === 'face' ? '#fce4ec' : '#f5f5f5',
-                }}
-                onClick={() => setPortraitCrop('face')}
-              >
-                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'face' ? '#ec4899' : '#999' }}>
-                  脸部
-                </Text>
-              </View>
-              <View
-                className="flex-1 py-2 rounded-lg text-center"
-                style={{
-                  backgroundColor: portraitCrop === 'upper' ? '#fce4ec' : '#f5f5f5',
-                }}
-                onClick={() => setPortraitCrop('upper')}
-              >
-                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'upper' ? '#ec4899' : '#999' }}>
-                  上半身
-                </Text>
-              </View>
-              <View
-                className="flex-1 py-2 rounded-lg text-center"
-                style={{
-                  backgroundColor: portraitCrop === 'full' ? '#fce4ec' : '#f5f5f5',
-                }}
-                onClick={() => setPortraitCrop('full')}
-              >
-                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'full' ? '#ec4899' : '#999' }}>
-                  全身
-                </Text>
-              </View>
-            </View>
-          </View>
-
           {/* Portrait Grid */}
-          <View className="grid grid-cols-3 gap-3">
+          <View className="grid grid-cols-3 gap-3 mb-4">
             {initialPortraits
               .filter((p) => p.gender === portraitTab && p.style === portraitStyleTab)
-              .map((portrait) => (
-                <View
-                  key={portrait.id}
-                  className="rounded-xl overflow-hidden border-2"
-                  style={{
-                    borderColor: selectedChar?.portrait_key === portrait.key ? '#ec4899' : 'transparent',
-                  }}
-                  onClick={() => handleSelectPortrait(portrait)}
-                >
-                  <View className="aspect-[3/4] bg-gray-100">
-                    <Image src={portrait.url} className="w-full h-full" mode="aspectFill" />
+              .map((portrait) => {
+                const isSelected = selectedPortrait?.id === portrait.id
+                return (
+                  <View
+                    key={portrait.id}
+                    className="rounded-xl overflow-hidden border-2 relative"
+                    style={{
+                      borderColor: isSelected ? '#ec4899' : 'transparent',
+                    }}
+                    onClick={() => setSelectedPortrait(portrait)}
+                  >
+                    <View className="aspect-[3/4] bg-gray-100">
+                      <Image src={portrait.url} className="w-full h-full" mode="aspectFill" />
+                    </View>
+                    <View className="py-1 px-2 bg-white">
+                      <Text className="text-xs text-gray-600 text-center block truncate">{portrait.label}</Text>
+                    </View>
+                    {/* 选中勾 */}
+                    {isSelected && (
+                      <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
+                        <Text className="text-white text-xs">✓</Text>
+                      </View>
+                    )}
                   </View>
-                  <View className="py-1 px-2 bg-white">
-                    <Text className="text-xs text-gray-600 text-center block truncate">{portrait.label}</Text>
-                  </View>
-                </View>
-              ))}
+                )
+              })}
           </View>
+
+          {/* 裁切界面 */}
+          {selectedPortrait && (
+            <View className="mb-4">
+              <Text className="block text-xs text-gray-500 mb-2">拖拽裁切框选择显示区域</Text>
+              <View className="relative bg-gray-100 rounded-xl overflow-hidden" style={{ height: '300px' }}>
+                <Image src={selectedPortrait.url} className="w-full h-full" mode="aspectFill" />
+                {/* 裁切框 */}
+                <View
+                  className="absolute left-0 right-0 border-2 border-pink-500"
+                  style={{
+                    top: `${cropOffset}%`,
+                    height: '25%',
+                    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+                  }}
+                  onTouchStart={() => setIsDragging(true)}
+                  onTouchMove={(e) => {
+                    if (!isDragging) return
+                    const touch = (e as any).touches[0]
+                    const containerHeight = 300
+                    const newOffset = ((touch.clientY - 100) / containerHeight) * 100
+                    setCropOffset(Math.max(0, Math.min(75, newOffset)))
+                  }}
+                  onTouchEnd={() => setIsDragging(false)}
+                >
+                  <View className="absolute top-0 left-0 right-0 h-1 bg-pink-500" />
+                  <View className="absolute bottom-0 left-0 right-0 h-1 bg-pink-500" />
+                </View>
+              </View>
+            </View>
+          )}
 
           <View className="flex gap-3 mt-4">
             <Button
               variant="outline"
               className="flex-1 border-gray-200 text-gray-700 rounded-xl"
-              onClick={() => setShowPortraitPicker(false)}
+              onClick={() => {
+                setShowPortraitPicker(false)
+                setSelectedPortrait(null)
+                setCropOffset(0)
+              }}
             >
               <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-pink-500 text-white rounded-xl"
+              disabled={!selectedPortrait}
+              onClick={() => {
+                if (selectedPortrait) {
+                  handleConfirmPortrait(selectedPortrait, cropOffset)
+                }
+              }}
+            >
+              <Text className="text-white">确认</Text>
             </Button>
           </View>
         </DialogContent>
