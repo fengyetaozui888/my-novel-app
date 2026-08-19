@@ -161,3 +161,16 @@ export const affinity = pgTable(
     uniqueIndex("affinity_user_character_idx").on(table.user_id, table.character_id),
   ]
 );
+
+export const agentFeedback = pgTable(
+  "agent_feedback",
+  {
+    id: varchar("id", { length: 64 }).primaryKey().default(sql`gen_random_uuid()`),
+    novel_id: varchar("novel_id", { length: 64 }).notNull(),
+    character_id: varchar("character_id", { length: 64 }),
+    feedback_text: text("feedback_text").notNull(),
+    optimization: text("optimization"),
+    status: varchar("status", { length: 20 }).default("applied"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);

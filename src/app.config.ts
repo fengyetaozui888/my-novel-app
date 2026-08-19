@@ -8,6 +8,7 @@ export default defineAppConfig({
     'pages/interact/index',
     'pages/moments/index',
     'pages/affinity-book/index',
+    'pages/agent-feedback/index',
   ],
   window: {
     backgroundTextStyle: 'light',

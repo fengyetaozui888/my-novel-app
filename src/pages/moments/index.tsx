@@ -384,8 +384,8 @@ export default function MomentsPage() {
                   <View className="bg-gray-100 rounded-lg p-3 mt-2" style={{ rowGap: '10px', display: 'flex', flexDirection: 'column' }}>
                     {moment.likes > 0 && (
                       <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '5px' }}>
-                        <Heart size={13} color="#ec4899" filled style={{ marginTop: '2px' }} />
-                        <Text className="text-xs leading-6" style={{ color: '#576b95' }}>
+                        <Heart size={14} color="#ec4899" filled style={{ marginTop: '3px' }} />
+                        <Text className="text-sm leading-7" style={{ color: '#576b95' }}>
                           {moment.likerNames.join('，')}
                         </Text>
                       </View>
@@ -393,7 +393,7 @@ export default function MomentsPage() {
                     {moment.commentList && moment.commentList.map((comment) => (
                       <Text
                         key={comment.id}
-                        className="text-xs text-gray-700 leading-6"
+                        className="text-sm text-gray-700 leading-7"
                         onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
                       >
                         <Text style={{ color: '#576b95' }}>{comment.characterName}：</Text>
@@ -432,15 +432,15 @@ export default function MomentsPage() {
         </View>
       </ScrollView>
 
-      {/* 悬浮按钮（随页面常驻顶部，微信式） */}
+      {/* 悬浮按钮（相对页面容器常驻顶部，兼容 H5 fixed 退化） */}
       <View
-        style={{ position: 'fixed', top: '16px', left: '16px', zIndex: 50, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 50, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
         onClick={handleChangeBackground}
       >
         <Camera size={18} color="#8a8a8a" />
       </View>
       <View
-        style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         onClick={() => setShowPublish(true)}
       >
         <Plus size={20} color="#e91e63" strokeWidth={2.5} />
