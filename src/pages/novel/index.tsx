@@ -20,6 +20,7 @@ interface Character {
   avatar_url: string | null
   portrait_key: string | null
   portrait_url: string | null
+  portrait_crop: 'face' | 'upper' | 'full' | null
   gender: string
   tagline: string | null
   persona: string | null
@@ -70,6 +71,7 @@ const NovelPage = () => {
   const [showPortraitPicker, setShowPortraitPicker] = useState(false)
   const [portraitTab, setPortraitTab] = useState<'female' | 'male'>('female')
   const [portraitStyleTab, setPortraitStyleTab] = useState<'ancient' | 'modern'>('ancient')
+  const [portraitCrop, setPortraitCrop] = useState<'face' | 'upper' | 'full'>('face')
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -228,10 +230,10 @@ const NovelPage = () => {
       await Network.request({
         url: `/api/characters/${selectedChar.id}`,
         method: 'PUT',
-        data: { portrait_key: portrait.key },
+        data: { portrait_key: portrait.key, portrait_crop: portraitCrop },
       })
       setSelectedChar((prev) =>
-        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url } : null,
+        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url, portrait_crop: portraitCrop } : null,
       )
       setShowPortraitPicker(false)
       fetchCharacters()
@@ -394,6 +396,7 @@ const NovelPage = () => {
                       onClick={(e) => {
                         e.stopPropagation()
                         setSelectedChar(char)
+                        setPortraitCrop(char.portrait_crop || 'face')
                         setDetailForm({
                           gender: char.gender || 'female',
                           persona: char.persona || '',
@@ -409,9 +412,21 @@ const NovelPage = () => {
                       <User size={14} color="#7c3aed" />
                     </View>
                     {char.portrait_url ? (
-                      <Image src={char.portrait_url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
+                      <Image
+                        src={char.portrait_url}
+                        className="w-full h-full"
+                        mode="aspectFill"
+                        style={{
+                          objectPosition: char.portrait_crop === 'face' ? 'top center' : char.portrait_crop === 'upper' ? 'center center' : 'bottom center',
+                        }}
+                      />
                     ) : char.avatar_url ? (
-                      <Image src={char.avatar_url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
+                      <Image
+                        src={char.avatar_url}
+                        className="w-full h-full"
+                        mode="aspectFill"
+                        style={{ objectPosition: 'top center' }}
+                      />
                     ) : (
                       <View className="flex items-center justify-center">
                         {char.gender === 'male' ? (
@@ -981,6 +996,46 @@ const NovelPage = () => {
               <Text className="text-sm font-medium" style={{ color: portraitStyleTab === 'modern' ? '#43a047' : '#999' }}>
                 现代装
               </Text>
+            </View>
+          </View>
+
+          {/* Crop Position Selector */}
+          <View className="mb-4">
+            <Text className="block text-xs text-gray-500 mb-2">显示区域</Text>
+            <View className="flex gap-2">
+              <View
+                className="flex-1 py-2 rounded-lg text-center"
+                style={{
+                  backgroundColor: portraitCrop === 'face' ? '#fce4ec' : '#f5f5f5',
+                }}
+                onClick={() => setPortraitCrop('face')}
+              >
+                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'face' ? '#ec4899' : '#999' }}>
+                  脸部
+                </Text>
+              </View>
+              <View
+                className="flex-1 py-2 rounded-lg text-center"
+                style={{
+                  backgroundColor: portraitCrop === 'upper' ? '#fce4ec' : '#f5f5f5',
+                }}
+                onClick={() => setPortraitCrop('upper')}
+              >
+                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'upper' ? '#ec4899' : '#999' }}>
+                  上半身
+                </Text>
+              </View>
+              <View
+                className="flex-1 py-2 rounded-lg text-center"
+                style={{
+                  backgroundColor: portraitCrop === 'full' ? '#fce4ec' : '#f5f5f5',
+                }}
+                onClick={() => setPortraitCrop('full')}
+              >
+                <Text className="text-xs font-medium" style={{ color: portraitCrop === 'full' ? '#ec4899' : '#999' }}>
+                  全身
+                </Text>
+              </View>
             </View>
           </View>
 

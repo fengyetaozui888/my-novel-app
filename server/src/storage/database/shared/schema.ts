@@ -48,6 +48,7 @@ export const characters = pgTable(
     portrait_prompt: text("portrait_prompt"),
     portrait_key: varchar("portrait_key", { length: 500 }),
     portrait_frame_key: varchar("portrait_frame_key", { length: 500 }),
+    portrait_crop: varchar("portrait_crop", { length: 10 }).default("face"),
     persona: text("persona"),
     appearance: text("appearance"),
     background: text("background"),

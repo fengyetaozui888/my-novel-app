@@ -91,6 +91,7 @@ export default function MomentsPage() {
   const [publishText, setPublishText] = useState('')
   const [publishImage, setPublishImage] = useState('')
   const [submittingPublish, setSubmittingPublish] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     initContext()
@@ -329,7 +330,14 @@ export default function MomentsPage() {
   return (
     <View className="bg-pink-50" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* 整页滚动：背景与标题随内容一起上滑（微信朋友圈式） */}
-      <ScrollView scrollY style={{ flex: '1 1 0%', height: '100%' }}>
+      <ScrollView
+        scrollY
+        style={{ flex: '1 1 0%', height: '100%' }}
+        onScroll={(e) => {
+          const scrollTop = e.detail?.scrollTop ?? 0
+          setScrolled(scrollTop > 100)
+        }}
+      >
       {/* 顶部背景区 */}
       <View className="relative h-56 overflow-hidden">
         {backgroundImage ? (
@@ -450,18 +458,20 @@ export default function MomentsPage() {
         </View>
       </ScrollView>
 
-      {/* 悬浮按钮（相对页面容器常驻顶部，兼容 H5 fixed 退化） */}
+      {/* 悬浮按钮：照相机滚动时隐藏，加号固定在右下角 */}
+      {!scrolled && (
+        <View
+          style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 50, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+          onClick={handleChangeBackground}
+        >
+          <Camera size={18} color="#8a8a8a" />
+        </View>
+      )}
       <View
-        style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 50, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
-        onClick={handleChangeBackground}
-      >
-        <Camera size={18} color="#8a8a8a" />
-      </View>
-      <View
-        style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ position: 'fixed', bottom: '60px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         onClick={() => setShowPublish(true)}
       >
-        <Plus size={20} color="#e91e63" strokeWidth={2.5} />
+        <Plus size={24} color="#e91e63" strokeWidth={2.5} />
       </View>
 
       {/* 微信风格评论输入栏：底部固定弹出的单行输入 */}
