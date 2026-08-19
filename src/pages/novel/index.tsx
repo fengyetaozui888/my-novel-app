@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Sparkles } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Sparkles, User } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -357,14 +357,14 @@ const NovelPage = () => {
           </Text>
           <Button
             size="sm"
-            className="bg-rose-500 text-white rounded-full"
+            className="bg-rose-500 text-white rounded-full px-4"
             onClick={() => {
               setNewName('')
               setShowAddDialog(true)
             }}
           >
             <Plus size={14} color="#ffffff" className="mr-1" />
-            <Text className="text-white text-xs">添加</Text>
+            <Text className="text-white text-xs">添加角色卡</Text>
           </Button>
         </View>
 
@@ -388,10 +388,30 @@ const NovelPage = () => {
                 <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm overflow-hidden">
                   {/* Portrait / Avatar Header */}
                   <View className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center relative">
+                    {/* Portrait selection button */}
+                    <View
+                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white bg-opacity-80 flex items-center justify-center"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedChar(char)
+                        setDetailForm({
+                          gender: char.gender || 'female',
+                          persona: char.persona || '',
+                          background: char.background || '',
+                          biography: char.biography || '',
+                          principles: char.principles || '',
+                          examples: char.examples || '',
+                          tagline: char.tagline || '',
+                        })
+                        setShowPortraitPicker(true)
+                      }}
+                    >
+                      <User size={14} color="#7c3aed" />
+                    </View>
                     {char.portrait_url ? (
-                      <Image src={char.portrait_url} className="w-full h-full" mode="aspectFill" />
+                      <Image src={char.portrait_url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
                     ) : char.avatar_url ? (
-                      <Image src={char.avatar_url} className="w-full h-full" mode="aspectFill" />
+                      <Image src={char.avatar_url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
                     ) : (
                       <View className="flex items-center justify-center">
                         {char.gender === 'male' ? (
@@ -673,7 +693,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'female' }))}
               >
-                <Text className="text-3xl font-bold" style={{ color: '#ec4899' }}>♀</Text>
+                <Text className="text-4xl" style={{ color: '#ec4899', fontWeight: 400 }}>♀</Text>
                 {detailForm.gender === 'female' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
@@ -695,7 +715,7 @@ const NovelPage = () => {
                 }}
                 onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'male' }))}
               >
-                <Text className="text-3xl font-bold" style={{ color: '#2196f3' }}></Text>
+                <Text className="text-4xl" style={{ color: '#2196f3', fontWeight: 400 }}>♂</Text>
                 {detailForm.gender === 'male' && (
                   <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
                     <Text className="text-white text-xs font-bold">✓</Text>
