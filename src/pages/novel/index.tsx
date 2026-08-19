@@ -517,17 +517,17 @@ const NovelPage = () => {
             <View className="absolute top-4 left-3 z-10">
               <ChevronLeft
                 size={22}
-                color="#9ca3af"
+                color="#c2185b"
                 strokeWidth={2.5}
                 onClick={() => setShowDetailDialog(false)}
               />
             </View>
 
             {/* Trash icon at top-right */}
-            <View className="absolute top-6 right-3 z-10">
+            <View className="absolute top-4 right-3 z-10">
               <Trash2
                 size={16}
-                color="#9ca3af"
+                color="#c2185b"
                 onClick={() => setShowDetailMenu(true)}
               />
             </View>

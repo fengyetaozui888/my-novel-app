@@ -33,9 +33,52 @@ export default function DimensionIndex() {
       console.log('Characters response:', res.data)
       if (res.data?.code === 200 && res.data?.data) {
         setCharacters(res.data.data)
+      } else {
+        // 示例数据：贾宝玉和林黛玉
+        setCharacters([
+          {
+            id: 'demo-1',
+            novelId: 'demo',
+            characterName: '贾宝玉',
+            category: 'protagonist',
+            gender: 'male',
+            tagline: '通灵宝玉转世，性格温和多情',
+            portraitUrl: undefined
+          },
+          {
+            id: 'demo-2',
+            novelId: 'demo',
+            characterName: '林黛玉',
+            category: 'protagonist',
+            gender: 'female',
+            tagline: '绛珠仙草转世，才情出众多愁善感',
+            portraitUrl: undefined
+          }
+        ])
       }
     } catch (error) {
       console.error('Failed to load characters:', error)
+      // 示例数据
+      setCharacters([
+        {
+          id: 'demo-1',
+          novelId: 'demo',
+          characterName: '贾宝玉',
+          category: 'protagonist',
+          gender: 'male',
+          tagline: '通灵宝玉转世，性格温和多情',
+          portraitUrl: undefined
+        },
+        {
+          id: 'demo-2',
+          novelId: 'demo',
+          characterName: '林黛玉',
+          category: 'protagonist',
+          gender: 'female',
+          tagline: '绛珠仙草转世，才情出众多愁善感',
+          portraitUrl: undefined
+        }
+      ])
     } finally {
       setLoading(false)
     }
