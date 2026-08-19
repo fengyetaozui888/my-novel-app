@@ -7,13 +7,18 @@ export class MomentsController {
 
   @Get()
   async getMoments(@Query('novelId') novelId?: string, @Query('characterId') characterId?: string) {
-    const moments = await this.momentsService.getMoments(novelId, characterId)
+    const moments = await this.momentsService.getMoments(novelId || '', characterId)
     return { code: 200, msg: 'success', data: moments }
   }
 
   @Post()
   async createMoment(@Body() body: { characterId: string; novelId: string; content: string; imageUrl?: string }) {
-    const moment = await this.momentsService.createMoment(body.characterId, body.novelId, body.content, body.imageUrl)
+    const moment = await this.momentsService.createMoment({
+      characterId: body.characterId,
+      novelId: body.novelId,
+      content: body.content,
+      imageUrl: body.imageUrl,
+    })
     return { code: 200, msg: 'success', data: moment }
   }
 
@@ -31,19 +36,25 @@ export class MomentsController {
 
   @Get(':id/comments')
   async getComments(@Param('id') id: string) {
-    const comments = await this.momentsService.getComments(id)
+    const comments = await this.momentsService.getMomentComments(id)
     return { code: 200, msg: 'success', data: comments }
   }
 
   @Post('background')
   async setBackground(@Body() body: { novelId: string; imageUrl: string }) {
-    const result = await this.momentsService.setBackground(body.novelId, body.imageUrl)
+    const result = await this.momentsService.setMomentBackground(body.novelId, body.imageUrl)
     return { code: 200, msg: 'success', data: result }
   }
 
   @Get('background')
   async getBackground(@Query('novelId') novelId: string) {
-    const background = await this.momentsService.getBackground(novelId)
+    const background = await this.momentsService.getMomentBackground(novelId)
     return { code: 200, msg: 'success', data: background }
+  }
+
+  @Post('generate')
+  async generateMoment(@Body() body: { characterId: string; novelId: string }) {
+    const content = await this.momentsService.generateMomentContent(body.characterId, body.novelId)
+    return { code: 200, msg: 'success', data: { content } }
   }
 }
