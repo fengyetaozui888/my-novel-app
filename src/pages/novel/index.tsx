@@ -517,7 +517,7 @@ const NovelPage = () => {
             <View className="absolute top-4 left-3 z-10">
               <ChevronLeft
                 size={22}
-                color="#c2185b"
+                color="#9ca3af"
                 strokeWidth={2.5}
                 onClick={() => setShowDetailDialog(false)}
               />
@@ -527,7 +527,7 @@ const NovelPage = () => {
             <View className="absolute top-6 right-3 z-10">
               <Trash2
                 size={16}
-                color="#c2185b"
+                color="#9ca3af"
                 onClick={() => setShowDetailMenu(true)}
               />
             </View>
