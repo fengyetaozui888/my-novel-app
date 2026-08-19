@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common'
 import { CafeService } from './cafe.service'
 import { CafeInteractionService } from './cafe-interaction.service'
 
@@ -35,8 +35,14 @@ export class CafeController {
   }
 
   @Get('interactions')
-  async getInteractions() {
-    const data = await this.interactionService.getInteractions()
+  async getInteractions(@Query('character_id') characterId?: string) {
+    const data = await this.interactionService.getInteractions(characterId)
+    return { code: 200, msg: 'success', data }
+  }
+
+  @Delete('interactions/:id')
+  async deleteInteraction(@Param('id') id: string) {
+    const data = await this.interactionService.deleteInteraction(Number(id))
     return { code: 200, msg: 'success', data }
   }
 

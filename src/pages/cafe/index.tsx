@@ -4,8 +4,9 @@ import { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Coffee, Plus, MessageCircle, Users, Trash2 } from 'lucide-react-taro'
+import { Coffee, Plus, MessageCircle, Users, Trash2, Search, ChevronDown, X } from 'lucide-react-taro'
 
 
 interface CafeMessage {
@@ -61,6 +62,11 @@ const CafePage = () => {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [generating, setGenerating] = useState(false)
+  // 互动筛选：搜索关键字 / 指定角色
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [filterCharOpen, setFilterCharOpen] = useState(false)
+  const [filterCharacter, setFilterCharacter] = useState<Character | null>(null)
   // 自绘滚动条：滚动时显示，停止 2 秒后消失（通过原生 scroll 事件监听 textarea）
   const [scrollbar, setScrollbar] = useState({ show: false, top: 0, height: 24 })
   const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -131,10 +137,13 @@ const CafePage = () => {
     }
   }, [])
 
-  const fetchInteractions = useCallback(async () => {
+  const fetchInteractions = useCallback(async (characterId?: string) => {
     try {
       setLoading(true)
-      const res = await Network.request({ url: '/api/cafe/interactions' })
+      const url = characterId
+        ? `/api/cafe/interactions?character_id=${characterId}`
+        : '/api/cafe/interactions'
+      const res = await Network.request({ url })
       console.log('fetchCafeInteractions response:', res.data)
       const data = res.data?.data || res.data || []
       setInteractions(Array.isArray(data) ? data : [])
@@ -145,11 +154,31 @@ const CafePage = () => {
     }
   }, [])
 
+  // 选择/清除筛选角色后重新拉取
+  const applyFilterCharacter = useCallback((char: Character | null) => {
+    setFilterCharacter(char)
+    setFilterCharOpen(false)
+    fetchInteractions(char?.id)
+  }, [fetchInteractions])
+
+  // 本地二次过滤：关键字匹配任一互动角色名
+  const filteredInteractions = interactions.filter((item) => {
+    if (!searchKeyword.trim()) return true
+    const kw = searchKeyword.trim().toLowerCase()
+    return (
+      item.character_a_name.toLowerCase().includes(kw) ||
+      item.character_b_name.toLowerCase().includes(kw) ||
+      (item.novel_a_name || '').toLowerCase().includes(kw) ||
+      (item.novel_b_name || '').toLowerCase().includes(kw)
+    )
+  })
+
   useDidShow(() => {
     if (activeTab === 'wall') {
       fetchMessages()
     } else {
-      fetchInteractions()
+      fetchInteractions(filterCharacter?.id)
+      fetchCharacters()
     }
   })
 
@@ -196,7 +225,7 @@ const CafePage = () => {
         url: '/api/cafe/interactions/generate',
         method: 'POST',
       })
-      fetchInteractions()
+      fetchInteractions(filterCharacter?.id)
     } catch (err) {
       console.error('generateInteraction error:', err)
     } finally {
@@ -222,7 +251,7 @@ const CafePage = () => {
         url: `/api/cafe/interactions/${id}`,
         method: 'DELETE',
       })
-      fetchInteractions()
+      fetchInteractions(filterCharacter?.id)
     } catch (err) {
       console.error('deleteInteraction error:', err)
     }
@@ -271,7 +300,11 @@ const CafePage = () => {
           </View>
           <View
             className={`flex-1 py-3 text-center cursor-pointer ${activeTab === 'interaction' ? 'border-b-2 border-amber-500' : ''}`}
-            onClick={() => { setActiveTab('interaction'); fetchInteractions() }}
+            onClick={() => {
+              setActiveTab('interaction')
+              fetchInteractions(filterCharacter?.id)
+              fetchCharacters()
+            }}
           >
             <Text className={`block text-sm font-medium ${activeTab === 'interaction' ? 'text-amber-700' : 'text-gray-400'}`}>
               角色互动
@@ -332,69 +365,153 @@ const CafePage = () => {
           )
         ) : (
           /* ===== 角色互动 ===== */
-          generating ? (
-            <View className="flex flex-col gap-4 mt-4">
-              {[1, 2, 3].map((i) => (
-                <View key={i} className="bg-white rounded-xl p-4 shadow-sm">
-                  <View className="h-4 bg-gray-100 rounded w-3/4 mb-2 animate-pulse" />
-                  <View className="h-3 bg-gray-100 rounded w-full mb-2 animate-pulse" />
-                  <View className="h-3 bg-gray-100 rounded w-5/6 animate-pulse" />
+          <View>
+            {/* 筛选栏：搜索角色 / 选择角色 */}
+            <View className="mt-3 bg-white rounded-xl p-3 shadow-sm border border-amber-100">
+              <View className="flex items-center gap-2">
+                <View
+                  className={`p-2 rounded-lg ${searchOpen ? 'bg-amber-500' : 'bg-amber-50'}`}
+                  onClick={() => {
+                    setSearchOpen(!searchOpen)
+                    if (searchOpen) setSearchKeyword('')
+                  }}
+                >
+                  <Search size={18} color={searchOpen ? '#ffffff' : '#d97706'} />
                 </View>
-              ))}
-            </View>
-          ) : interactions.length === 0 ? (
-            <View className="flex flex-col items-center justify-center py-20">
-              <Users size={48} color="#d97706" />
-              <Text className="block text-gray-400 text-base mt-4 text-center">
-                还没有角色互动{'\n'}AI 会根据角色性格随机生成互动
-              </Text>
-              <Button
-                className="mt-4 bg-amber-500 text-white"
-                onClick={handleGenerateInteraction}
-                disabled={generating}
-              >
-                <Text>{generating ? '生成中...' : '生成一段互动'}</Text>
-              </Button>
-            </View>
-          ) : (
-            <View className="flex flex-col gap-4 mt-4">
-              {interactions.map((item) => (
-                <View key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
-                  {/* Characters */}
-                  <View className="flex items-center gap-2 mb-3">
-                    <View className="flex items-center gap-1">
-                      <Text className="block text-sm font-bold text-amber-900">{item.character_a_name}</Text>
-                      {item.novel_a_name && (
-                        <Text className="block text-xs text-amber-500">· {item.novel_a_name}</Text>
-                      )}
-                    </View>
-                    <Text className="block text-xs text-amber-400">✦</Text>
-                    <View className="flex items-center gap-1">
-                      <Text className="block text-sm font-bold text-amber-900">{item.character_b_name}</Text>
-                      {item.novel_b_name && (
-                        <Text className="block text-xs text-amber-500">· {item.novel_b_name}</Text>
-                      )}
-                    </View>
-                  </View>
-                  {/* Content */}
-                  <Text className="block text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
-                    {item.content}
+                <View
+                  className="flex-1 flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2"
+                  onClick={() => setFilterCharOpen(!filterCharOpen)}
+                >
+                  <Text className={`block text-sm ${filterCharacter ? 'text-amber-700 font-medium' : 'text-amber-600'}`}>
+                    {filterCharacter ? `角色：${filterCharacter.name}` : '选择角色'}
                   </Text>
-                  <View className="flex items-center justify-between mt-3">
-                    <Text className="block text-xs text-amber-400">
-                      {formatTime(item.created_at)}
-                    </Text>
+                  <ChevronDown size={16} color="#d97706" />
+                </View>
+              </View>
+
+              {/* 搜索框 */}
+              {searchOpen && (
+                <View className="mt-2 bg-amber-50 rounded-lg px-3 py-1 flex items-center gap-2">
+                  <Search size={14} color="#b45309" />
+                  <View className="flex-1">
+                    <Input
+                      className="h-7 border-none ring-0 focus-within:ring-0 px-0 py-0"
+                      placeholder="输入角色名称搜索互动"
+                      value={searchKeyword}
+                      onInput={(e) => setSearchKeyword(e.detail.value)}
+                    />
+                  </View>
+                  {searchKeyword && (
+                    <View className="p-1" onClick={() => setSearchKeyword('')}>
+                      <X size={14} color="#b45309" />
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* 角色列表下拉 */}
+              {filterCharOpen && (
+                <ScrollView scrollY className="max-h-48 mt-2 border-t border-amber-100">
+                  <View className="flex flex-col gap-1 pt-2">
                     <View
-                      className="px-2 py-1 rounded"
-                      onClick={() => handleDeleteInteraction(item.id)}
+                      className={`rounded-lg px-3 py-2 ${!filterCharacter ? 'bg-amber-100' : 'bg-stone-50'}`}
+                      onClick={() => applyFilterCharacter(null)}
                     >
-                      <Trash2 size={14} color="#d97706" />
+                      <Text className="block text-sm text-amber-800 font-medium">全部角色</Text>
+                    </View>
+                    {characters.length === 0 ? (
+                      <Text className="block text-gray-400 text-sm text-center py-4">
+                        还没有角色
+                      </Text>
+                    ) : (
+                      characters.map((char) => (
+                        <View
+                          key={char.id}
+                          className={`rounded-lg px-3 py-2 ${filterCharacter?.id === char.id ? 'bg-amber-100' : 'bg-stone-50'}`}
+                          onClick={() => applyFilterCharacter(char)}
+                        >
+                          <Text className="block text-sm text-gray-900 font-medium">{char.name}</Text>
+                          {char.novel_name && (
+                            <Text className="block text-xs text-gray-400 mt-1">{char.novel_name}</Text>
+                          )}
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+
+            {generating ? (
+              <View className="flex flex-col gap-4 mt-4">
+                {[1, 2, 3].map((i) => (
+                  <View key={i} className="bg-white rounded-xl p-4 shadow-sm">
+                    <View className="h-4 bg-gray-100 rounded w-3/4 mb-2 animate-pulse" />
+                    <View className="h-3 bg-gray-100 rounded w-full mb-2 animate-pulse" />
+                    <View className="h-3 bg-gray-100 rounded w-5/6 animate-pulse" />
+                  </View>
+                ))}
+              </View>
+            ) : filteredInteractions.length === 0 ? (
+              <View className="flex flex-col items-center justify-center py-16">
+                <Users size={48} color="#d97706" />
+                <Text className="block text-gray-400 text-base mt-4 text-center">
+                  {searchKeyword || filterCharacter ? (
+                    <>没有找到相关互动{'\n'}换个角色或关键词试试</>
+                  ) : (
+                    <>还没有角色互动{'\n'}AI 会根据角色性格随机生成互动</>
+                  )}
+                </Text>
+                {!searchKeyword && !filterCharacter && (
+                  <Button
+                    className="mt-4 bg-amber-500 text-white"
+                    onClick={handleGenerateInteraction}
+                    disabled={generating}
+                  >
+                    <Text>{generating ? '生成中...' : '生成一段互动'}</Text>
+                  </Button>
+                )}
+              </View>
+            ) : (
+              <View className="flex flex-col gap-4 mt-4">
+                {filteredInteractions.map((item) => (
+                  <View key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-amber-100">
+                    {/* Characters */}
+                    <View className="flex items-center gap-2 mb-3 flex-wrap">
+                      <View className="flex items-center gap-1">
+                        <Text className="block text-sm font-bold text-amber-900">{item.character_a_name}</Text>
+                        {item.novel_a_name && (
+                          <Text className="block text-xs text-amber-500">· {item.novel_a_name}</Text>
+                        )}
+                      </View>
+                      <Text className="block text-xs text-amber-400">✦</Text>
+                      <View className="flex items-center gap-1">
+                        <Text className="block text-sm font-bold text-amber-900">{item.character_b_name}</Text>
+                        {item.novel_b_name && (
+                          <Text className="block text-xs text-amber-500">· {item.novel_b_name}</Text>
+                        )}
+                      </View>
+                    </View>
+                    {/* Content */}
+                    <Text className="block text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                      {item.content}
+                    </Text>
+                    <View className="flex items-center justify-between mt-3">
+                      <Text className="block text-xs text-amber-400">
+                        {formatTime(item.created_at)}
+                      </Text>
+                      <View
+                        className="px-2 py-1 rounded"
+                        onClick={() => handleDeleteInteraction(item.id)}
+                      >
+                        <Trash2 size={14} color="#d97706" />
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
-            </View>
-          )
+                ))}
+              </View>
+            )}
+          </View>
         )}
       </ScrollView>
 

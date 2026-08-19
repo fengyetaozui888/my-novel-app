@@ -4,19 +4,35 @@ import { LLMClient, Config } from 'coze-coding-dev-sdk'
 
 @Injectable()
 export class CafeInteractionService {
-  async getInteractions() {
+  async getInteractions(characterId?: string) {
     const supabase = getSupabaseClient()
-    const { data, error } = await supabase
+    let query = supabase
       .from('cafe_interactions')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50)
+
+    if (characterId) {
+      query = query.or(`character_a_id.eq.${characterId},character_b_id.eq.${characterId}`)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('getInteractions error:', error)
       return []
     }
     return data || []
+  }
+
+  async deleteInteraction(id: number) {
+    const supabase = getSupabaseClient()
+    const { error } = await supabase.from('cafe_interactions').delete().eq('id', id)
+    if (error) {
+      console.error('deleteInteraction error:', error)
+      return null
+    }
+    return { id }
   }
 
   async generateInteraction() {
