@@ -323,7 +323,9 @@ export default function MomentsPage() {
   const isUserMoment = (m: Moment) => m.authorType === 'user'
 
   return (
-    <View className="min-h-screen bg-pink-50">
+    <View className="bg-pink-50" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {/* 整页滚动：背景与标题随内容一起上滑（微信朋友圈式） */}
+      <ScrollView scrollY style={{ flex: '1 1 0%', height: '100%' }}>
       {/* 顶部背景区 */}
       <View className="relative h-56 overflow-hidden">
         {backgroundImage ? (
@@ -345,27 +347,8 @@ export default function MomentsPage() {
           <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>角色们的日常动态</Text>
         </View>
 
-        {/* 左上角换背景：灰色相机图标 */}
-        <View
-          className="absolute top-4 left-4 bg-white bg-opacity-70 rounded-full p-2"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={handleChangeBackground}
-        >
-          <Camera size={18} color="#8a8a8a" />
-        </View>
-
-        {/* 右上角：圆形白底红色加号，以"我"的身份发布朋友圈 */}
-        <View
-          className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-sm"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowPublish(true)}
-        >
-          <Plus size={20} color="#e91e63" strokeWidth={2.5} />
-        </View>
       </View>
 
-      {/* 朋友圈列表 */}
-      <ScrollView scrollY className="h-full" style={{ height: 'calc(100vh - 14rem)' }}>
         <View className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {moments.map((moment) => (
             <Card key={moment.id} className="bg-white rounded-xl shadow-sm">
@@ -454,6 +437,20 @@ export default function MomentsPage() {
           )}
         </View>
       </ScrollView>
+
+      {/* 悬浮按钮（随页面常驻顶部，微信式） */}
+      <View
+        style={{ position: 'fixed', top: '16px', left: '16px', zIndex: 50, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onClick={handleChangeBackground}
+      >
+        <Camera size={18} color="#8a8a8a" />
+      </View>
+      <View
+        style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onClick={() => setShowPublish(true)}
+      >
+        <Plus size={20} color="#e91e63" strokeWidth={2.5} />
+      </View>
 
       {/* 微信风格评论输入栏：底部固定弹出的单行输入 */}
       {showCommentInput && (
