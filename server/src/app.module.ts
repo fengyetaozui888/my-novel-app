@@ -9,9 +9,10 @@ import { UsersModule } from '@/users/users.module';
 import { RelationshipsModule } from '@/relationships/relationships.module';
 import { PortraitModule } from '@/portrait/portrait.module';
 import { MomentsModule } from '@/moments/moments.module';
+import { AffinityModule } from '@/affinity/affinity.module';
 
 @Module({
-  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule, RelationshipsModule, PortraitModule, MomentsModule],
+  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule, RelationshipsModule, PortraitModule, MomentsModule, AffinityModule],
   controllers: [AppController],
   providers: [AppService],
 })

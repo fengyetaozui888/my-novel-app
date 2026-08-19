@@ -5,7 +5,17 @@ import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Heart, MessageCircle } from 'lucide-react-taro'
+import { Input } from '@/components/ui/input'
+import { Heart, MessageCircle, X } from 'lucide-react-taro'
+
+interface Comment {
+  id: string
+  characterId: string
+  characterName: string
+  characterAvatar: string
+  content: string
+  createdAt: string
+}
 
 interface Moment {
   id: string
@@ -18,12 +28,17 @@ interface Moment {
   likes: number
   comments: number
   isLiked: boolean
+  commentList?: Comment[]
 }
 
 export default function MomentsPage() {
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState<string>('')
+  const [showCommentInput, setShowCommentInput] = useState(false)
+  const [selectedMomentId, setSelectedMomentId] = useState<string>('')
+  const [commentText, setCommentText] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
 
   useEffect(() => {
     loadMoments()
@@ -53,7 +68,17 @@ export default function MomentsPage() {
             createdAt: '2小时前',
             likes: 12,
             comments: 5,
-            isLiked: false
+            isLiked: false,
+            commentList: [
+              {
+                id: 'c1',
+                characterId: 'char-2',
+                characterName: '林黛玉',
+                characterAvatar: '',
+                content: '你既这么说，又何必来惹我伤心',
+                createdAt: '1小时前'
+              }
+            ]
           },
           {
             id: '2',
@@ -65,7 +90,8 @@ export default function MomentsPage() {
             createdAt: '3小时前',
             likes: 28,
             comments: 8,
-            isLiked: true
+            isLiked: true,
+            commentList: []
           }
         ])
       }
@@ -106,11 +132,42 @@ export default function MomentsPage() {
     }
   }
 
-  const handleComment = (_momentId: string) => {
-    Taro.showToast({
-      title: '评论功能开发中',
-      icon: 'none'
-    })
+  const handleCommentClick = (momentId: string) => {
+    setSelectedMomentId(momentId)
+    setShowCommentInput(true)
+    setCommentText('')
+  }
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return
+    
+    try {
+      setSubmittingComment(true)
+      const res = await Network.request({
+        url: `/api/moments/${selectedMomentId}/comment`,
+        method: 'POST',
+        data: { content: commentText }
+      })
+      
+      if (res.data?.code === 200) {
+        // 刷新评论列表
+        await loadMoments()
+        setShowCommentInput(false)
+        setCommentText('')
+        Taro.showToast({
+          title: '评论成功',
+          icon: 'success'
+        })
+      }
+    } catch (error) {
+      console.error('Failed to submit comment:', error)
+      Taro.showToast({
+        title: '评论失败',
+        icon: 'error'
+      })
+    } finally {
+      setSubmittingComment(false)
+    }
   }
 
   const handleChangeBackground = async () => {
@@ -218,6 +275,18 @@ export default function MomentsPage() {
                   />
                 )}
 
+                {/* Comments preview */}
+                {moment.commentList && moment.commentList.length > 0 && (
+                  <View className="bg-gray-50 rounded-lg p-3 mb-3 space-y-2">
+                    {moment.commentList.map((comment) => (
+                      <View key={comment.id} className="flex gap-2">
+                        <Text className="text-xs font-semibold text-gray-700">{comment.characterName}:</Text>
+                        <Text className="text-xs text-gray-600 flex-1">{comment.content}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
                 {/* Actions */}
                 <View className="flex items-center gap-4 pt-3 border-t border-gray-100">
                   <View
@@ -232,7 +301,7 @@ export default function MomentsPage() {
                   </View>
                   <View
                     className="flex items-center gap-1"
-                    onClick={() => handleComment(moment.id)}
+                    onClick={() => handleCommentClick(moment.id)}
                   >
                     <MessageCircle size={18} color="#9ca3af" />
                     <Text className="text-xs text-gray-600">{moment.comments}</Text>
@@ -249,6 +318,37 @@ export default function MomentsPage() {
           )}
         </View>
       </ScrollView>
+
+      {/* Comment input modal */}
+      {showCommentInput && (
+        <View className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+          <View className="bg-white rounded-t-2xl p-4 w-full">
+            <View className="flex items-center justify-between mb-4">
+              <Text className="text-lg font-semibold">发表评论</Text>
+              <Button variant="ghost" size="icon" onClick={() => setShowCommentInput(false)}>
+                <X size={20} color="#9ca3af" />
+              </Button>
+            </View>
+            <View className="flex gap-2">
+              <View className="flex-1 bg-gray-100 rounded-xl px-4 py-3">
+                <Input
+                  className="w-full bg-transparent"
+                  placeholder="写下你的评论..."
+                  value={commentText}
+                  onInput={(e) => setCommentText(e.detail.value)}
+                />
+              </View>
+              <Button
+                onClick={handleSubmitComment}
+                disabled={submittingComment || !commentText.trim()}
+                className="bg-pink-500 text-white"
+              >
+                <Text>{submittingComment ? '发送中...' : '发送'}</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }

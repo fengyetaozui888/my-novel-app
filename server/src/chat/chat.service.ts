@@ -8,6 +8,47 @@ export class ChatService {
     return getSupabaseClient();
   }
 
+  async getAffinity(userId: string, characterId: string): Promise<{ value: number; level: string }> {
+    const { data, error } = await this.client
+      .from('affinity')
+      .select('value, level')
+      .eq('user_id', userId)
+      .eq('character_id', characterId)
+      .maybeSingle();
+    
+    if (error || !data) {
+      return { value: 50, level: 'stranger' };
+    }
+    return { value: data.value, level: data.level };
+  }
+
+  async updateAffinity(userId: string, characterId: string, delta: number): Promise<void> {
+    const { data: existing } = await this.client
+      .from('affinity')
+      .select('value')
+      .eq('user_id', userId)
+      .eq('character_id', characterId)
+      .maybeSingle();
+
+    const newValue = Math.max(0, Math.min(100, (existing?.value || 50) + delta));
+    let newLevel = 'stranger';
+    if (newValue >= 90) newLevel = 'soulmate';
+    else if (newValue >= 70) newLevel = 'intimate';
+    else if (newValue >= 50) newLevel = 'friend';
+    else if (newValue >= 30) newLevel = 'acquaintance';
+    else if (newValue >= 10) newLevel = 'unfamiliar';
+
+    await this.client
+      .from('affinity')
+      .upsert({
+        user_id: userId,
+        character_id: characterId,
+        value: newValue,
+        level: newLevel,
+        updated_at: new Date().toISOString(),
+      });
+  }
+
   async getCharacterWithNovel(characterId: string) {
     const { data: character, error: charError } = await this.client
       .from('characters')
@@ -27,7 +68,7 @@ export class ChatService {
     return { character, novel };
   }
 
-  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string): string {
+  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }): string {
     const parts: string[] = [];
 
     parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应对话。`);
@@ -49,7 +90,27 @@ export class ChatService {
     } else {
       parts.push(`\n【当前对话者认知】`);
       parts.push(`现在正在和你对话的是一个普通用户（非小说中的角色）。`);
-      parts.push(`请以你对待陌生人的方式来回应。`);
+      if (affinityInfo) {
+        const levelNames: Record<string, string> = {
+          stranger: '陌生人',
+          unfamiliar: '不太熟',
+          acquaintance: '普通朋友',
+          friend: '好朋友',
+          intimate: '亲密好友',
+          soulmate: '灵魂知己'
+        };
+        parts.push(`\n【亲密度系统】`);
+        parts.push(`你与该用户的亲密度：${affinityInfo.value}/100（${levelNames[affinityInfo.level] || '陌生人'}）`);
+        parts.push(`请根据亲密度调整对话态度：`);
+        parts.push(`- 陌生人（0-9）：保持距离，礼貌但冷淡`);
+        parts.push(`- 不太熟（10-29）：略显生疏，但愿意交流`);
+        parts.push(`- 普通朋友（30-49）：正常交流，态度友好`);
+        parts.push(`- 好朋友（50-69）：热情友好，愿意分享`);
+        parts.push(`- 亲密好友（70-89）：亲密无间，可以开玩笑`);
+        parts.push(`- 灵魂知己（90-100）：心有灵犀，深度理解`);
+      } else {
+        parts.push(`请以你对待陌生人的方式来回应。`);
+      }
     }
 
     if (character.persona) {
@@ -81,6 +142,7 @@ export class ChatService {
   async simulate(params: {
     characterId: string;
     speakerId?: string; // 对话者角色ID（可选）
+    userId?: string; // 用户ID（用于亲密度系统）
     message: string;
     history?: { role: string; content: string }[];
   }) {
@@ -114,7 +176,13 @@ export class ChatService {
       }
     }
 
-    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType);
+    // 获取亲密度（仅当以用户身份对话时）
+    let affinityInfo = { value: 50, level: 'stranger' };
+    if (params.userId && !params.speakerId) {
+      affinityInfo = await this.getAffinity(params.userId, params.characterId);
+    }
+
+    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo);
 
     const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
       { role: 'system', content: systemPrompt },
@@ -138,6 +206,12 @@ export class ChatService {
     const response = await llmClient.invoke(messages, {
       temperature: 0.8,
     });
+
+    // 更新亲密度（仅当以用户身份对话时）
+    if (params.userId && !params.speakerId) {
+      // 简单逻辑：每次对话 +1 亲密度
+      await this.updateAffinity(params.userId, params.characterId, 1);
+    }
 
     return { content: response.content };
   }
