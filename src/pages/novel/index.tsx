@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2, MessageCircle, Star, Users, Circle, Camera } from 'lucide-react-taro'
+import { Plus, Pencil, Trash2, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -603,6 +603,21 @@ const NovelPage = () => {
           </View>
         </View>
       )}
+
+      {/* 关系图 Floating Button */}
+      <View
+        className="fixed right-4 bottom-24 z-40"
+        onClick={() => {
+          Taro.navigateTo({
+            url: `/pages/graph/index?novelId=${novelId}&characterId=${characters[0]?.id || ''}`,
+          })
+        }}
+      >
+        <View className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 shadow-lg flex flex-col items-center justify-center">
+          <NetworkIcon size={20} color="#fff" />
+          <Text className="text-xs text-white mt-1">关系图</Text>
+        </View>
+      </View>
     </View>
   )
 }

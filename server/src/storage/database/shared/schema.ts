@@ -57,3 +57,21 @@ export const characters = pgTable(
     index("characters_category_idx").on(table.category),
   ]
 );
+
+export const relationships = pgTable(
+  "relationships",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
+    from_character_id: varchar("from_character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    to_character_id: varchar("to_character_id", { length: 36 }).notNull().references(() => characters.id, { onDelete: "cascade" }),
+    relation_type: varchar("relation_type", { length: 100 }).notNull().default(" acquaintance"),
+    description: text("description"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("relationships_novel_id_idx").on(table.novel_id),
+    index("relationships_from_idx").on(table.from_character_id),
+    index("relationships_to_idx").on(table.to_character_id),
+  ]
+);

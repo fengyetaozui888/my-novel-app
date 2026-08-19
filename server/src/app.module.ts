@@ -6,9 +6,10 @@ import { CharactersModule } from '@/characters/characters.module';
 import { ChatModule } from '@/chat/chat.module';
 import { UploadModule } from '@/upload/upload.module';
 import { UsersModule } from '@/users/users.module';
+import { RelationshipsModule } from '@/relationships/relationships.module';
 
 @Module({
-  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule],
+  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule, RelationshipsModule],
   controllers: [AppController],
   providers: [AppService],
 })

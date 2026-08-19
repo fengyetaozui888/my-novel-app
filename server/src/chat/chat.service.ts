@@ -96,4 +96,122 @@ export class ChatService {
 
     return { content: response.content };
   }
+
+  async generateNovelGraph(novelId: string) {
+    // Get all characters in the novel
+    const { data: characters, error: charError } = await this.client
+      .from('characters')
+      .select('id, name, category, persona, background')
+      .eq('novel_id', novelId);
+
+    if (charError) throw new Error(`查询角色失败: ${charError.message}`);
+    if (!characters || characters.length === 0) {
+      return { nodes: [], edges: [] };
+    }
+
+    // Get existing relationships
+    const { data: relationships, error: relError } = await this.client
+      .from('relationships')
+      .select('from_character_id, to_character_id, relation_type, description')
+      .eq('novel_id', novelId);
+
+    if (relError) throw new Error(`查询关系失败: ${relError.message}`);
+
+    // Build prompt for LLM to analyze and generate graph
+    const charInfo = characters.map(c => {
+      let info = `角色名: ${c.name}, 分类: ${c.category === 'protagonist' ? '主角' : c.category === 'supporting' ? '重要配角' : '不重要角色'}`;
+      if (c.persona) info += `, 人设: ${c.persona.substring(0, 100)}`;
+      if (c.background) info += `, 背景: ${c.background.substring(0, 100)}`;
+      return info;
+    }).join('\n');
+
+    const existingRels = relationships?.map(r => {
+      const fromChar = characters.find(c => c.id === r.from_character_id);
+      const toChar = characters.find(c => c.id === r.to_character_id);
+      return `${fromChar?.name || '未知'} -> ${toChar?.name || '未知'}: ${r.relation_type} (${r.description || '无描述'})`;
+    }).join('\n') || '无';
+
+    const systemPrompt = `你是一个小说人物关系分析专家。请根据以下小说角色信息和已有关系，分析并生成完整的人物关系图谱。
+
+【小说角色列表】
+${charInfo}
+
+【已有关系】
+${existingRels}
+
+请分析所有角色之间的潜在关系，生成一个 JSON 格式的关系图谱。要求：
+1. 包含所有角色作为节点
+2. 分析角色之间可能存在的关系（如：师徒、恋人、敌人、亲人、朋友、主仆等）
+3. 每条边包含 from（起点角色名）、to（终点角色名）、relation（关系类型）、description（关系描述）
+
+返回格式：
+{
+  "nodes": [{"id": "角色id", "name": "角色名"}],
+  "edges": [{"from": "角色名", "to": "角色名", "relation": "关系类型", "description": "关系描述"}]
+}
+
+只返回 JSON，不要其他内容。`;
+
+    const config = new Config();
+    const llmClient = new LLMClient(config);
+
+    const response = await llmClient.invoke([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: '请生成这部小说的完整人物关系图谱' },
+    ], {
+      temperature: 0.7,
+    });
+
+    // Parse the response
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const graph = JSON.parse(jsonMatch[0]);
+        // Map character names to IDs
+        const charNameToId = new Map(characters.map(c => [c.name, c.id]));
+        
+        const nodes = characters.map(c => ({
+          id: c.id,
+          name: c.name,
+          category: c.category,
+        }));
+
+        const edges = (graph.edges || []).map((e: any) => ({
+          from: charNameToId.get(e.from) || e.from,
+          to: charNameToId.get(e.to) || e.to,
+          fromName: e.from,
+          toName: e.to,
+          relation: e.relation || 'unknown',
+          description: e.description || '',
+        }));
+
+        return { nodes, edges };
+      }
+    } catch (e) {
+      console.error('Failed to parse LLM response:', e);
+    }
+
+    // Fallback: return basic graph with characters as nodes and existing relationships as edges
+    const nodes = characters.map(c => ({
+      id: c.id,
+      name: c.name,
+      category: c.category,
+    }));
+
+    const edges = (relationships || []).map(r => {
+      const fromChar = characters.find(c => c.id === r.from_character_id);
+      const toChar = characters.find(c => c.id === r.to_character_id);
+      return {
+        from: r.from_character_id,
+        to: r.to_character_id,
+        fromName: fromChar?.name || '未知',
+        toName: toChar?.name || '未知',
+        relation: r.relation_type,
+        description: r.description || '',
+      };
+    });
+
+    return { nodes, edges };
+  }
 }

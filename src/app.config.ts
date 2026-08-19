@@ -4,6 +4,7 @@ export default defineAppConfig({
     'pages/novel/index',
     'pages/chat/index',
     'pages/profile/index',
+    'pages/graph/index',
   ],
   window: {
     backgroundTextStyle: 'light',

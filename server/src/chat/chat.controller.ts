@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, HttpCode } from '@nestjs/common';
 import { ChatService } from './chat.service';
 
 @Controller('chat')
@@ -16,6 +16,12 @@ export class ChatController {
     },
   ) {
     const data = await this.chatService.simulate(body);
+    return { code: 200, msg: 'success', data };
+  }
+
+  @Get('graph')
+  async generateGraph(@Query('novel_id') novelId: string) {
+    const data = await this.chatService.generateNovelGraph(novelId);
     return { code: 200, msg: 'success', data };
   }
 }
