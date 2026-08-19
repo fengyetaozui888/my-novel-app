@@ -209,7 +209,7 @@ const NovelPage = () => {
 
   const goToChat = (char: Character) => {
     Taro.navigateTo({
-      url: `/pages/chat/index?characterId=${char.id}&name=${encodeURIComponent(char.name)}`,
+      url: `/pages/chat/index?characterId=${char.id}&name=${encodeURIComponent(char.name)}&avatar=${encodeURIComponent(char.avatar_url || '')}`,
     })
   }
 

@@ -1,11 +1,3 @@
 export default typeof definePageConfig === 'function'
-  ? definePageConfig({
-      navigationBarTitleText: '人设管理',
-      navigationBarBackgroundColor: '#f8f5f2',
-      navigationBarTextStyle: 'black',
-    })
-  : {
-      navigationBarTitleText: '人设管理',
-      navigationBarBackgroundColor: '#f8f5f2',
-      navigationBarTextStyle: 'black',
-    }
+  ? definePageConfig({ navigationBarTitleText: '人设工坊' })
+  : { navigationBarTitleText: '人设工坊' }

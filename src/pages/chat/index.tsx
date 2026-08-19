@@ -1,10 +1,27 @@
-import { useState, useRef, useCallback } from 'react'
-import { View, Text, ScrollView } from '@tarojs/components'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { View, Text, ScrollView, Image } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, User, Bot, Loader } from 'lucide-react-taro'
+import {
+  Send,
+  User,
+  Bot,
+  Loader,
+  Ellipsis,
+  Circle,
+  Fish,
+  Moon,
+  Coffee,
+  Shield,
+  Trophy,
+  Flame,
+  Pin,
+  Image as ImageIcon,
+  Search,
+  Sparkles,
+} from 'lucide-react-taro'
 
 interface Message {
   id: string
@@ -12,15 +29,56 @@ interface Message {
   content: string
 }
 
+interface StatusOption {
+  id: string
+  label: string
+  icon: any
+  color: string
+  bgColor: string
+}
+
+const STATUS_OPTIONS: StatusOption[] = [
+  { id: 'online', label: '在线状态', icon: Circle, color: '#22c55e', bgColor: 'bg-green-100' },
+  { id: 'fishing', label: '摸鱼状态', icon: Fish, color: '#06b6d4', bgColor: 'bg-cyan-100' },
+  { id: 'sleeping', label: '睡觉状态', icon: Moon, color: '#8b5cf6', bgColor: 'bg-violet-100' },
+  { id: 'busy', label: '忙碌状态', icon: Coffee, color: '#f59e0b', bgColor: 'bg-amber-100' },
+  { id: 'dnd', label: '勿扰状态', icon: Shield, color: '#ef4444', bgColor: 'bg-red-100' },
+  { id: 'mvp', label: '我是MVP', icon: Trophy, color: '#eab308', bgColor: 'bg-yellow-100' },
+  { id: 'meditating', label: '打坐状态', icon: Sparkles, color: '#a855f7', bgColor: 'bg-purple-100' },
+  { id: 'flaming', label: '燃烧状态', icon: Flame, color: '#f97316', bgColor: 'bg-orange-100' },
+]
+
 const ChatPage = () => {
   const router = useRouter()
   const characterId = router.params.characterId || ''
   const characterName = decodeURIComponent(router.params.name || '')
+  const characterAvatar = decodeURIComponent(router.params.avatar || '')
 
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [currentStatus, setCurrentStatus] = useState<StatusOption>(STATUS_OPTIONS[0])
+  const [showStatusPicker, setShowStatusPicker] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [isPinned, setIsPinned] = useState(false)
   const scrollId = useRef('')
+
+  // Fetch user profile for avatar
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const res = await Network.request({ url: '/api/users/profile' })
+        const data = res.data?.data || res.data
+        if (data?.avatar_url) {
+          setUserAvatar(data.avatar_url)
+        }
+      } catch (err) {
+        console.error('fetch user profile error:', err)
+      }
+    }
+    fetchUserProfile()
+  }, [])
 
   const scrollToBottom = useCallback(() => {
     const id = `msg-${Date.now()}`
@@ -79,6 +137,27 @@ const ChatPage = () => {
     }
   }
 
+  const handleTogglePin = () => {
+    setIsPinned(!isPinned)
+    setShowMoreMenu(false)
+    Taro.showToast({
+      title: isPinned ? '已取消置顶' : '已置顶聊天',
+      icon: 'none',
+    })
+  }
+
+  const handleSetBackground = () => {
+    setShowMoreMenu(false)
+    Taro.showToast({ title: '聊天背景设置（开发中）', icon: 'none' })
+  }
+
+  const handleSearchHistory = () => {
+    setShowMoreMenu(false)
+    Taro.showToast({ title: '查找聊天记录（开发中）', icon: 'none' })
+  }
+
+  const StatusIcon = currentStatus.icon
+
   return (
     <View className="flex flex-col h-screen bg-stone-50">
       {/* Chat Header */}
@@ -86,13 +165,41 @@ const ChatPage = () => {
         className="px-4 py-3"
         style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)' }}
       >
-        <View className="flex items-center gap-2">
-          <View className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center">
-            <Bot size={16} color="#ffffff" />
+        <View className="flex items-center justify-between">
+          <View className="flex items-center gap-2">
+            {/* Character Avatar */}
+            {characterAvatar ? (
+              <Image
+                src={characterAvatar}
+                className="w-9 h-9 rounded-full"
+                mode="aspectFill"
+              />
+            ) : (
+              <View className="w-9 h-9 rounded-full bg-rose-500 flex items-center justify-center">
+                <Bot size={18} color="#ffffff" />
+              </View>
+            )}
+            <View>
+              <Text className="block text-base font-bold text-gray-900">{characterName}</Text>
+              {/* Status Bar */}
+              <View
+                className="flex items-center gap-1 mt-1"
+                onClick={() => setShowStatusPicker(true)}
+              >
+                <StatusIcon size={12} color={currentStatus.color} />
+                <Text className="text-xs" style={{ color: currentStatus.color }}>
+                  {currentStatus.label}
+                </Text>
+              </View>
+            </View>
           </View>
-          <View>
-            <Text className="block text-base font-bold text-gray-900">{characterName}</Text>
-            <Text className="block text-xs text-gray-500">人设模拟对话</Text>
+
+          {/* More Menu Button */}
+          <View
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            onClick={() => setShowMoreMenu(true)}
+          >
+            <Ellipsis size={20} color="#666" />
           </View>
         </View>
       </View>
@@ -107,7 +214,15 @@ const ChatPage = () => {
         {messages.length === 0 ? (
           <View className="flex flex-col items-center justify-center py-16">
             <View className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-4">
-              <Bot size={32} color="#e8587a" />
+              {characterAvatar ? (
+                <Image
+                  src={characterAvatar}
+                  className="w-16 h-16 rounded-full"
+                  mode="aspectFill"
+                />
+              ) : (
+                <Bot size={32} color="#e8587a" />
+              )}
             </View>
             <Text className="block text-gray-500 text-center text-sm">
               开始与「{characterName}」对话{'\n'}输入消息来模拟互动吧
@@ -120,17 +235,30 @@ const ChatPage = () => {
                 key={msg.id}
                 className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
               >
-                <View
-                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    msg.role === 'user' ? 'bg-gray-200' : 'bg-rose-100'
-                  }`}
-                >
-                  {msg.role === 'user' ? (
-                    <User size={16} color="#666" />
+                {/* Avatar */}
+                {msg.role === 'user' ? (
+                  userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      className="w-8 h-8 rounded-full flex-shrink-0"
+                      mode="aspectFill"
+                    />
                   ) : (
+                    <View className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                      <User size={16} color="#666" />
+                    </View>
+                  )
+                ) : characterAvatar ? (
+                  <Image
+                    src={characterAvatar}
+                    className="w-8 h-8 rounded-full flex-shrink-0"
+                    mode="aspectFill"
+                  />
+                ) : (
+                  <View className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
                     <Bot size={16} color="#e8587a" />
-                  )}
-                </View>
+                  </View>
+                )}
                 <View
                   className={`max-w-3/4 rounded-2xl px-4 py-3 ${
                     msg.role === 'user'
@@ -193,6 +321,85 @@ const ChatPage = () => {
           )}
         </Button>
       </View>
+
+      {/* Status Picker Dialog */}
+      {showStatusPicker && (
+        <View
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowStatusPicker(false)}
+        >
+          <View
+            className="w-full bg-white rounded-t-3xl p-6 pb-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Text className="block text-lg font-bold text-gray-900 mb-4 text-center">
+              选择状态
+            </Text>
+            <View className="grid grid-cols-4 gap-4">
+              {STATUS_OPTIONS.map((status) => {
+                const Icon = status.icon
+                const isSelected = currentStatus.id === status.id
+                return (
+                  <View
+                    key={status.id}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl ${
+                      isSelected ? status.bgColor : 'bg-gray-50'
+                    }`}
+                    onClick={() => {
+                      setCurrentStatus(status)
+                      setShowStatusPicker(false)
+                    }}
+                  >
+                    <View
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: `${status.color}20` }}
+                    >
+                      <Icon size={20} color={status.color} />
+                    </View>
+                    <Text className="text-xs text-gray-700 text-center">{status.label}</Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* More Menu Dialog */}
+      {showMoreMenu && (
+        <View
+          className="fixed inset-0 z-50"
+          onClick={() => setShowMoreMenu(false)}
+        >
+          <View
+            className="absolute top-14 right-4 bg-white rounded-xl shadow-xl p-2 w-40"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={handleTogglePin}
+            >
+              <Pin size={16} color={isPinned ? '#ec4899' : '#666'} />
+              <Text className="text-sm text-gray-700">{isPinned ? '取消置顶' : '置顶聊天'}</Text>
+            </View>
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={handleSetBackground}
+            >
+              <ImageIcon size={16} color="#666" />
+              <Text className="text-sm text-gray-700">聊天背景</Text>
+            </View>
+            <View
+              className="flex items-center gap-3 p-3 rounded-lg active:bg-gray-50"
+              onClick={handleSearchHistory}
+            >
+              <Search size={16} color="#666" />
+              <Text className="text-sm text-gray-700">查找记录</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }

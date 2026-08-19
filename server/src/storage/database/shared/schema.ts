@@ -22,6 +22,20 @@ export const novels = pgTable(
   ]
 );
 
+export const users = pgTable(
+  "users",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    uid: varchar("uid", { length: 50 }).notNull().unique(),
+    nickname: varchar("nickname", { length: 100 }).notNull().default("无名氏"),
+    avatar_key: varchar("avatar_key", { length: 500 }),
+    credits: integer("credits").notNull().default(1000),
+    nickname_updated_at: timestamp("nickname_updated_at", { withTimezone: true }),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
 export const characters = pgTable(
   "characters",
   {
