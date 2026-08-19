@@ -725,7 +725,7 @@ const NovelPage = () => {
       {/* Three-dot Menu Dropdown */}
       {showDetailMenu && (
         <View
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-[60]"
           onClick={() => setShowDetailMenu(false)}
         >
           <View
