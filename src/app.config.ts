@@ -11,6 +11,7 @@ export default defineAppConfig({
     'pages/agent-feedback/index',
     'pages/help/index',
     'pages/cafe/index',
+    'pages/help-ask/index',
   ],
   window: {
     backgroundTextStyle: 'light',

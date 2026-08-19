@@ -222,7 +222,7 @@ const HelpPage = () => {
               <Button
                 className="w-full bg-rose-500 text-white rounded-xl"
                 onClick={() => {
-                  Taro.navigateTo({ url: '/pages/agent-feedback/index' })
+                  Taro.navigateTo({ url: '/pages/help-ask/index' })
                 }}
               >
                 <Text className="text-white text-sm font-medium">问问 Agent</Text>

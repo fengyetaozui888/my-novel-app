@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Coffee, Plus, MessageCircle } from 'lucide-react-taro'
+
 
 interface CafeMessage {
   id: number
@@ -44,6 +45,50 @@ const CafePage = () => {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null)
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // 自绘滚动条：滚动时显示，停止 2 秒后消失（通过原生 scroll 事件监听 textarea）
+  const [scrollbar, setScrollbar] = useState({ show: false, top: 0, height: 24 })
+  const scrollHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const textareaInstRef = useRef<any>(null)
+  const textareaDomRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (!showWriteDialog) return
+    if (typeof document === 'undefined') return
+    const timer = setTimeout(() => {
+      const inst: any = textareaInstRef.current
+      if (!inst) return
+      let node: any = inst
+      if (!(typeof HTMLTextAreaElement !== 'undefined' && inst instanceof HTMLTextAreaElement) && typeof inst.querySelector === 'function') {
+        node = inst.querySelector('textarea') || inst
+      }
+      if (!node || typeof node.addEventListener !== 'function') return
+      textareaDomRef.current = node
+      const onScroll = () => {
+        const h = node.clientHeight
+        const sh = node.scrollHeight
+        if (sh <= h) return
+        const ratio = h / sh
+        const barHeight = Math.max(24, ratio * h)
+        const maxScroll = sh - h
+        const barTop = maxScroll > 0 ? (node.scrollTop / maxScroll) * (h - barHeight) : 0
+        setScrollbar({ show: true, top: barTop, height: barHeight })
+        if (scrollHideTimer.current) clearTimeout(scrollHideTimer.current)
+        scrollHideTimer.current = setTimeout(() => {
+          setScrollbar((s) => ({ ...s, show: false }))
+        }, 2000)
+      }
+      node.addEventListener('scroll', onScroll)
+      node.__cafeOnScroll = onScroll
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      const node: any = textareaDomRef.current
+      if (node?.__cafeOnScroll) {
+        node.removeEventListener('scroll', node.__cafeOnScroll)
+        node.__cafeOnScroll = null
+      }
+    }
+  }, [showWriteDialog])
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -228,31 +273,22 @@ const CafePage = () => {
           {/* Content */}
           <View className="mt-4">
             <View className="bg-amber-50 rounded-xl border-2 border-amber-200 overflow-hidden">
-              <ScrollView
-                scrollY
-                className="p-4"
-                style={{ maxHeight: '120px' }}
-                onScroll={() => {
-                  // 滚动时显示滚动条
-                  const textarea = document.querySelector('textarea')
-                  if (textarea) {
-                    textarea.style.overflowY = 'scroll'
-                    // 停止滚动2秒后隐藏滚动条
-                    clearTimeout((textarea as any)._scrollTimer)
-                    ;(textarea as any)._scrollTimer = setTimeout(() => {
-                      textarea.style.overflowY = 'hidden'
-                    }, 2000)
-                  }
-                }}
-              >
+              <View className="relative">
                 <Textarea
-                  className="w-full bg-transparent border-none"
+                  ref={textareaInstRef}
+                  className="w-full bg-transparent border-none resize-none overflow-y-hidden px-4 py-3 pr-5"
                   placeholder="写下你的愿望、随笔、笑话... 什么都可以~"
                   value={content}
                   onInput={(e) => setContent(e.detail.value)}
-                  style={{ minHeight: '120px' }}
+                  style={{ height: '120px', boxSizing: 'border-box' }}
                 />
-              </ScrollView>
+                {scrollbar.show && (
+                  <View
+                    className="absolute right-1 rounded-full"
+                    style={{ top: 4 + scrollbar.top, height: scrollbar.height, width: 3, backgroundColor: 'rgba(0,0,0,0.25)' }}
+                  />
+                )}
+              </View>
             </View>
           </View>
 
