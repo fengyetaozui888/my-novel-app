@@ -27,6 +27,7 @@ interface Moment {
   createdAt: string
   likes: number
   isLiked: boolean
+  likerNames: string[]
   commentList: Comment[]
 }
 
@@ -41,7 +42,14 @@ const mapMoment = (m: any): Moment => ({
   createdAt: m.created_at,
   likes: m.likes_count ?? 0,
   isLiked: !!m.is_liked,
-  commentList: [],
+  likerNames: Array.isArray(m.liker_names) ? m.liker_names : [],
+  commentList: Array.isArray(m.comments) ? m.comments.map((c: any) => ({
+    id: c.id,
+    characterName: c.author_type === 'user' ? (c.author_name || '我') : (c.author_name || ''),
+    authorType: c.author_type,
+    content: c.content,
+    createdAt: c.created_at,
+  })) : [],
 })
 
 const mapComment = (c: any): Comment => ({
@@ -148,7 +156,14 @@ export default function MomentsPage() {
       const liked = res.data?.data?.liked
       setMoments(prev => prev.map(m =>
         m.id === momentId
-          ? { ...m, isLiked: liked, likes: liked ? m.likes + 1 : Math.max(0, m.likes - 1) }
+          ? {
+              ...m,
+              isLiked: liked,
+              likes: liked ? m.likes + 1 : Math.max(0, m.likes - 1),
+              likerNames: liked
+                ? (m.likerNames.includes('我') ? m.likerNames : [...m.likerNames, '我'])
+                : m.likerNames.filter(n => n !== '我')
+            }
           : m
       ))
     } catch (error) {
@@ -156,25 +171,9 @@ export default function MomentsPage() {
     }
   }
 
-  // 微信风格：切换展开评论区（点击评论图标时调用）
-  const toggleComments = async (momentId: string) => {
-    const target = expandedMomentId === momentId ? '' : momentId
-    setExpandedMomentId(target)
-    if (target) {
-      try {
-        const res = await Network.request({
-          url: `/api/moments/${momentId}/comments`,
-          method: 'GET'
-        })
-        if (res.data?.code === 200 && Array.isArray(res.data.data)) {
-          setMoments(prev => prev.map(m =>
-            m.id === momentId ? { ...m, commentList: res.data.data.map(mapComment) } : m
-          ))
-        }
-      } catch (error) {
-        console.error('Failed to load comments:', error)
-      }
-    }
+  // 微信风格：点评论图标直接唤起输入框（评论内容始终直显，无需展开）
+  const toggleComments = (momentId: string) => {
+    openInputBar(momentId)
   }
 
   const openInputBar = (momentId: string) => {
@@ -380,30 +379,30 @@ export default function MomentsPage() {
                   />
                 )}
 
-                {/* 微信风格：点赞 + 评论合并浅灰区块 */}
+                {/* 微信风格：点赞名字 + 评论直显，行距加大 */}
                 {(moment.likes > 0 || (moment.commentList && moment.commentList.length > 0)) && (
-                  <View className="bg-gray-100 rounded-lg p-3 mt-2">
+                  <View className="bg-gray-100 rounded-lg p-3 mt-2" style={{ rowGap: '10px', display: 'flex', flexDirection: 'column' }}>
                     {moment.likes > 0 && (
-                      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px' }}>
-                        <Heart size={13} color="#ec4899" filled />
-                        <Text className="text-xs" style={{ color: '#576b95' }}>
-                          {moment.isLiked && moment.likes === 1 ? '我' : `${moment.likes}人觉得很赞`}
+                      <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: '5px' }}>
+                        <Heart size={13} color="#ec4899" filled style={{ marginTop: '2px' }} />
+                        <Text className="text-xs leading-6" style={{ color: '#576b95' }}>
+                          {moment.likerNames.join('，')}
                         </Text>
                       </View>
                     )}
-                    {moment.commentList && moment.commentList.map((comment, idx) => (
+                    {moment.commentList && moment.commentList.map((comment) => (
                       <View
                         key={comment.id}
-                        style={{ display: 'flex', flexDirection: 'row', marginTop: moment.isLiked || idx > 0 ? '6px' : '0' }}
+                        style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}
                       >
                         <Text
-                          className="text-xs"
+                          className="text-xs leading-6"
                           style={{ color: '#576b95' }}
                           onClick={() => !isUserMoment(moment) && openInputBar(moment.id)}
                         >
                           {comment.characterName}:
                         </Text>
-                        <Text className="text-xs text-gray-700 flex-1">{comment.content}</Text>
+                        <Text className="text-xs text-gray-700 leading-6 flex-1">{comment.content}</Text>
                       </View>
                     ))}
                   </View>

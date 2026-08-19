@@ -257,11 +257,23 @@ ${relationContext}
           }
         }
 
-        // 聚合点赞数 / 评论数 / 当前用户是否已赞
-        const [{ count: likesCount }, { count: commentsCount }] = await Promise.all([
+        // 聚合点赞数 / 评论数 / 当前用户是否已赞 / 点赞者名单 / 评论列表
+        const [likesRes, commentsRes, { count: likesCount }, { count: commentsCount }] = await Promise.all([
+          this.client.from('moment_likes').select('character_id, user_id, character:characters(name)').eq('moment_id', moment.id),
+          this.client.from('moment_comments').select('id, author_type, author_name, content, created_at').eq('moment_id', moment.id).order('created_at', { ascending: true }),
           this.client.from('moment_likes').select('*', { count: 'exact', head: true }).eq('moment_id', moment.id),
           this.client.from('moment_comments').select('*', { count: 'exact', head: true }).eq('moment_id', moment.id),
         ]);
+        const likerNames = (likesRes.data || []).map((l: any) =>
+          l.character?.name || (l.user_id ? '我' : '未知')
+        );
+        const commentList = (commentsRes.data || []).map((c: any) => ({
+          id: c.id,
+          author_type: c.author_type,
+          author_name: c.author_name,
+          content: c.content,
+          created_at: c.created_at,
+        }));
         let isLiked = false;
         if (uid) {
           const { data: myLike } = await this.client
@@ -278,6 +290,8 @@ ${relationContext}
           likes_count: likesCount ?? 0,
           comments_count: commentsCount ?? 0,
           is_liked: isLiked,
+          liker_names: likerNames,
+          comments: commentList,
           character: {
             ...moment.character,
             avatar_url,
