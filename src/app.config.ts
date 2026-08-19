@@ -10,6 +10,7 @@ export default defineAppConfig({
     'pages/affinity-book/index',
     'pages/agent-feedback/index',
     'pages/help/index',
+    'pages/cafe/index',
   ],
   window: {
     backgroundTextStyle: 'light',

@@ -1,5 +1,7 @@
 import { View, Text, ScrollView } from '@tarojs/components'
+import Taro from '@tarojs/taro'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
   BookOpen,
@@ -12,6 +14,7 @@ import {
   ChevronRight,
   Palette,
   CircleAlert,
+  Coffee,
 } from 'lucide-react-taro'
 
 interface HelpSection {
@@ -21,8 +24,8 @@ interface HelpSection {
   content: string[]
 }
 
-const VERSION = 'v1.2.0'
-const UPDATE_DATE = '2025-01-15'
+const VERSION = 'v1.3.0'
+const UPDATE_DATE = '2025-01-20'
 
 const HelpPage = () => {
   const sections: HelpSection[] = [
@@ -111,6 +114,17 @@ const HelpPage = () => {
         'AI 会分析反馈并生成行为准则，即时优化该角色的模拟表现。',
       ],
     },
+    {
+      icon: <Coffee size={20} color="#92400e" />,
+      title: '9. 时空咖啡厅',
+      subtitle: '跨世界笔友',
+      content: [
+        '在首页点击「时空咖啡厅」卡片进入。',
+        '不同世界的角色都可以在便利贴墙上留下文字：愿望、随笔、笑话……想写什么写什么。',
+        '你可能会通过另一个世界某个角色的文字，触碰到它的灵魂，成为跨世界的"笔友"。',
+        '点击右下角「+」按钮，选择角色后写下留言即可贴上墙。',
+      ],
+    },
   ]
 
   const faqs = [
@@ -193,6 +207,27 @@ const HelpPage = () => {
                 </CardContent>
               </Card>
             ))}
+          </View>
+
+          {/* Ask Agent */}
+          <View className="px-4 py-4">
+            <View className="bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl p-5 border border-rose-100">
+              <View className="flex items-center gap-3 mb-3">
+                <MessageCircle size={24} color="#e8587a" />
+                <Text className="block text-base font-bold text-gray-900">都不是我想问的问题？</Text>
+              </View>
+              <Text className="block text-sm text-gray-600 mb-4">
+                试试问问 Agent，它会为你详细解答
+              </Text>
+              <Button
+                className="w-full bg-rose-500 text-white rounded-xl"
+                onClick={() => {
+                  Taro.navigateTo({ url: '/pages/agent-feedback/index' })
+                }}
+              >
+                <Text className="text-white text-sm font-medium">问问 Agent</Text>
+              </Button>
+            </View>
           </View>
 
           {/* Footer */}

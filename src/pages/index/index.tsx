@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { BookOpen, Plus, Pencil, Trash2, Camera } from 'lucide-react-taro'
+import { BookOpen, Plus, Pencil, Trash2, Camera, Coffee } from 'lucide-react-taro'
 
 interface Novel {
   id: string
@@ -138,7 +138,7 @@ const IndexPage = () => {
       <View className="flex items-center justify-between mb-6">
         <View className="flex items-center gap-2">
           <BookOpen size={24} color="#e8587a" />
-          <Text className="block text-xl font-bold text-gray-900">我的小说</Text>
+          <Text className="block text-xl font-bold text-gray-900">小世界</Text>
         </View>
         <Button
           size="sm"
@@ -149,8 +149,21 @@ const IndexPage = () => {
           }}
         >
           <Plus size={16} color="#ffffff" className="mr-1" />
-          <Text className="text-white text-sm">新建</Text>
+          <Text className="text-white text-sm">创建新世界</Text>
         </Button>
+      </View>
+
+      {/* Cafe Entry */}
+      <View
+        className="bg-gradient-to-r from-amber-100 to-orange-100 rounded-2xl p-4 mb-6 flex items-center gap-3"
+        onClick={() => Taro.navigateTo({ url: '/pages/cafe/index' })}
+      >
+        <Coffee size={32} color="#92400e" />
+        <View className="flex-1">
+          <Text className="block text-base font-bold text-amber-900">时空咖啡厅</Text>
+          <Text className="block text-xs text-amber-600 mt-1">不同世界的角色在此相遇，留下文字成为跨世界笔友</Text>
+        </View>
+        <Text className="block text-amber-400 text-lg">›</Text>
       </View>
 
       {/* Novel List */}
@@ -164,7 +177,7 @@ const IndexPage = () => {
         <View className="flex flex-col items-center justify-center py-20">
           <BookOpen size={48} color="#9e8e92" />
           <Text className="block text-gray-400 text-center mt-4 text-base">
-            还没有小说模块{'\n'}点击下方按钮创建第一个吧
+            还没有小世界{'\n'}点击下方按钮创建第一个吧
           </Text>
         </View>
       ) : (
@@ -252,17 +265,17 @@ const IndexPage = () => {
         <DialogContent className="bg-white rounded-2xl">
           <DialogHeader>
             <DialogTitle>
-              <Text className="text-gray-900 text-lg font-bold">新建小说模块</Text>
+              <Text className="text-gray-900 text-lg font-bold">创建新世界</Text>
             </DialogTitle>
             <DialogDescription>
-              <Text className="text-gray-400 text-sm">为你的小说创建一个角色管理模块</Text>
+              <Text className="text-gray-400 text-sm">为你的世界创建一个角色管理空间</Text>
             </DialogDescription>
           </DialogHeader>
           <View className="mt-4">
             <View className="bg-stone-50 rounded-xl px-4 py-3">
               <Input
                 className="w-full bg-transparent"
-                placeholder="输入小说名称"
+                placeholder="输入世界名称"
                 value={newName}
                 onInput={(e) => setNewName(e.detail.value)}
               />
@@ -291,10 +304,10 @@ const IndexPage = () => {
         <DialogContent className="bg-white rounded-2xl">
           <DialogHeader>
             <DialogTitle>
-              <Text className="text-gray-900 text-lg font-bold">重命名模块</Text>
+              <Text className="text-gray-900 text-lg font-bold">重命名世界</Text>
             </DialogTitle>
             <DialogDescription>
-              <Text className="text-gray-400 text-sm">修改小说模块的名称</Text>
+              <Text className="text-gray-400 text-sm">修改世界的名称</Text>
             </DialogDescription>
           </DialogHeader>
           <View className="mt-4">
