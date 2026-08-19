@@ -514,9 +514,9 @@ const NovelPage = () => {
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto" closeClassName="hidden">
           <DialogHeader>
             {/* Trash icon at top-right */}
-            <View className="absolute top-4 right-4 z-10">
+            <View className="absolute top-6 right-3 z-10">
               <Trash2
-                size={20}
+                size={16}
                 color="#c2185b"
                 onClick={() => setShowDetailMenu(true)}
               />
