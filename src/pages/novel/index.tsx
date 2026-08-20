@@ -128,14 +128,26 @@ const NovelPage = () => {
   // World info check dialog
   const [showWorldInfoDialog, setShowWorldInfoDialog] = useState(false)
 
-  // Category name editing
+  // Category name editing (for tab labels)
   const [editingCategoryKey, setEditingCategoryKey] = useState<CategoryType | null>(null)
   const [editingCategoryName, setEditingCategoryName] = useState('')
   const lastCategoryTapRef = useRef<Record<string, number>>({})
 
-  // Helper: get display name for category (custom or default)
+  // Section title editing (for section headers next to + button)
+  const [sectionTitles, setSectionTitles] = useState<Record<string, string>>({})
+  const [editingSectionKey, setEditingSectionKey] = useState<CategoryType | null>(null)
+  const [editingSectionTitle, setEditingSectionTitle] = useState('')
+  const [showSectionTitleEditor, setShowSectionTitleEditor] = useState(false)
+  const lastSectionTapRef = useRef<Record<string, number>>({})
+
+  // Helper: get display name for category tab (custom or default)
   const getCategoryName = (key: CategoryType): string => {
     return customCategoryNames[key] || CATEGORY_CONFIG[key].label
+  }
+
+  // Helper: get section title (custom or fallback to category name)
+  const getSectionTitle = (key: CategoryType): string => {
+    return sectionTitles[key] || getCategoryName(key)
   }
 
   // Handle double-tap on category tab
@@ -151,6 +163,19 @@ const NovelPage = () => {
       setActiveCategory(cat)
     }
     lastCategoryTapRef.current[cat] = now
+  }
+
+  // Handle double-tap on section title (next to plus button)
+  const handleSectionTitleTap = (cat: CategoryType) => {
+    const now = Date.now()
+    const lastTap = lastSectionTapRef.current[cat] || 0
+    if (now - lastTap < 300) {
+      // Double tap - open editor
+      setEditingSectionKey(cat)
+      setEditingSectionTitle(getSectionTitle(cat))
+      setShowSectionTitleEditor(true)
+    }
+    lastSectionTapRef.current[cat] = now
   }
 
   const handleSaveCategoryName = async () => {
@@ -174,6 +199,29 @@ const NovelPage = () => {
     }
   }
 
+  const handleSaveSectionTitle = async () => {
+    if (!novelId || !editingSectionKey) return
+    const trimmed = editingSectionTitle.trim()
+    if (!trimmed) {
+      setShowSectionTitleEditor(false)
+      setEditingSectionKey(null)
+      return
+    }
+    try {
+      const updated = { ...sectionTitles, [editingSectionKey]: trimmed }
+      await Network.request({
+        url: `/api/novels/${novelId}/section-titles`,
+        method: 'PUT',
+        data: { section_titles: updated },
+      })
+      setSectionTitles(updated)
+      setShowSectionTitleEditor(false)
+      setEditingSectionKey(null)
+    } catch (e) {
+      console.error('Failed to save section title:', e)
+    }
+  }
+
   const fetchNovelEra = useCallback(async () => {
     if (!novelId) return
     try {
@@ -190,6 +238,15 @@ const NovelPage = () => {
           setCustomCategoryNames(parsed)
         } catch {
           setCustomCategoryNames({})
+        }
+      }
+      // Parse section titles
+      if (current?.section_titles) {
+        try {
+          const parsed = typeof current.section_titles === 'string' ? JSON.parse(current.section_titles) : current.section_titles
+          setSectionTitles(parsed)
+        } catch {
+          setSectionTitles({})
         }
       }
       // Check if world_info has content (JSON string or plain text)
@@ -504,10 +561,10 @@ const NovelPage = () => {
         <View className="flex items-center justify-between mb-3">
           <View
             className="flex-1"
-            onClick={() => handleCategoryTap(activeCategory)}
+            onTap={() => handleSectionTitleTap(activeCategory)}
           >
             <Text className="block text-base font-semibold text-gray-900">
-              {getCategoryName(activeCategory)}
+              {getSectionTitle(activeCategory)}
             </Text>
           </View>
           <View className="relative">
@@ -1306,6 +1363,45 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveCategoryName}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Section Title Editor Dialog */}
+      <Dialog open={showSectionTitleEditor} onOpenChange={setShowSectionTitleEditor}>
+        <DialogContent className="bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="text-gray-900 text-lg font-bold">修改分区标题</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="text-gray-400 text-sm">双击分区标题可自定义显示名称，与分类标签独立</Text>
+            </DialogDescription>
+          </DialogHeader>
+          <View className="mt-4">
+            <View className="bg-stone-50 rounded-xl px-4 py-3">
+              <Input
+                className="w-full bg-transparent text-gray-900"
+                placeholder="分区标题"
+                value={editingSectionTitle}
+                onInput={(e) => setEditingSectionTitle(e.detail.value)}
+              />
+            </View>
+          </View>
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowSectionTitleEditor(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={handleSaveSectionTitle}
             >
               <Text className="text-white">保存</Text>
             </Button>

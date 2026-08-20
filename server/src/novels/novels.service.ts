@@ -116,6 +116,17 @@ export class NovelsService {
     return data;
   }
 
+  async updateSectionTitles(id: string, section_titles: Record<string, string>) {
+    const { data, error } = await this.client
+      .from('novels')
+      .update({ section_titles: JSON.stringify(section_titles), updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, name, section_titles')
+      .single();
+    if (error) throw new Error(`保存分区标题失败: ${error.message}`);
+    return data;
+  }
+
   async togglePin(id: string) {
     const { data: novel, error: fetchError } = await this.client
       .from('novels')

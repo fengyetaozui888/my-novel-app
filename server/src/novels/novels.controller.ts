@@ -88,4 +88,14 @@ export class NovelsController {
     const data = await this.novelsService.togglePin(id);
     return { code: 200, msg: 'success', data };
   }
+
+  @Put(':id/section-titles')
+  @HttpCode(200)
+  async updateSectionTitles(
+    @Param('id') id: string,
+    @Body() body: { section_titles: Record<string, string> },
+  ) {
+    const data = await this.novelsService.updateSectionTitles(id, body.section_titles);
+    return { code: 200, msg: 'success', data };
+  }
 }
