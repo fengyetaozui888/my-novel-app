@@ -123,13 +123,6 @@ const NovelPage = () => {
   // World info check dialog
   const [showWorldInfoDialog, setShowWorldInfoDialog] = useState(false)
 
-  // Update navigation bar title when novel name changes
-  useEffect(() => {
-    if (novelName) {
-      Taro.setNavigationBarTitle({ title: novelName })
-    }
-  }, [novelName])
-
   const fetchNovelEra = useCallback(async () => {
     if (!novelId) return
     try {
@@ -375,9 +368,15 @@ const NovelPage = () => {
 
   return (
     <View className="min-h-screen bg-stone-50 pb-20">
-      {/* World Nickname Row */}
-      <View className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+      {/* 自定义导航：世界昵称行。角色详情弹窗打开时隐藏返回箭头（弹窗内已有粉色返回） */}
+      <View className="flex items-center justify-between px-4 pt-12 pb-3 bg-white border-b border-gray-100">
         <View className="flex items-center gap-2 flex-1 min-w-0">
+          <View
+            className={`flex-shrink-0 -ml-1 ${showDetailDialog ? 'opacity-0' : 'opacity-100'}`}
+            onClick={() => Taro.navigateBack()}
+          >
+            <ChevronLeft size={24} color="#57534e" strokeWidth={2.5} />
+          </View>
           <Text className="text-lg font-bold text-gray-900 truncate">{worldNickname || novelName || '未命名世界'}</Text>
           <Text className="text-xs text-gray-400">{novelEra === 'modern' ? '现代' : '古代'}</Text>
         </View>
