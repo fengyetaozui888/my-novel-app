@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, MessageCircle, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin } from 'lucide-react-taro'
 
 interface Character {
@@ -126,6 +127,8 @@ const NovelPage = () => {
   // Group chat loading state (groupChats already declared above)
   const [groupChatLoading] = useState(false)
   const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false)
+  const [newGroupName, setNewGroupName] = useState('')
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
 
   // Character settings menu
   const [settingsMenuCharId, setSettingsMenuCharId] = useState<string | null>(null)
@@ -309,6 +312,49 @@ const NovelPage = () => {
       console.error('fetchGroupChats error:', err)
     }
   }, [novelId])
+
+  const handleCreateGroupChat = useCallback(async () => {
+    if (!newGroupName.trim()) {
+      Taro.showToast({ title: '请输入群聊名称', icon: 'none' })
+      return
+    }
+    if (selectedMemberIds.length === 0) {
+      Taro.showToast({ title: '请至少选择一个角色', icon: 'none' })
+      return
+    }
+    try {
+      const res = await Network.request({
+        url: '/api/group-chats',
+        method: 'POST',
+        data: {
+          novel_id: novelId,
+          name: newGroupName.trim(),
+          member_ids: selectedMemberIds,
+        },
+      })
+      console.log('createGroupChat response:', res.data)
+      if (res.data?.code === 200) {
+        Taro.showToast({ title: '创建成功', icon: 'success' })
+        setShowCreateGroupDialog(false)
+        setNewGroupName('')
+        setSelectedMemberIds([])
+        fetchGroupChats()
+      } else {
+        Taro.showToast({ title: res.data?.msg || '创建失败', icon: 'none' })
+      }
+    } catch (err) {
+      console.error('createGroupChat error:', err)
+      Taro.showToast({ title: '创建失败', icon: 'none' })
+    }
+  }, [novelId, newGroupName, selectedMemberIds, fetchGroupChats])
+
+  const toggleMemberSelection = (memberId: string) => {
+    setSelectedMemberIds(prev =>
+      prev.includes(memberId)
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    )
+  }
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -1502,26 +1548,86 @@ const NovelPage = () => {
       </Dialog>
 
       {/* Create Group Chat Dialog */}
-      <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
-        <DialogContent className="bg-white rounded-2xl">
+      <Dialog
+        open={showCreateGroupDialog}
+        onOpenChange={(open) => {
+          setShowCreateGroupDialog(open)
+          if (!open) {
+            setNewGroupName('')
+            setSelectedMemberIds([])
+          }
+        }}
+      >
+        <DialogContent className="bg-white rounded-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <Text className="text-gray-900 text-lg font-bold">创建群聊</Text>
             </DialogTitle>
             <DialogDescription>
-              <Text className="text-gray-400 text-sm">输入群聊名称</Text>
+              <Text className="text-gray-400 text-sm">输入群聊名称并选择成员</Text>
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Group Name Input */}
           <View className="mt-4">
             <View className="bg-stone-50 rounded-xl px-4 py-3">
               <Input
                 className="w-full bg-transparent text-gray-900"
                 placeholder="群聊名称"
-                value=""
-                onInput={() => {}}
+                value={newGroupName}
+                onInput={(e) => setNewGroupName(e.detail.value)}
               />
             </View>
           </View>
+
+          {/* Member Selection */}
+          <View className="mt-4">
+            <Text className="block text-sm font-medium text-gray-700 mb-2">
+              选择成员 ({selectedMemberIds.length})
+            </Text>
+            {characters.length === 0 ? (
+              <View className="py-4 text-center">
+                <Text className="block text-gray-400 text-sm">暂无角色可添加</Text>
+              </View>
+            ) : (
+              <View className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                {characters.map((char) => (
+                  <View
+                    key={char.id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg active:bg-gray-50"
+                    onClick={() => toggleMemberSelection(char.id)}
+                  >
+                    <Checkbox
+                      checked={selectedMemberIds.includes(char.id)}
+                      onCheckedChange={() => toggleMemberSelection(char.id)}
+                    />
+                    <View className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
+                      {char.avatar_url ? (
+                        <Image
+                          src={char.avatar_url}
+                          className="w-full h-full rounded-full"
+                          mode="aspectFill"
+                        />
+                      ) : (
+                        <Bot size={16} color="#e8587a" />
+                      )}
+                    </View>
+                    <View className="flex-1 min-w-0">
+                      <Text className="block text-sm font-medium text-gray-900 truncate">
+                        {char.name}
+                      </Text>
+                      {char.tagline && (
+                        <Text className="block text-xs text-gray-500 truncate">
+                          {char.tagline}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
           <View className="flex gap-3 mt-4">
             <Button
               variant="outline"
@@ -1532,10 +1638,7 @@ const NovelPage = () => {
             </Button>
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
-              onClick={() => {
-                setShowCreateGroupDialog(false)
-                Taro.showToast({ title: '群聊创建功能开发中', icon: 'none' })
-              }}
+              onClick={handleCreateGroupChat}
             >
               <Text className="text-white">创建</Text>
             </Button>
