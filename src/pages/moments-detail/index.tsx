@@ -65,6 +65,7 @@ export default function MomentsDetail() {
   const router = useRouter()
   const characterIdParam = router.params.characterId || ''
   const novelIdParam = router.params.novelId || ''
+  const nameParam = router.params.name || ''
 
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
@@ -79,6 +80,11 @@ export default function MomentsDetail() {
     if (!characterIdParam) {
       Taro.showToast({ title: '参数缺失', icon: 'error' })
       return
+    }
+    // 如果从路由参数中获取到角色名，直接使用
+    if (nameParam) {
+      setCharacterName(nameParam)
+      Taro.setNavigationBarTitle({ title: `${nameParam}的朋友圈` })
     }
     // 加载指定角色的朋友圈 + 世界背景图
     Promise.all([
@@ -108,12 +114,27 @@ export default function MomentsDetail() {
           createdAt: m.created_at as string
         }))
         setMoments(list)
-        if (list.length > 0) setCharacterName(list[0].characterName)
-        // 设置导航栏标题：角色名 + 朋友圈
-        const name = list.length > 0 ? list[0].characterName : ''
-        if (name) {
-          Taro.setNavigationBarTitle({ title: `${name}的朋友圈` })
+        // 如果路由参数中没有角色名，从朋友圈列表中获取
+        if (!nameParam && list.length > 0) {
+          setCharacterName(list[0].characterName)
+          Taro.setNavigationBarTitle({ title: `${list[0].characterName}的朋友圈` })
         }
+      }
+      // 如果朋友圈为空且路由参数中没有角色名，单独获取角色名
+      if (!nameParam && momentsRes.data?.code === 200 && (!momentsRes.data.data || momentsRes.data.data.length === 0)) {
+        Network.request({
+          url: `/api/characters/${characterIdParam}`,
+          method: 'GET'
+        }).then(charRes => {
+          console.log('Character info response:', charRes.data)
+          if (charRes.data?.code === 200 && charRes.data?.data) {
+            const charName = charRes.data.data.name || charRes.data.data.characterName
+            if (charName) {
+              setCharacterName(charName)
+              Taro.setNavigationBarTitle({ title: `${charName}的朋友圈` })
+            }
+          }
+        }).catch(err => console.error('Failed to load character:', err))
       }
       if (bgRes?.data?.code === 200 && bgRes.data?.data?.image_url) {
         setBackgroundImage(bgRes.data.data.image_url)

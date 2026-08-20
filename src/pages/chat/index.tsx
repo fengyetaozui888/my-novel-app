@@ -557,7 +557,7 @@ const ChatPage = () => {
               onClick={() => {
                 setShowMoreMenu(false)
                 Taro.navigateTo({
-                  url: `/pages/moments-detail/index?characterId=${characterId}`,
+                  url: `/pages/moments-detail/index?characterId=${characterId}&name=${encodeURIComponent(characterName)}`,
                 })
               }}
             >
