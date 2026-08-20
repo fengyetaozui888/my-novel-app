@@ -737,14 +737,14 @@ const NovelPage = () => {
             </View>
           </DialogHeader>
 
-          {/* Gender and Age Row */}
-          <View className="grid grid-cols-2 gap-4 py-2">
+          {/* Gender Selection - Dropdown */}
+          <View className="flex items-center gap-4 py-2">
             {/* Gender Dropdown */}
-            <View>
+            <View className="flex-1">
               <Text className="block text-sm text-gray-600 mb-2">性别</Text>
-              <View className="relative">
+              <View className="relative w-full">
                 <View
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between w-full box-border"
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between w-full"
                   onClick={() => setShowGenderDropdown(!showGenderDropdown)}
                 >
                   <Text className="text-sm text-gray-700">
@@ -778,18 +778,15 @@ const NovelPage = () => {
             </View>
 
             {/* Age Input */}
-            <View>
+            <View className="flex-1">
               <Text className="block text-sm text-gray-600 mb-2">年龄</Text>
-              <View className="bg-white border border-gray-200 rounded-lg px-4 py-3 w-full box-border">
-                <Input
-                  style={{ width: '100%' }}
-                  className="text-sm text-gray-700"
-                  placeholder="请输入年龄"
-                  value={detailForm.age || ''}
-                  type="number"
-                  onInput={(e) => setDetailForm((prev) => ({ ...prev, age: e.detail.value.replace(/\D/g, '') }))}
-                />
-              </View>
+              <Input
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 w-full"
+                placeholder="请输入年龄"
+                value={detailForm.age || ''}
+                type="number"
+                onInput={(e) => setDetailForm((prev) => ({ ...prev, age: e.detail.value.replace(/\D/g, '') }))}
+              />
             </View>
           </View>
 
