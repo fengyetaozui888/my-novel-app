@@ -644,7 +644,7 @@ const NovelPage = () => {
                         className="flex items-center justify-center flex-shrink-0 p-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Wrench size={20} color="#666666" />
+                        <Wrench size={20} color="#ec4899" />
                       </View>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
