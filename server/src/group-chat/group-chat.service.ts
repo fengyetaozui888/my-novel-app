@@ -151,11 +151,43 @@ export class GroupChatService {
     return data || [];
   }
 
+  /**
+   * 查询群成员两两之间的关系（双向合并，同对角色多重关系合并展示）
+   */
+  private async getMemberRelations(novelId: string, memberIds: string[]): Promise<{ a: string; b: string; types: { type: string; description?: string }[] }[]> {
+    if (memberIds.length < 2) return [];
+    const { data, error } = await this.client
+      .from('relationships')
+      .select('relation_type, description, from_character_id, to_character_id, from_char:characters!relationships_from_character_id_fkey(id, name), to_char:characters!relationships_to_character_id_fkey(id, name)')
+      .eq('novel_id', novelId)
+      .in('from_character_id', memberIds)
+      .in('to_character_id', memberIds);
+    if (error || !data) return [];
+
+    // 按无向对合并
+    const pairMap = new Map<string, { a: string; b: string; types: { type: string; description?: string }[] }>();
+    for (const r of data as any[]) {
+      if (!r.from_char?.name || !r.to_char?.name) continue;
+      if (r.from_character_id === r.to_character_id) continue;
+      const [x, y] = [r.from_char.name, r.to_char.name].sort();
+      const key = `${x}|${y}`;
+      if (!pairMap.has(key)) {
+        pairMap.set(key, { a: x, b: y, types: [] });
+      }
+      const entry = pairMap.get(key)!;
+      if (!entry.types.some((t) => t.type === r.relation_type)) {
+        entry.types.push({ type: r.relation_type, description: r.description || undefined });
+      }
+    }
+    return Array.from(pairMap.values());
+  }
+
   /** 构建群聊 System Prompt */
   private buildGroupSystemPrompt(
     novelName: string,
     groupName: string,
     members: any[],
+    memberRelations: { a: string; b: string; types: { type: string; description?: string }[] }[] = [],
   ): string {
     const parts: string[] = [];
     parts.push(`你是一个多人群聊模拟引擎。现在模拟小说《${novelName}》中的角色们在群聊「${groupName}」中的互动。`);
@@ -171,6 +203,16 @@ export class GroupChatService {
       if (m.principles) parts.push(`   行事准则：${m.principles}`);
       if (m.examples) parts.push(`   具体事例：${m.examples}`);
     });
+
+    // 成员关系注入：让每个角色知道彼此之间的关系，互动时能自然体现
+    if (memberRelations.length > 0) {
+      parts.push(`\n【成员之间的关系】（来自关系图，角色们都清楚这些关系，互动时需自然体现）`);
+      memberRelations.forEach((r) => {
+        const typeText = r.types.map((t) => t.type + (t.description ? `（${t.description}）` : '')).join('、');
+        parts.push(`- 「${r.a}」⇄「${r.b}」：${typeText}`);
+      });
+      parts.push(`有关系的角色之间说话要体现出相应的熟悉度、情感色彩或矛盾张力（如恋人亲昵、仇敌讥讽、主仆恭敬等）。`);
+    }
 
     parts.push(`\n【互动规则】`);
     parts.push(`1. 「我」刚在群里发了一条消息。请模拟群成员们对这条消息的反应。`);
@@ -330,7 +372,10 @@ export class GroupChatService {
       .order('created_at', { ascending: true })
       .limit(60);
 
-    const systemPrompt = this.buildGroupSystemPrompt(novel?.name || '未知小说', group.name, members);
+    // 成员两两关系（来自关系图，双向合并去重）
+    const memberRelations = await this.getMemberRelations(group.novel_id, memberIds);
+
+    const systemPrompt = this.buildGroupSystemPrompt(novel?.name || '未知小说', group.name, members, memberRelations);
     const messages: { role: string; content: string }[] = [{ role: 'system', content: systemPrompt }];
 
     // 将群聊历史转换为对话消息（合并为 user 消息串，让 Bot 理解上下文）

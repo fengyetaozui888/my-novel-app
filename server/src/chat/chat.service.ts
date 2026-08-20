@@ -90,7 +90,46 @@ export class ChatService {
     return { character, novel };
   }
 
-  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }, userPersona?: string): string {
+  /**
+   * 查询两个角色之间的全部关系（双向：A→B 与 B→A，去重合并）
+   * 来自关系图数据，保证人设植入的完整性与一致性
+   */
+  private async getRelationsBetween(novelId: string, fromId: string, toId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('relationships')
+      .select('relation_type, description, from_character_id, to_character_id')
+      .eq('novel_id', novelId)
+      .or(`and(from_character_id.eq.${fromId},to_character_id.eq.${toId}),and(from_character_id.eq.${toId},to_character_id.eq.${fromId})`);
+    if (error || !data) return [];
+    // 按关系类型去重（双向定义同一条关系时只保留一条）
+    const seen = new Set<string>();
+    return data.filter((r: any) => {
+      const key = r.relation_type;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /**
+   * 查询某角色在关系图中的全部人脉（用于背景认知注入）
+   */
+  private async getRelationNetwork(novelId: string, characterId: string): Promise<{ name: string; relationType: string }[]> {
+    const { data, error } = await this.client
+      .from('relationships')
+      .select('relation_type, from_character_id, to_character_id, from_char:characters!relationships_from_character_id_fkey(id, name), to_char:characters!relationships_to_character_id_fkey(id, name)')
+      .eq('novel_id', novelId)
+      .or(`from_character_id.eq.${characterId},to_character_id.eq.${characterId}`);
+    if (error || !data) return [];
+    const result: { name: string; relationType: string }[] = [];
+    for (const r of data as any[]) {
+      const other = r.from_character_id === characterId ? r.to_char : r.from_char;
+      if (other?.name) result.push({ name: other.name, relationType: r.relation_type });
+    }
+    return result;
+  }
+
+  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }, userPersona?: string, relationNetwork?: { name: string; relationType: string }[]): string {
     const parts: string[] = [];
 
     parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应对话。`);
@@ -102,13 +141,30 @@ export class ChatService {
     if (speaker) {
       parts.push(`\n【当前对话者认知】`);
       parts.push(`现在正在和你对话的是「${speaker.name}」。`);
-      if (relationType) {
+      // 多重关系全量注入（来自关系图，双向合并）
+      const relations: { type: string; description?: string }[] = speaker.relations || [];
+      if (relations.length > 0) {
+        parts.push(`你和「${speaker.name}」之间存在多重关系（这些关系都真实成立，需同时纳入考量）：`);
+        relations.forEach((r) => {
+          parts.push(`- ${r.type}${r.description ? `：${r.description}` : ''}`);
+        });
+        parts.push(`请综合这些关系来理解你们的相处历史和情感底色，说话时体现出这种熟悉度和羁绊。`);
+      } else if (relationType) {
         parts.push(`「${speaker.name}」与你的关系是：${relationType}。`);
+      } else {
+        parts.push(`（关系图中没有你与「${speaker.name}」的明确关系记录，请按一般相识程度自然相处。）`);
       }
       if (speaker.persona) {
         parts.push(`「${speaker.name}」的人设：${speaker.persona}`);
       }
       parts.push(`\n请根据你对「${speaker.name}」的认知和关系来回应，表现出符合这种关系的反应和态度。`);
+      // 关系网背景：让被扮演角色知道自己与其他角色的关系，对话更立体
+      const network: { name: string; relationType: string }[] = relationNetwork || [];
+      const filteredNetwork = network.filter((n) => n.name !== speaker.name);
+      if (filteredNetwork.length > 0) {
+        parts.push(`\n【你的人际关系网】（你在关系图中的其他人脉，作为背景认知）`);
+        parts.push(filteredNetwork.map((n) => `${n.name}（${n.relationType}）`).join('、'));
+      }
     } else {
       parts.push(`\n【当前对话者认知】`);
       parts.push(`现在正在和你对话的是用户「我」（非小说中的角色）。`);
@@ -136,6 +192,12 @@ export class ChatService {
         parts.push(`- 灵魂知己（90-100）：心有灵犀，深度理解`);
       } else {
         parts.push(`请以你对待陌生人的方式来回应。`);
+      }
+      // 关系网背景（无 speaker 时同样注入，让角色认知完整）
+      const networkAnon: { name: string; relationType: string }[] = relationNetwork || [];
+      if (networkAnon.length > 0) {
+        parts.push(`\n【你的人际关系网】（你在关系图中的其他人脉，作为背景认知）`);
+        parts.push(networkAnon.map((n) => `${n.name}（${n.relationType}）`).join('、'));
       }
     }
 
@@ -294,18 +356,19 @@ export class ChatService {
         speaker = speakerChar;
       }
 
-      // 获取关系类型
-      const { data: relation } = await this.client
-        .from('relationships')
-        .select('relation_type')
-        .eq('novel_id', character.novel_id)
-        .eq('from_character_id', params.speakerId)
-        .eq('to_character_id', params.characterId)
-        .maybeSingle();
-      if (relation) {
-        relationType = relation.relation_type;
+      // 双向查询两者之间的所有关系（多重关系全量注入，来自关系图）
+      const relations = await this.getRelationsBetween(character.novel_id, params.speakerId, params.characterId);
+      if (relations.length > 0) {
+        speaker.relations = relations.map((r: any) => ({
+          type: r.relation_type,
+          description: r.description || undefined,
+        }));
+        relationType = relations[0].relation_type; // 兼容旧字段
       }
     }
+
+    // 被扮演角色在关系图中的整体人脉（背景认知）
+    const relationNetwork = await this.getRelationNetwork(character.novel_id, params.characterId);
 
     // 获取亲密度与"我"的专属人设（仅当以用户身份对话时）
     let affinityInfo = { value: 50, level: 'stranger' };
@@ -319,7 +382,7 @@ export class ChatService {
       userPersona = await this.getUserPersona(params.userId, params.characterId);
     }
 
-    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona);
+    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona, relationNetwork);
 
     const messages: { role: string; content: string }[] = [
       { role: 'system', content: systemPrompt },
