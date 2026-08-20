@@ -405,8 +405,8 @@ export default function MomentsPage() {
         {/* 头部内容 */}
         <View className="relative h-full flex flex-col justify-end px-4 pb-4">
           <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <View>
-              <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{characterIdParam && moments.length > 0 ? `${moments[0].characterName}的朋友圈` : '朋友圈'}</Text>
+            <View style={{ display: 'flex', flexDirection: 'column' }}>
+              <Text className="text-white text-xl font-bold" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{characterIdParam && moments.length > 0 ? `${moments[0].characterName}的朋友圈` : '朋友圈'}</Text>
               <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>{characterIdParam ? 'TA 发布过的动态' : '角色们的日常动态'}</Text>
             </View>
             {!characterIdParam && (
