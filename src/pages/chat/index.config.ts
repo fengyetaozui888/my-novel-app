@@ -1,11 +1,11 @@
 export default typeof definePageConfig === 'function'
   ? definePageConfig({
-      navigationBarTitleText: '人设模拟',
+      navigationBarTitleText: '聊天',
       navigationBarBackgroundColor: '#f8f5f2',
       navigationBarTextStyle: 'black',
     })
   : {
-      navigationBarTitleText: '人设模拟',
+      navigationBarTitleText: '聊天',
       navigationBarBackgroundColor: '#f8f5f2',
       navigationBarTextStyle: 'black',
     }
