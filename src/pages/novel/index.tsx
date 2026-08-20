@@ -744,7 +744,7 @@ const NovelPage = () => {
               <Text className="block text-sm text-gray-600 mb-2">性别</Text>
               <View className="relative w-full">
                 <View
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between w-full"
+                  className="bg-white border border-gray-200 rounded-lg px-4 h-11 flex items-center justify-between w-full"
                   onClick={() => setShowGenderDropdown(!showGenderDropdown)}
                 >
                   <Text className="text-sm text-gray-700">
@@ -781,7 +781,7 @@ const NovelPage = () => {
             <View className="flex-1">
               <Text className="block text-sm text-gray-600 mb-2">年龄</Text>
               <Input
-                className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 w-full"
+                className="bg-white border border-gray-200 rounded-lg px-4 h-11 text-sm text-gray-700 w-full"
                 placeholder="请输入年龄"
                 value={detailForm.age || ''}
                 type="number"
