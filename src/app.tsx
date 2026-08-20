@@ -1,4 +1,5 @@
 import { PropsWithChildren, useState, useEffect } from 'react';
+import Taro from '@tarojs/taro';
 import { LucideTaroProvider } from 'lucide-react-taro';
 import { View, Text, Input } from '@tarojs/components';
 import '@/app.css';
@@ -6,8 +7,26 @@ import { Toaster } from '@/components/ui/toast';
 import { Preset } from './presets';
 
 // 访问密码（你可以修改这个密码）
-const ACCESS_PASSWORD = '123456';
+const ACCESS_PASSWORD = '6602877';
 const STORAGE_KEY = 'app_access_verified';
+
+// 跨端存储工具
+const storage = {
+  get: (key: string) => {
+    try {
+      return Taro.getStorageSync(key);
+    } catch {
+      return null;
+    }
+  },
+  set: (key: string, value: string) => {
+    try {
+      Taro.setStorageSync(key, value);
+    } catch {
+      // 忽略错误
+    }
+  },
+};
 
 const App = ({ children }: PropsWithChildren) => {
   const [isVerified, setIsVerified] = useState(false);
@@ -17,7 +36,7 @@ const App = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     // 检查是否已经验证过
-    const verified = sessionStorage.getItem(STORAGE_KEY);
+    const verified = storage.get(STORAGE_KEY);
     if (verified === 'true') {
       setIsVerified(true);
     }
@@ -26,7 +45,7 @@ const App = ({ children }: PropsWithChildren) => {
 
   const handleVerify = () => {
     if (inputPassword === ACCESS_PASSWORD) {
-      sessionStorage.setItem(STORAGE_KEY, 'true');
+      storage.set(STORAGE_KEY, 'true');
       setIsVerified(true);
       setError('');
     } else {
