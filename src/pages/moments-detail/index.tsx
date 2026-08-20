@@ -65,7 +65,7 @@ export default function MomentsDetail() {
   const router = useRouter()
   const characterIdParam = router.params.characterId || ''
   const novelIdParam = router.params.novelId || ''
-  const nameParam = router.params.name || ''
+  const nameParam = router.params.name ? decodeURIComponent(router.params.name) : ''
 
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
