@@ -641,11 +641,10 @@ const NovelPage = () => {
                   <DropdownMenu>
                     <DropdownMenuTrigger>
                       <View
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: '#f48fb1' }}
+                        className="flex items-center justify-center flex-shrink-0 p-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Wrench size={20} color="#ffffff" />
+                        <Wrench size={20} color="#666666" />
                       </View>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
