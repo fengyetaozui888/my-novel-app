@@ -14,6 +14,7 @@ interface Novel {
   cover_key: string | null
   cover_url: string | null
   era?: string
+  tagline?: string
   is_pinned?: boolean
   created_at: string
   updated_at: string
@@ -26,6 +27,7 @@ const IndexPage = () => {
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newTagline, setNewTagline] = useState('')
   const [newEra, setNewEra] = useState<'ancient' | 'modern'>('ancient')
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -72,9 +74,10 @@ const IndexPage = () => {
       await Network.request({
         url: `/api/novels/${selectedNovel.id}`,
         method: 'PUT',
-        data: { name: newName.trim(), era: newEra },
+        data: { name: newName.trim(), tagline: newTagline.trim(), era: newEra },
       })
       setNewName('')
+      setNewTagline('')
       setNewEra('ancient')
       setShowRenameDialog(false)
       setSelectedNovel(null)
@@ -234,8 +237,13 @@ const IndexPage = () => {
                     <Text className="block text-base font-semibold text-gray-900">
                       {novel.name}
                     </Text>
+                    {novel.tagline ? (
+                      <Text className="block text-sm text-gray-600 mt-1">
+                        {novel.tagline}
+                      </Text>
+                    ) : null}
                     <Text className="block text-xs text-gray-400 mt-1">
-                      点击管理角色
+                      点击进入世界
                     </Text>
                   </View>
 
@@ -266,6 +274,7 @@ const IndexPage = () => {
                             setShowActionMenu(null)
                             setSelectedNovel(novel)
                             setNewName(novel.name)
+                            setNewTagline(novel.tagline || '')
                             setNewEra((novel.era as 'ancient' | 'modern') || 'ancient')
                             setShowRenameDialog(true)
                           }}
@@ -387,6 +396,16 @@ const IndexPage = () => {
                 onInput={(e) => setNewName(e.detail.value)}
               />
             </View>
+            <View className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
+              <Input
+                className="w-full bg-transparent"
+                placeholder="一句话简介（选填，最多15字）"
+                value={newTagline}
+                maxlength={15}
+                onInput={(e) => setNewTagline(e.detail.value)}
+              />
+            </View>
+            <Text className="block text-gray-400 text-xs mb-2">世界时代</Text>
             <View className="flex gap-3">
               <View
                 className={`flex-1 py-3 rounded-xl text-center ${newEra === 'ancient' ? 'bg-rose-500 text-white' : 'bg-stone-100 text-gray-600'}`}

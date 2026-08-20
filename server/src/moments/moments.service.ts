@@ -231,6 +231,14 @@ ${relationContext}
     const to = from + pageSize - 1;
     const uid = await this.getUserId();
 
+    // 获取小说名称
+    const { data: novelData } = await this.client
+      .from('novels')
+      .select('id, name')
+      .eq('id', novelId)
+      .maybeSingle();
+    const novelName = novelData?.name || '';
+
     let query = this.client
       .from('moments')
       .select('*, character:characters(id, name, avatar_key)')
@@ -292,6 +300,7 @@ ${relationContext}
 
         return {
           ...moment,
+          novel_name: novelName,
           likes_count: likesCount ?? 0,
           comments_count: commentsCount ?? 0,
           is_liked: isLiked,
@@ -542,8 +551,10 @@ ${relationContext}
       return { alreadyRefreshed: false, count: 0 };
     }
 
-    // 随机选择3-5个角色
-    const count = 3 + Math.floor(Math.random() * 3); // 3-5
+    // 根据角色总数决定刷新数量：>10 角色刷新3-5条，<=10 角色刷新1-3条
+    const maxCount = characters.length > 10 ? 5 : 3;
+    const minCount = characters.length > 10 ? 3 : 1;
+    const count = minCount + Math.floor(Math.random() * (maxCount - minCount + 1));
     const shuffled = [...characters].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, Math.min(count, characters.length));
 

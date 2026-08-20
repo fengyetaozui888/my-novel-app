@@ -13,7 +13,7 @@ export class NovelsService {
   async findAll() {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, world_info, world_nickname, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, tagline, world_info, world_nickname, news_refreshed_date, cover_key, created_at, updated_at')
     if (error) throw new Error(`查询小说列表失败: ${error.message}`);
 
     // Generate presigned URLs for cover images
@@ -37,7 +37,7 @@ export class NovelsService {
   async findOne(id: string) {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, world_info, world_nickname, category_names, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, tagline, world_info, world_nickname, category_names, news_refreshed_date, cover_key, created_at, updated_at')
       .eq('id', id)
       .single();
     if (error) throw new Error(`获取小说详情失败: ${error.message}`);
@@ -54,7 +54,7 @@ export class NovelsService {
     return { ...data, cover_url: null };
   }
 
-  async update(id: string, updates: { name?: string; cover_key?: string | null; era?: 'ancient' | 'modern' }) {
+  async update(id: string, updates: { name?: string; cover_key?: string | null; era?: 'ancient' | 'modern'; tagline?: string }) {
     const { data, error } = await this.client
       .from('novels')
       .update({ ...updates, updated_at: new Date().toISOString() })

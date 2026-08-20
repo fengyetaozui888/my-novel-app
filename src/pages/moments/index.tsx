@@ -22,6 +22,7 @@ interface Moment {
   id: string
   characterName: string
   characterAvatar: string
+  novelName?: string
   authorType: string
   content: string
   imageUrl?: string
@@ -38,6 +39,7 @@ const mapMoment = (m: any): Moment => ({
   id: m.id,
   characterName: m.author_type === 'user' ? (m.author_name || '我') : (m.character?.name || m.author_name || ''),
   characterAvatar: m.character?.avatar_url || '',
+  novelName: m.novel_name || '',
   authorType: m.author_type,
   content: m.content,
   imageUrl: m.image_url || undefined,
@@ -421,7 +423,12 @@ export default function MomentsPage() {
                     <AvatarFallback>{moment.characterName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <View className="flex-1">
-                    <Text className="block font-semibold text-sm" style={{ color: '#17323c' }}>{moment.characterName}</Text>
+                    <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <Text className="block font-semibold text-sm" style={{ color: '#17323c' }}>{moment.characterName}</Text>
+                      {moment.novelName && (
+                        <Text className="block text-xs ml-1" style={{ color: '#e8587a' }}>·{moment.novelName}</Text>
+                      )}
+                    </View>
                     {/* 时间与名字拉开距离 */}
                     <Text className="block text-xs text-gray-400 mt-2">{formatTime(moment.createdAt)}</Text>
                   </View>
