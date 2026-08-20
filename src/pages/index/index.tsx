@@ -208,8 +208,11 @@ const IndexPage = () => {
           {novels.map((novel) => (
             <Card
               key={novel.id}
-              className="bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow"
+              className="relative bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow overflow-hidden"
             >
+              {novel.is_pinned && (
+                <View className="absolute top-0 left-0 w-6 h-6 bg-pink-400 rounded-tl-2xl z-10" />
+              )}
               <CardContent className="p-4">
                 <View className="flex items-center gap-3">
                   {/* Cover Image */}

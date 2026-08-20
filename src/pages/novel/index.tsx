@@ -666,9 +666,13 @@ const NovelPage = () => {
               return (
                 <View
                   key={char.id}
-                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2"
+                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2 relative"
                   onClick={() => goToChat(char)}
                 >
+                  {/* Pinned corner indicator */}
+                  {char.is_pinned && (
+                    <View className="absolute top-0 left-0 w-5 h-5 bg-pink-400 rounded-tl-xl rounded-br-full" />
+                  )}
                   {/* Avatar */}
                   <View className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {char.avatar_url ? (
@@ -737,7 +741,9 @@ const NovelPage = () => {
                               togglePin(char.id)
                             }}
                           >
-                            <Text className="block text-sm text-gray-700 text-center">置顶聊天</Text>
+                            <Text className="block text-sm text-gray-700 text-center">
+                              {char.is_pinned ? '取消置顶' : '置顶聊天'}
+                            </Text>
                           </View>
                           <View
                             className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
