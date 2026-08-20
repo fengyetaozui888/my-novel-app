@@ -106,17 +106,22 @@ const NovelPage = () => {
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [novelEra, setNovelEra] = useState<'ancient' | 'modern'>('ancient')
-  const [worldScore, setWorldScore] = useState<number | null>(null)
+  const [worldInfoFilled, setWorldInfoFilled] = useState(false)
+
+  // World info check dialog
+  const [showWorldInfoDialog, setShowWorldInfoDialog] = useState(false)
 
   const fetchNovelEra = useCallback(async () => {
     if (!novelId) return
     try {
       const res = await Network.request({ url: `/api/novels` })
       console.log('fetchNovelEra response:', res.data)
-      const list = (res.data as { data?: Array<{ id: string; era?: string; world_score?: number }> })?.data || []
+      const list = (res.data as { data?: Array<{ id: string; era?: string; world_info?: string }> })?.data || []
       const current = list.find((n) => n.id === novelId)
       if (current?.era) setNovelEra(current.era === 'modern' ? 'modern' : 'ancient')
-      setWorldScore(current?.world_score ?? null)
+      // Check if world_info has content (JSON string or plain text)
+      const hasInfo = current?.world_info && current.world_info.trim() && current.world_info !== '{}' && current.world_info !== '""'
+      setWorldInfoFilled(!!hasInfo)
     } catch (e) {
       console.error('fetchNovelEra failed:', e)
     }
@@ -342,14 +347,14 @@ const NovelPage = () => {
 
       {/* 世界信息入口 */}
       <View className="px-4 mb-3">
-        <View className="bg-white rounded-2xl p-4 flex items-center justify-between" onClick={() => Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}` })}>
+        <View className="bg-white rounded-2xl p-4 flex items-center justify-between" onClick={() => Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}&era=${novelEra}` })}>
           <View className="flex items-center gap-3">
             <View className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
               <BookOpen size={20} color="#a855f7" />
             </View>
             <View>
               <Text className="block text-base font-semibold text-gray-900">世界信息</Text>
-              <Text className="block text-xs text-gray-500">{worldScore === null ? '未评分' : worldScore >= 60 ? `已评分 ${worldScore} 分（可生成）` : `已评分 ${worldScore} 分（需完善）`}</Text>
+              <Text className="block text-xs text-gray-500">{worldInfoFilled ? '已填写' : '未填写'}</Text>
             </View>
           </View>
           <ChevronRight size={20} color="#9ca3af" />
@@ -359,7 +364,13 @@ const NovelPage = () => {
       <View className="px-4 mt-3">
         <View
           className="flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl px-4 py-3 border border-rose-100"
-          onClick={() => Taro.navigateTo({ url: `/pages/world-news/index?id=${novelId}` })}
+          onClick={() => {
+            if (!worldInfoFilled) {
+              setShowWorldInfoDialog(true)
+            } else {
+              Taro.navigateTo({ url: `/pages/world-news/index?id=${novelId}` })
+            }
+          }}
         >
           <View className="flex items-center gap-2.5">
             <View className="w-9 h-9 rounded-xl bg-rose-500 bg-opacity-10 flex items-center justify-center">
@@ -963,6 +974,37 @@ const NovelPage = () => {
           <Text className="text-xs text-white mt-1">关系图</Text>
         </View>
       </View>
+
+      {/* World Info Required Dialog */}
+      {showWorldInfoDialog && (
+        <View className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View className="bg-white rounded-2xl mx-8 p-6 w-full max-w-sm">
+            <View className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+              <BookOpen size={24} color="#f43f5e" />
+            </View>
+            <Text className="block text-center text-base font-semibold text-gray-900 mb-2">请先完善世界信息</Text>
+            <Text className="block text-center text-sm text-gray-500 mb-6">当前世界信息尚未填写，完善后可生成更真实的奇闻轶事内容哦~</Text>
+            <View className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+                onClick={() => setShowWorldInfoDialog(false)}
+              >
+                <Text className="text-gray-700">暂时不了</Text>
+              </Button>
+              <Button
+                className="flex-1 bg-rose-500 text-white rounded-xl"
+                onClick={() => {
+                  setShowWorldInfoDialog(false)
+                  Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}&era=${novelEra}` })
+                }}
+              >
+                <Text className="text-white">去完善</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   )
 }

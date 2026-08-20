@@ -1,122 +1,141 @@
-import { useState, useEffect } from 'react';
-import { View, Text, ScrollView } from '@tarojs/components';
-import { Textarea } from '@/components/ui/textarea';
-import Taro, { useRouter } from '@tarojs/taro';
-import { Network } from '@/network';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader, Check } from 'lucide-react-taro';
+import { useState, useEffect } from 'react'
+import { View, Text, ScrollView } from '@tarojs/components'
+import { Textarea } from '@/components/ui/textarea'
+import Taro, { useRouter } from '@tarojs/taro'
+import { Network } from '@/network'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Loader, Check, ChevronDown, CircleQuestionMark, Sparkles } from 'lucide-react-taro'
 
-const SCORE_THRESHOLD = 60;
+interface WorldInfoData {
+  forces: string
+  cultivation_system: string
+  secret_realms: string
+  map_layers: string
+  world_friendliness: string
+  other: string
+}
+
+const ANCIENT_FIELDS = [
+  { key: 'forces' as const, label: '势力分布', placeholder: '如：青云门、天魔教、散修联盟、皇室势力...' },
+  { key: 'cultivation_system' as const, label: '修炼体系', placeholder: '如：炼气→筑基→金丹→元婴→化神→渡劫...' },
+  { key: 'secret_realms' as const, label: '秘境模式举例', placeholder: '如：每月朔月开启的幽冥秘境、百年一现的仙府...' },
+  { key: 'map_layers' as const, label: '地图层次', placeholder: '如：凡人界→修真界→仙界、东荒→西漠→南岭...' },
+]
+
+const MODERN_FIELDS = [
+  { key: 'forces' as const, label: '势力分布', placeholder: '如：联邦政府、财阀集团、地下组织...' },
+  { key: 'cultivation_system' as const, label: '科技水平', placeholder: '如：AI普及程度、太空殖民阶段、基因改造技术...' },
+  { key: 'secret_realms' as const, label: '特殊区域', placeholder: '如：禁区、隔离带、地下城、浮空城...' },
+  { key: 'map_layers' as const, label: '地理版图', placeholder: '如：上城区/下城区、地表/地下、地球/火星殖民地...' },
+]
+
+const UNIVERSAL_FIELDS = [
+  { key: 'world_friendliness' as const, label: '世界友好度', placeholder: '描述这个世界的整体氛围与生存法则...' },
+  { key: 'other' as const, label: '其他', placeholder: '补充任何我们未涵盖的设定...' },
+]
+
+const FRIENDLINESS_HELP = `世界友好度，是指这个世界中不同群体之间的相处模式与生存法则。
+
+例如：
+• 弱肉强食型：如修仙界、末世，实力为尊，弱者在夹缝中求生
+• 表面和谐型：如现代星际，多势力共治，法律完善，罪恶只在暗面涌动
+• 阶层分化型：如赛博朋克，高科技与低生活并存，上城与下城泾渭分明
+• 温暖治愈型：如童话世界，善意是通行的货币，互助是生存的法则`
+
+const EMPTY_DATA: WorldInfoData = {
+  forces: '',
+  cultivation_system: '',
+  secret_realms: '',
+  map_layers: '',
+  world_friendliness: '',
+  other: '',
+}
 
 export default function WorldInfoPage() {
-  const router = useRouter();
-  const novelId = router.params.id || '';
-  const novelName = router.params.name || '这个世界';
+  const router = useRouter()
+  const novelId = router.params.id || ''
+  const novelName = router.params.name || '这个世界'
+  const era = router.params.era || 'ancient'
+  const isAncient = era !== 'modern'
 
-  const [worldInfo, setWorldInfo] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [evaluating, setEvaluating] = useState(false);
-  const [score, setScore] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [canGenerate, setCanGenerate] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+  const [formData, setFormData] = useState<WorldInfoData>({ ...EMPTY_DATA })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set())
 
+  const fields = isAncient ? ANCIENT_FIELDS : MODERN_FIELDS
 
   // Load existing world info
   useEffect(() => {
     if (novelId) {
       Network.request({ url: `/api/novels/${novelId}` })
         .then((res: any) => {
-          const novel = res.data?.data;
-          if (novel) {
-            setWorldInfo(novel.world_info || '');
-            if (novel.world_score != null) {
-              setScore(novel.world_score);
-              setCanGenerate(novel.world_score >= SCORE_THRESHOLD);
+          const novel = res.data?.data
+          if (novel?.world_info) {
+            try {
+              const parsed = JSON.parse(novel.world_info)
+              setFormData({ ...EMPTY_DATA, ...parsed })
+              // Expand all fields that have content
+              const expanded = new Set<string>()
+              Object.entries(parsed).forEach(([key, val]) => {
+                if (val && String(val).trim()) expanded.add(key)
+              })
+              setExpandedFields(expanded)
+            } catch {
+              // If it's plain text (old format), put it in 'other'
+              setFormData(prev => ({ ...prev, other: novel.world_info }))
             }
           }
         })
-        .catch(() => {});
+        .catch(() => {})
     }
-  }, [novelId]);
+  }, [novelId])
+
+  const handleFieldChange = (key: keyof WorldInfoData, value: string) => {
+    setFormData(prev => ({ ...prev, [key]: value }))
+  }
+
+  const toggleField = (key: string) => {
+    setExpandedFields(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
 
   const handleSave = async () => {
-    if (!worldInfo.trim()) {
-      Taro.showToast({ title: '请先填写世界信息', icon: 'none' });
-      return;
+    // Check if at least one field has content
+    const hasContent = Object.values(formData).some(v => v.trim())
+    if (!hasContent) {
+      Taro.showToast({ title: '请至少填写一项世界信息', icon: 'none' })
+      return
     }
-    setSaving(true);
+    setSaving(true)
     try {
       await Network.request({
         url: `/api/novels/${novelId}/world-info`,
         method: 'POST',
-        data: { world_info: worldInfo },
-      });
-      Taro.showToast({ title: '保存成功', icon: 'success' });
+        data: { world_info: JSON.stringify(formData) },
+      })
+      setSaved(true)
+      Taro.showToast({ title: '保存成功', icon: 'success' })
+      setTimeout(() => {
+        Taro.navigateBack()
+      }, 1000)
     } catch (e) {
-      Taro.showToast({ title: '保存失败', icon: 'error' });
+      Taro.showToast({ title: '保存失败', icon: 'error' })
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
-  const handleEvaluate = async () => {
-    if (!worldInfo.trim()) {
-      Taro.showToast({ title: '请先填写世界信息', icon: 'none' });
-      return;
-    }
-    setEvaluating(true);
-    try {
-      const res: any = await Network.request({
-        url: `/api/novels/${novelId}/evaluate`,
-        method: 'POST',
-      });
-      const data = res.data?.data;
-      if (data) {
-        setScore(data.score);
-        setFeedback(data.feedback || '');
-        setCanGenerate(data.canGenerate || false);
-        setShowResult(true);
-      }
-    } catch (e) {
-      Taro.showToast({ title: '评分失败', icon: 'error' });
-    } finally {
-      setEvaluating(false);
-    }
-  };
-
-  const handleSaveAndEvaluate = async () => {
-    if (!worldInfo.trim()) {
-      Taro.showToast({ title: '请先填写世界信息', icon: 'none' });
-      return;
-    }
-    setSaving(true);
-    try {
-      await Network.request({
-        url: `/api/novels/${novelId}/world-info`,
-        method: 'POST',
-        data: { world_info: worldInfo },
-      });
-      setEvaluating(true);
-      const res: any = await Network.request({
-        url: `/api/novels/${novelId}/evaluate`,
-        method: 'POST',
-      });
-      const data = res.data?.data;
-      if (data) {
-        setScore(data.score);
-        setFeedback(data.feedback || '');
-        setCanGenerate(data.canGenerate || false);
-        setShowResult(true);
-      }
-    } catch (e) {
-      Taro.showToast({ title: '操作失败', icon: 'error' });
-    } finally {
-      setSaving(false);
-      setEvaluating(false);
-    }
-  };
+  const hasContent = Object.values(formData).some(v => v.trim())
 
   return (
     <View className="min-h-screen bg-stone-50">
@@ -128,165 +147,170 @@ export default function WorldInfoPage() {
 
       <ScrollView scrollY className="h-[calc(100vh-140px)]">
         <View className="p-4 space-y-4">
-          {/* Score Badge */}
-          {score != null && (
-            <Card className={canGenerate ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}>
-              <CardContent className="p-3 flex items-center gap-2">
-                {canGenerate ? (
-                  <Check size={20} color="#16a34a" />
-                ) : (
-                  <Loader size={20} color="#d97706" />
-                )}
-                <View className="flex-1">
-                  <Text className="block text-sm font-medium">
-                    {canGenerate ? '世界信息充足，可生成日常' : '世界信息不足'}
-                  </Text>
-                  <Text className="block text-xs text-stone-600 mt-1">评分：{score} / 100</Text>
-                </View>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Input */}
-          <Card>
-            <CardContent className="p-4">
-              <Text className="block text-sm font-medium text-stone-700 mb-2">
-                填写世界信息（势力、地图、世界观、修炼体系等）
+          {/* Tip Card */}
+          <View className="bg-rose-50 rounded-2xl p-4 flex items-start gap-3">
+            <View className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={16} color="#e8587a" />
+            </View>
+            <View className="flex-1">
+              <Text className="block text-sm text-rose-700 font-medium">
+                世界信息越完善，生成的内容就越真实哦~
               </Text>
-              <View className="bg-stone-50 rounded-lg p-3 border border-stone-200">
-                <Textarea
-                  className="w-full bg-transparent text-sm text-stone-800"
-                  style={{ minHeight: '200px', width: '100%' }}
-                  placeholder={`例如：
-- 世界观：灵气复苏的现代都市，人类开始觉醒异能
-- 势力：华夏异能局、暗影组织、自由觉醒者联盟
-- 地图：主要城市有北京、上海、深圳，各有异能基地
-- 修炼体系：觉醒等级 F→E→D→C→B→A→S，每级分初/中/后期
-- 特殊设定：秘境每月初一开启，天材地宝可拍卖`}
-                  value={worldInfo}
-                  onInput={(e) => setWorldInfo(e.detail.value)}
-                  maxlength={2000}
-                />
-              </View>
-              <Text className="block text-xs text-stone-400 mt-2">{worldInfo.length} / 2000</Text>
-            </CardContent>
-          </Card>
-
-          {/* Buttons */}
-          <View className="space-y-2">
-            <Button
-              className="w-full bg-rose-500 text-white"
-              disabled={saving || evaluating || !worldInfo.trim()}
-              onClick={handleSaveAndEvaluate}
-            >
-              {saving || evaluating ? (
-                <View className="flex items-center justify-center gap-2">
-                  <Loader size={16} color="#f43f5e" className="animate-spin" />
-                  <Text className="block text-sm">
-                    {saving ? '保存中...' : evaluating ? 'AI 评分中...' : '处理中'}
-                  </Text>
-                </View>
-              ) : (
-                <Text className="block text-sm">保存并评分</Text>
-              )}
-            </Button>
-
-            <View className="flex gap-2">
-              <Button
-                className="flex-1 bg-stone-200 text-stone-700"
-                disabled={saving || evaluating || !worldInfo.trim()}
-                onClick={handleSave}
-              >
-                <Text className="block text-sm">{saving ? '保存中...' : '仅保存'}</Text>
-              </Button>
-              <Button
-                className="flex-1 bg-blue-500 text-white"
-                disabled={saving || evaluating || !worldInfo.trim()}
-                onClick={handleEvaluate}
-              >
-                <Text className="block text-sm">{evaluating ? '评分中...' : '仅评分'}</Text>
-              </Button>
             </View>
           </View>
 
-          {/* Tips */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-3">
-              <Text className="block text-xs text-blue-700">
-                <Text className="block font-medium mb-1">💡 评分标准（60分达标）：</Text>
-                <Text className="block">• 世界观/背景设定完整度</Text>
-                <Text className="block">• 势力/组织信息</Text>
-                <Text className="block">• 地理/地图信息</Text>
-                <Text className="block">• 修炼/力量体系</Text>
-                <Text className="block">• 时代特征与特殊设定</Text>
+          {/* Era-specific fields */}
+          <View>
+            <View className="flex items-center gap-2 mb-3">
+              <View className="flex-1 h-px bg-stone-200" />
+              <Text className="block text-xs text-stone-400 px-2">
+                {isAncient ? '古代 · 仙侠世界' : '现代 · 都市世界'}
               </Text>
-            </CardContent>
-          </Card>
+              <View className="flex-1 h-px bg-stone-200" />
+            </View>
+
+            {fields.map((field) => {
+              const isExpanded = expandedFields.has(field.key)
+              const value = formData[field.key]
+              return (
+                <View key={field.key} className="bg-white rounded-2xl mb-3 overflow-hidden shadow-sm">
+                  <View
+                    className="flex items-center justify-between px-4 py-3 active:bg-stone-50"
+                    onClick={() => toggleField(field.key)}
+                  >
+                    <Text className="block text-sm font-semibold text-stone-700">{field.label}</Text>
+                    <ChevronDown
+                      size={16}
+                      color="#9e8e92"
+                      className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'}
+                    />
+                  </View>
+                  {isExpanded && (
+                    <View className="px-4 pb-4">
+                      <View className="bg-stone-50 rounded-xl p-3 border border-stone-200">
+                        <Textarea
+                          className="w-full bg-transparent text-sm text-stone-800"
+                          style={{ minHeight: '80px', width: '100%' }}
+                          placeholder={field.placeholder}
+                          value={value}
+                          onInput={(e) => handleFieldChange(field.key, e.detail.value)}
+                          maxlength={500}
+                        />
+                      </View>
+                      <Text className="block text-xs text-stone-400 mt-1">{value.length} / 500</Text>
+                    </View>
+                  )}
+                </View>
+              )
+            })}
+          </View>
+
+          {/* Universal fields */}
+          <View>
+            <View className="flex items-center gap-2 mb-3">
+              <View className="flex-1 h-px bg-stone-200" />
+              <Text className="block text-xs text-stone-400 px-2">通用设定</Text>
+              <View className="flex-1 h-px bg-stone-200" />
+            </View>
+
+            {UNIVERSAL_FIELDS.map((field) => {
+              const isExpanded = expandedFields.has(field.key)
+              const value = formData[field.key]
+              const isFriendliness = field.key === 'world_friendliness'
+              return (
+                <View key={field.key} className="bg-white rounded-2xl mb-3 overflow-hidden shadow-sm">
+                  <View
+                    className="flex items-center justify-between px-4 py-3 active:bg-stone-50"
+                    onClick={() => toggleField(field.key)}
+                  >
+                    <View className="flex items-center gap-2">
+                      <Text className="block text-sm font-semibold text-stone-700">{field.label}</Text>
+                      {isFriendliness && (
+                        <CircleQuestionMark
+                          size={14}
+                          color="#e8587a"
+                          onClick={(e: any) => {
+                            e.stopPropagation()
+                            setShowHelp(true)
+                          }}
+                        />
+                      )}
+                    </View>
+                    <ChevronDown
+                      size={16}
+                      color="#9e8e92"
+                      className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'}
+                    />
+                  </View>
+                  {isExpanded && (
+                    <View className="px-4 pb-4">
+                      <View className="bg-stone-50 rounded-xl p-3 border border-stone-200">
+                        <Textarea
+                          className="w-full bg-transparent text-sm text-stone-800"
+                          style={{ minHeight: '80px', width: '100%' }}
+                          placeholder={field.placeholder}
+                          value={value}
+                          onInput={(e) => handleFieldChange(field.key, e.detail.value)}
+                          maxlength={500}
+                        />
+                      </View>
+                      <Text className="block text-xs text-stone-400 mt-1">{value.length} / 500</Text>
+                    </View>
+                  )}
+                </View>
+              )
+            })}
+          </View>
+
+          {/* Save Button */}
+          <Button
+            className="w-full bg-rose-500 text-white rounded-xl mt-4"
+            disabled={saving || !hasContent}
+            onClick={handleSave}
+          >
+            {saving ? (
+              <View className="flex items-center justify-center gap-2">
+                <Loader size={16} color="#ffffff" className="animate-spin" />
+                <Text className="block text-sm">保存中...</Text>
+              </View>
+            ) : saved ? (
+              <View className="flex items-center justify-center gap-2">
+                <Check size={16} color="#ffffff" />
+                <Text className="block text-sm">已保存</Text>
+              </View>
+            ) : (
+              <Text className="block text-sm">保存世界信息</Text>
+            )}
+          </Button>
         </View>
       </ScrollView>
 
-      {/* Result Modal */}
-      {showResult && score != null && (
-        <View
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-          onClick={() => setShowResult(false)}
-        >
-          <View
-            className="bg-white rounded-2xl p-6 w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <View className="flex items-center gap-3 mb-4">
-              {canGenerate ? (
-                <Check size={32} color="#16a34a" />
-              ) : (
-                <Loader size={32} color="#d97706" />
-              )}
-              <View className="flex-1">
-                <Text className="block text-lg font-semibold">
-                  {canGenerate ? '评分通过' : '评分未达标'}
-                </Text>
-                <Text className="block text-sm text-stone-500">{score} / 100 分</Text>
+      {/* World Friendliness Help Dialog */}
+      <Dialog open={showHelp} onOpenChange={setShowHelp}>
+        <DialogContent className="bg-white rounded-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              <View className="flex items-center gap-2">
+                <CircleQuestionMark size={20} color="#e8587a" />
+                <Text className="text-stone-800 text-lg font-bold">世界友好度说明</Text>
               </View>
-            </View>
-
-            {feedback && (
-              <View className="bg-stone-50 rounded-lg p-3 mb-4">
-                <Text className="block text-sm text-stone-700">{feedback}</Text>
-              </View>
-            )}
-
-            <View className="space-y-2">
-              <Button
-                className="w-full bg-rose-500 text-white"
-                onClick={() => setShowResult(false)}
-              >
-                <Text className="block text-sm">确定</Text>
-              </Button>
-              {!canGenerate && (
-                <Button
-                  className="w-full bg-stone-200 text-stone-700"
-                  onClick={() => setShowResult(false)}
-                >
-                  <Text className="block text-sm">继续完善</Text>
-                </Button>
-              )}
-            </View>
+            </DialogTitle>
+          </DialogHeader>
+          <View className="mt-4">
+            <Text className="block text-sm text-stone-600 leading-6 whitespace-pre-line">
+              {FRIENDLINESS_HELP}
+            </Text>
           </View>
-        </View>
-      )}
-
-      {/* Evaluating Modal */}
-      {evaluating && (
-        <View className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <View className="bg-white rounded-2xl p-6 w-full max-w-sm">
-            <View className="flex flex-col items-center gap-3">
-              <Loader size={40} color="#f43f5e" className="animate-spin" />
-              <Text className="block text-base font-medium text-stone-800">正在进行评分......</Text>
-              <Text className="block text-xs text-stone-500">AI 正在评估世界信息完整度</Text>
-            </View>
+          <View className="mt-6">
+            <Button
+              className="w-full bg-rose-500 text-white rounded-xl"
+              onClick={() => setShowHelp(false)}
+            >
+              <Text className="text-white text-sm">知道了</Text>
+            </Button>
           </View>
-        </View>
-      )}
+        </DialogContent>
+      </Dialog>
     </View>
-  );
+  )
 }
