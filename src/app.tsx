@@ -1,5 +1,6 @@
 import Taro, { useLaunch } from '@tarojs/taro'
 import { useState } from 'react'
+import { View, Text, Input, Button } from '@tarojs/components'
 import './app.css'
 
 const ACCESS_PASSWORD = '6602877'
@@ -36,7 +37,7 @@ function App({ children }) {
     <>
       {children}
       {!isAuthenticated && (
-        <div
+        <View
           style={{
             position: 'fixed',
             top: 0,
@@ -51,9 +52,9 @@ function App({ children }) {
             padding: '24px',
           }}
         >
-          <div style={{ width: '100%', maxWidth: '320px' }}>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-              <div
+          <View style={{ width: '100%', maxWidth: '320px' }}>
+            <View style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <View
                 style={{
                   width: '64px',
                   height: '64px',
@@ -65,17 +66,20 @@ function App({ children }) {
                   margin: '0 auto 16px',
                 }}
               >
-                <span style={{ fontSize: '28px' }}>🔒</span>
-              </div>
-              <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                <Text style={{ fontSize: '28px' }}>🔒</Text>
+              </View>
+              <Text
+                className="block"
+                style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}
+              >
                 访问验证
-              </h1>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>
+              </Text>
+              <Text className="block" style={{ fontSize: '14px', color: '#6b7280' }}>
                 请输入访问密码以继续使用
-              </p>
-            </div>
+              </Text>
+            </View>
 
-            <div
+            <View
               style={{
                 background: 'white',
                 borderRadius: '16px',
@@ -83,36 +87,36 @@ function App({ children }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
               }}
             >
-              <input
-                type="password"
-                value={password}
-                onInput={(e: any) => {
-                  setPassword(e.target.value)
-                  setError('')
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerify()
-                }}
-                placeholder="请输入密码"
-                style={{
-                  width: '100%',
-                  background: '#f9fafb',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
-                  textAlign: 'center',
-                  fontSize: '18px',
-                  letterSpacing: '4px',
-                  border: 'none',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
+              <View style={{ background: '#f9fafb', borderRadius: '12px', padding: '12px 16px' }}>
+                <Input
+                  password
+                  value={password}
+                  onInput={(e: any) => {
+                    setPassword(e.detail.value)
+                    setError('')
+                  }}
+                  onConfirm={handleVerify}
+                  placeholder="请输入密码"
+                  style={{
+                    width: '100%',
+                    textAlign: 'center',
+                    fontSize: '18px',
+                    letterSpacing: '4px',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                  }}
+                />
+              </View>
               {error && (
-                <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', marginTop: '12px' }}>
+                <Text
+                  className="block"
+                  style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', marginTop: '12px' }}
+                >
                   {error}
-                </p>
+                </Text>
               )}
-              <button
+              <Button
                 onClick={handleVerify}
                 style={{
                   width: '100%',
@@ -127,14 +131,17 @@ function App({ children }) {
                 }}
               >
                 确认
-              </button>
-            </div>
+              </Button>
+            </View>
 
-            <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '24px' }}>
+            <Text
+              className="block"
+              style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '24px' }}
+            >
               忘记密码请联系应用管理员
-            </p>
-          </div>
-        </div>
+            </Text>
+          </View>
+        </View>
       )}
     </>
   )
