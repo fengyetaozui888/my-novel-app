@@ -47,7 +47,6 @@ const NovelPage = () => {
   // Dialogs
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showRenameDialog, setShowRenameDialog] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
@@ -138,23 +137,6 @@ const NovelPage = () => {
     }
   }
 
-  const handleDelete = async () => {
-    if (!selectedChar) return
-    try {
-      await Network.request({
-        url: `/api/characters/${selectedChar.id}`,
-        method: 'DELETE',
-      })
-    } catch (err) {
-      console.error('deleteCharacter error:', err)
-    } finally {
-      // Always close dialog, even if API fails
-      setShowDeleteDialog(false)
-      setSelectedChar(null)
-      fetchCharacters()
-    }
-  }
-
   const handleChooseAvatar = async () => {
     if (!selectedChar) return
     try {
@@ -238,6 +220,8 @@ const NovelPage = () => {
       fetchCharacters()
     } catch (error) {
       Taro.showToast({ title: '删除失败', icon: 'error' })
+    } finally {
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -468,37 +452,6 @@ const NovelPage = () => {
               onClick={handleRename}
             >
               <Text className="text-white">确认</Text>
-            </Button>
-          </View>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-white rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              <Text className="text-gray-900 text-lg font-bold">确认删除</Text>
-            </DialogTitle>
-            <DialogDescription>
-              <Text className="text-gray-400 text-sm">
-                确定要删除角色「{selectedChar?.name}」吗？
-              </Text>
-            </DialogDescription>
-          </DialogHeader>
-          <View className="flex gap-3 mt-4">
-            <Button
-              variant="outline"
-              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              <Text className="text-gray-700">取消</Text>
-            </Button>
-            <Button
-              className="flex-1 bg-red-500 text-white rounded-xl"
-              onClick={handleDelete}
-            >
-              <Text className="text-white">删除</Text>
             </Button>
           </View>
         </DialogContent>
