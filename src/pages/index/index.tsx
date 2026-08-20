@@ -211,17 +211,17 @@ const IndexPage = () => {
               className="relative bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow overflow-hidden"
             >
               <CardContent className="p-4">
+                {novel.is_pinned && (
+                  <View style={{ position: 'absolute', top: 8, left: 8, zIndex: 10, transform: 'rotate(-45deg)' }}>
+                    <Pin size={14} color="#e8587a" strokeWidth={2.5} />
+                  </View>
+                )}
                 <View className="flex items-center gap-3">
                   {/* Cover Image */}
                   <View
                     className="relative w-16 h-20 rounded-xl overflow-hidden bg-pink-50 flex items-center justify-center flex-shrink-0"
                     onClick={() => handleChooseCover(novel)}
                   >
-                    {novel.is_pinned && (
-                      <View style={{ position: 'absolute', top: 2, left: 2, zIndex: 10, transform: 'rotate(-45deg)' }}>
-                        <Pin size={14} color="#e8587a" strokeWidth={2.5} />
-                      </View>
-                    )}
                     {novel.cover_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(novel.cover_url) ? (
                       <Image
                         src={novel.cover_url}

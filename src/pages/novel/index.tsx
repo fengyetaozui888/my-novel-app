@@ -669,13 +669,13 @@ const NovelPage = () => {
                   className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2 relative"
                   onClick={() => goToChat(char)}
                 >
+                  {char.is_pinned && (
+                    <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, transform: 'rotate(-45deg)' }}>
+                      <Pin size={12} color="#e8587a" strokeWidth={2.5} />
+                    </View>
+                  )}
                   {/* Avatar */}
                   <View className="relative w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                    {char.is_pinned && (
-                      <View style={{ position: 'absolute', top: 0, left: 0, zIndex: 10, transform: 'rotate(-45deg)' }}>
-                        <Pin size={12} color="#e8587a" strokeWidth={2.5} />
-                      </View>
-                    )}
                     {char.avatar_url ? (
                       <Image
                         src={char.avatar_url}
