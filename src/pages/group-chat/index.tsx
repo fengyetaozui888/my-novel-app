@@ -140,11 +140,11 @@ const GroupChatPage = () => {
   }
 
   // Highlight @mentions in message content
-  const renderContent = (content: string) => {
+  const renderContent = (content: string, isUser: boolean = false) => {
     const parts = content.split(/(@[\u4e00-\u9fa5\w]+)/g)
     return parts.map((part, idx) =>
       part.startsWith('@') && part.length > 1 ? (
-        <Text key={idx} className="text-rose-500 font-medium">
+        <Text key={idx} className={isUser ? 'text-white font-medium' : 'text-rose-500 font-medium'}>
           {part}
         </Text>
       ) : (
@@ -254,7 +254,7 @@ const GroupChatPage = () => {
                             isUser ? 'text-white' : 'text-gray-800'
                           }`}
                         >
-                          {renderContent(msg.content)}
+                          {renderContent(msg.content, isUser)}
                         </Text>
                       </View>
                     </View>
@@ -295,11 +295,11 @@ const GroupChatPage = () => {
       >
         <Button
           size="sm"
-          className="bg-stone-100 text-stone-600 rounded-full w-10 h-10 p-0 flex items-center justify-center"
+          className="bg-white bg-opacity-20 text-white rounded-full w-10 h-10 p-0 flex items-center justify-center"
           onClick={() => setShowMentionPicker(true)}
           disabled={sending}
         >
-          <AtSign size={18} color="#78716c" />
+          <AtSign size={18} color="#ffffff" />
         </Button>
         <View
           style={{

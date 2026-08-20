@@ -192,7 +192,7 @@ const H5ErrorOverlayHost = () => {
   return (
     <Portal>
       <View className="pointer-events-none fixed inset-0 z-[2147483646]">
-        <View className="pointer-events-auto fixed bottom-5 left-5">
+        <View className="pointer-events-auto fixed top-5 right-5">
           <Button
             variant="outline"
             size="icon"
