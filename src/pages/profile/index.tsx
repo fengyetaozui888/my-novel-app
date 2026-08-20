@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { User, Pencil, Camera, Coins, CreditCard, BookHeart, MessageSquareWarning, Circle } from 'lucide-react-taro'
+import { User, Pencil, Camera, Coins, CreditCard, BookHeart, MessageSquareWarning, Circle, Brain } from 'lucide-react-taro'
 import { Separator } from '@/components/ui/separator'
 
 interface UserProfile {
@@ -294,6 +294,17 @@ const ProfilePage = () => {
                 <Text className="text-base text-gray-700">agent反馈</Text>
               </View>
               <Text className="text-sm text-gray-400">优化角色模拟</Text>
+            </View>
+            <Separator />
+            <View
+              className="flex items-center justify-between p-4"
+              onClick={() => Taro.navigateTo({ url: '/pages/memories/index' })}
+            >
+              <View className="flex items-center gap-3">
+                <Brain size={18} color="#ec4899" />
+                <Text className="text-base text-gray-700">记忆管理</Text>
+              </View>
+              <Text className="text-sm text-gray-400">查看角色记忆</Text>
             </View>
             <Separator />
             <View

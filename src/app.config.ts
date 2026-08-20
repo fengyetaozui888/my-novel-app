@@ -17,6 +17,7 @@ export default defineAppConfig({
     'pages/world-news/index',
     'pages/world-info/index',
     'pages/moments-detail/index',
+    'pages/memories/index',
   ],
   window: {
     backgroundTextStyle: 'light',

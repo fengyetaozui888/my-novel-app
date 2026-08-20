@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
 import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import { MemoriesService } from '@/memories/memories.service';
 
 @Injectable()
 export class ChatService {
+  constructor(private readonly memoriesService: MemoriesService) {}
+
   private get client() {
     return getSupabaseClient();
   }
@@ -129,13 +132,22 @@ export class ChatService {
     return result;
   }
 
-  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }, userPersona?: string, relationNetwork?: { name: string; relationType: string }[]): string {
+  buildSystemPrompt(character: any, novelName: string, speaker?: any, relationType?: string, affinityInfo?: { value: number; level: string }, userPersona?: string, relationNetwork?: { name: string; relationType: string }[], memories?: any[]): string {
     const parts: string[] = [];
 
     parts.push(`你现在正在进行角色扮演。你需要完全沉浸在以下角色中，以该角色的身份、语气、性格来回应对话。`);
     parts.push(`\n你来自小说《${novelName}》。`);
     parts.push(`\n角色名称：${character.name}`);
     parts.push(`角色分类：${character.category === 'protagonist' ? '主角' : character.category === 'supporting' ? '重要配角' : '不重要角色'}`);
+
+    // 注入关键记忆（分层记忆系统）
+    if (memories && memories.length > 0) {
+      parts.push(`\n【你的关键记忆】（这些是你记住的重要事情，请在对话中体现）`);
+      memories.forEach((m, i) => {
+        parts.push(`${i + 1}. ${m.content}`);
+      });
+      parts.push(`请在对话中自然体现这些记忆，不要生硬地提及。`);
+    }
 
     // 如果有对话者（speaker），注入认知
     if (speaker) {
@@ -370,6 +382,13 @@ export class ChatService {
     // 被扮演角色在关系图中的整体人脉（背景认知）
     const relationNetwork = await this.getRelationNetwork(character.novel_id, params.characterId);
 
+    // 获取关键记忆（分层记忆系统）
+    const memories = await this.memoriesService.getCharacterMemories(
+      params.characterId,
+      10, // 最多加载 10 条关键记忆
+      0.7, // 重要性 > 0.7
+    );
+
     // 获取亲密度与"我"的专属人设（仅当以用户身份对话时）
     let affinityInfo = { value: 50, level: 'stranger' };
     let userPersona: string | undefined;
@@ -382,7 +401,7 @@ export class ChatService {
       userPersona = await this.getUserPersona(params.userId, params.characterId);
     }
 
-    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona, relationNetwork);
+    const systemPrompt = this.buildSystemPrompt(character, novelName, speaker, relationType, affinityInfo, userPersona, relationNetwork, memories);
 
     const messages: { role: string; content: string }[] = [
       { role: 'system', content: systemPrompt },
@@ -421,7 +440,80 @@ export class ChatService {
       await this.updateAffinity(params.userId, params.characterId, 1);
     }
 
+    // 提取并保存关键记忆（分层记忆系统）
+    try {
+      await this.extractAndSaveMemories(character, params.message, content);
+    } catch (memErr) {
+      console.warn('[Chat] 记忆提取失败:', (memErr as Error).message);
+      // 记忆提取失败不影响对话
+    }
+
     return { content };
+  }
+
+  /**
+   * 从对话中提取关键记忆并保存
+   */
+  private async extractAndSaveMemories(
+    character: any,
+    userMessage: string,
+    assistantReply: string,
+  ): Promise<void> {
+    // 每 5 次对话才提取一次记忆，避免频繁调用 LLM
+    const shouldExtract = Math.random() < 0.2; // 20% 概率提取
+    if (!shouldExtract) return;
+
+    const config = new Config();
+    const llmClient = new LLMClient(config);
+
+    const extractionPrompt = `请从以下对话中提取关键信息，生成 1-3 条记忆。只提取重要的、值得记住的信息。
+
+【角色】${character.name}
+【用户说】${userMessage}
+【角色回复】${assistantReply}
+
+【提取要求】
+1. 只提取重要信息（如：用户透露的个人信息、重要事件、关系变化、特殊偏好等）
+2. 每条记忆用一句话概括
+3. 如果对话中没有重要信息，返回空数组
+
+【返回格式】
+JSON 数组，每条记忆包含：
+- content: 记忆内容（一句话）
+- importance: 重要性（0-1，0.7 以上才值得记住）
+- type: 类型（fact/relationship/event/preference）
+
+示例：
+[
+  {"content": "用户喜欢喝咖啡", "importance": 0.8, "type": "preference"},
+  {"content": "用户下周要考试", "importance": 0.9, "type": "event"}
+]
+
+只返回 JSON 数组，不要其他内容。如果没有重要信息，返回 []。`;
+
+    try {
+      const response = await llmClient.invoke([
+        { role: 'system', content: extractionPrompt },
+      ], { temperature: 0.3 });
+
+      const jsonMatch = response.content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const newMemories = JSON.parse(jsonMatch[0]);
+        for (const memory of newMemories) {
+          if (memory.importance >= 0.7) {
+            await this.memoriesService.createMemory({
+              novel_id: character.novel_id,
+              character_id: character.id,
+              type: memory.type || 'fact',
+              content: memory.content,
+              importance: memory.importance,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Chat] 记忆提取 LLM 调用失败:', e);
+    }
   }
 
   async generateNovelGraph(novelId: string) {
