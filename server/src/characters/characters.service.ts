@@ -33,8 +33,9 @@ export class CharactersService {
   async findByNovelId(novelId: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, is_pinned, created_at, updated_at')
       .eq('novel_id', novelId)
+      .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询角色列表失败: ${error.message}`);
 
@@ -44,10 +45,30 @@ export class CharactersService {
     return characters;
   }
 
+  async togglePin(id: string) {
+    const { data: current, error: findError } = await this.client
+      .from('characters')
+      .select('id, is_pinned')
+      .eq('id', id)
+      .maybeSingle();
+    if (findError) throw new Error(`查询角色失败: ${findError.message}`);
+    if (!current) throw new Error('角色不存在');
+
+    const newPinned = !(current as { is_pinned?: boolean }).is_pinned;
+    const { data, error } = await this.client
+      .from('characters')
+      .update({ is_pinned: newPinned, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, is_pinned')
+      .single();
+    if (error) throw new Error(`更新置顶状态失败: ${error.message}`);
+    return data as { id: string; is_pinned: boolean };
+  }
+
   async findById(id: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, is_pinned, created_at, updated_at')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error(`查询角色详情失败: ${error.message}`);

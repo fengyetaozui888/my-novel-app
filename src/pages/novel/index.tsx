@@ -27,6 +27,7 @@ interface Character {
   examples: string | null
   created_at: string
   updated_at: string
+  is_pinned: boolean | null
 }
 
 interface GroupChat {
@@ -483,11 +484,10 @@ const NovelPage = () => {
   const togglePin = async (characterId: string) => {
     try {
       const res = await Network.request({
-        url: '/api/chat/toggle-pin',
-        method: 'POST',
-        data: { characterId },
+        url: `/api/characters/${characterId}/toggle-pin`,
+        method: 'PUT',
       })
-      if (res.data?.data?.pinned) {
+      if (res.data?.data?.is_pinned) {
         Taro.showToast({ title: '已置顶', icon: 'success' })
       } else {
         Taro.showToast({ title: '已取消置顶', icon: 'success' })
@@ -496,6 +496,7 @@ const NovelPage = () => {
       Taro.showToast({ title: '操作失败', icon: 'none' })
     }
     setSettingsMenuCharId(null)
+    fetchCharacters()
   }
 
   const closeSettingsMenu = () => setSettingsMenuCharId(null)

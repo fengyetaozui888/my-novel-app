@@ -38,6 +38,13 @@ export class CharactersController {
     return { code: 200, msg: 'success', data };
   }
 
+  @Put(':id/toggle-pin')
+  @HttpCode(200)
+  async togglePin(@Param('id') id: string) {
+    const data = await this.charactersService.togglePin(id);
+    return { code: 200, msg: 'success', data };
+  }
+
   @Put(':id')
   @HttpCode(200)
   async update(

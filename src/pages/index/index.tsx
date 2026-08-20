@@ -106,7 +106,7 @@ const IndexPage = () => {
     try {
       await Network.request({
         url: `/api/novels/${novel.id}/toggle-pin`,
-        method: 'POST',
+        method: 'PUT',
       })
       setShowActionMenu(null)
       Taro.showToast({ title: novel.is_pinned ? '已取消置顶' : '已置顶', icon: 'success' })
