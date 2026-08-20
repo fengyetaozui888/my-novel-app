@@ -25,7 +25,7 @@ interface HelpSection {
 }
 
 const VERSION = 'v1.3.0'
-const UPDATE_DATE = '2025-01-20'
+const UPDATE_DATE = '2026-08-20'
 
 const HelpPage = () => {
   const sections: HelpSection[] = [
