@@ -13,6 +13,7 @@ interface Novel {
   name: string
   cover_key: string | null
   cover_url: string | null
+  era?: string
   is_pinned?: boolean
   created_at: string
   updated_at: string
@@ -71,9 +72,10 @@ const IndexPage = () => {
       await Network.request({
         url: `/api/novels/${selectedNovel.id}`,
         method: 'PUT',
-        data: { name: newName.trim() },
+        data: { name: newName.trim(), era: newEra },
       })
       setNewName('')
+      setNewEra('ancient')
       setShowRenameDialog(false)
       setSelectedNovel(null)
       fetchNovels()
@@ -264,10 +266,11 @@ const IndexPage = () => {
                             setShowActionMenu(null)
                             setSelectedNovel(novel)
                             setNewName(novel.name)
+                            setNewEra((novel.era as 'ancient' | 'modern') || 'ancient')
                             setShowRenameDialog(true)
                           }}
                         >
-                          <Text className="block text-sm text-gray-700 text-center">修改世界名称</Text>
+                          <Text className="block text-sm text-gray-700 text-center">修改世界信息</Text>
                         </View>
                         <View
                           className="px-4 py-3 active:bg-gray-50"
@@ -369,20 +372,34 @@ const IndexPage = () => {
         <DialogContent className="bg-white rounded-2xl">
           <DialogHeader>
             <DialogTitle>
-              <Text className="text-gray-900 text-lg font-bold">重命名世界</Text>
+              <Text className="text-gray-900 text-lg font-bold">修改世界信息</Text>
             </DialogTitle>
             <DialogDescription>
-              <Text className="text-gray-400 text-sm">修改世界的名称</Text>
+              <Text className="text-gray-400 text-sm">修改世界的名称和时代</Text>
             </DialogDescription>
           </DialogHeader>
           <View className="mt-4">
-            <View className="bg-stone-50 rounded-xl px-4 py-3">
+            <View className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
               <Input
                 className="w-full bg-transparent"
                 placeholder="输入新名称"
                 value={newName}
                 onInput={(e) => setNewName(e.detail.value)}
               />
+            </View>
+            <View className="flex gap-3">
+              <View
+                className={`flex-1 py-3 rounded-xl text-center ${newEra === 'ancient' ? 'bg-rose-500 text-white' : 'bg-stone-100 text-gray-600'}`}
+                onClick={() => setNewEra('ancient')}
+              >
+                <Text className={newEra === 'ancient' ? 'text-white' : 'text-gray-600'}>古代</Text>
+              </View>
+              <View
+                className={`flex-1 py-3 rounded-xl text-center ${newEra === 'modern' ? 'bg-rose-500 text-white' : 'bg-stone-100 text-gray-600'}`}
+                onClick={() => setNewEra('modern')}
+              >
+                <Text className={newEra === 'modern' ? 'text-white' : 'text-gray-600'}>现代</Text>
+              </View>
             </View>
           </View>
           <View className="flex gap-3 mt-6">

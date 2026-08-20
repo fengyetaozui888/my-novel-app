@@ -738,6 +738,16 @@ const NovelPage = () => {
                           >
                             <Text className="block text-sm text-gray-700 text-center">置顶聊天</Text>
                           </View>
+                          <View
+                            className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              Taro.navigateTo({ url: '/pages/agent-feedback/index' })
+                              closeSettingsMenu()
+                            }}
+                          >
+                            <Text className="block text-sm text-gray-700 text-center">Agent 反馈</Text>
+                          </View>
                         </View>
                       </>
                     )}

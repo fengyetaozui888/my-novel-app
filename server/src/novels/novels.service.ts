@@ -54,7 +54,7 @@ export class NovelsService {
     return { ...data, cover_url: null };
   }
 
-  async update(id: string, updates: { name?: string; cover_key?: string | null }) {
+  async update(id: string, updates: { name?: string; cover_key?: string | null; era?: 'ancient' | 'modern' }) {
     const { data, error } = await this.client
       .from('novels')
       .update({ ...updates, updated_at: new Date().toISOString() })
