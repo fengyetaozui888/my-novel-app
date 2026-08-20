@@ -240,16 +240,16 @@ const IndexPage = () => {
                   {/* Actions */}
                   <View className="relative">
                     <View
-                      className="p-3 active:opacity-60"
+                      className="p-2 active:opacity-60"
                       onClick={(e) => {
                         e.stopPropagation()
                         setShowActionMenu(novel.id)
                       }}
                     >
                       <View className="flex flex-row items-center justify-center gap-1">
-                        <View className="w-2 h-2 rounded-full bg-pink-500" />
-                        <View className="w-2 h-2 rounded-full bg-pink-500" />
-                        <View className="w-2 h-2 rounded-full bg-pink-500" />
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
                       </View>
                     </View>
                     {showActionMenu === novel.id && (

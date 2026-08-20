@@ -612,7 +612,7 @@ const NovelPage = () => {
                   onClick={() => goToChat(char)}
                 >
                   {/* Avatar */}
-                  <View className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                  <View className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {char.avatar_url ? (
                       <Image
                         src={char.avatar_url}
