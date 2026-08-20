@@ -996,7 +996,7 @@ const NovelPage = () => {
                 className="flex-1 bg-rose-500 text-white rounded-xl"
                 onClick={() => {
                   setShowWorldInfoDialog(false)
-                  Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}&era=${novelEra}` })
+                  Taro.navigateTo({ url: `/pages/world-info/index?id=${novelId}&era=${novelEra}` })
                 }}
               >
                 <Text className="text-white">去完善</Text>

@@ -72,6 +72,8 @@ export default function WorldInfoPage() {
     if (novelId) {
       Network.request({ url: `/api/novels/${novelId}` })
         .then((res: any) => {
+          console.log('[world-info] load response:', res.statusCode, res.data)
+          if (res.statusCode !== 200) return
           const novel = res.data?.data
           if (novel?.world_info) {
             try {
@@ -89,7 +91,9 @@ export default function WorldInfoPage() {
             }
           }
         })
-        .catch(() => {})
+        .catch((e: unknown) => console.error('[world-info] load error:', e))
+    } else {
+      console.warn('[world-info] missing novel id in router params:', router.params)
     }
   }, [novelId])
 
@@ -116,19 +120,29 @@ export default function WorldInfoPage() {
       Taro.showToast({ title: '请至少填写一项世界信息', icon: 'none' })
       return
     }
+    if (!novelId) {
+      Taro.showToast({ title: '缺少世界标识，请从世界页重新进入', icon: 'none' })
+      return
+    }
     setSaving(true)
     try {
-      await Network.request({
+      const res = await Network.request({
         url: `/api/novels/${novelId}/world-info`,
         method: 'PUT',
         data: { world_info: JSON.stringify(formData) },
       })
+      console.log('[world-info] save response:', res.statusCode, res.data)
+      if (res.statusCode !== 200) {
+        Taro.showToast({ title: `保存失败(${res.statusCode})`, icon: 'error' })
+        return
+      }
       setSaved(true)
       Taro.showToast({ title: '保存成功', icon: 'success' })
       setTimeout(() => {
         Taro.navigateBack()
       }, 1000)
     } catch (e) {
+      console.error('[world-info] save error:', e)
       Taro.showToast({ title: '保存失败', icon: 'error' })
     } finally {
       setSaving(false)
