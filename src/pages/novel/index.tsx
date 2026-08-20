@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -19,6 +18,7 @@ interface Character {
   avatar_url: string | null
   gender: string
   tagline: string | null
+  status: string | null
   persona: string | null
   background: string | null
   biography: string | null
@@ -320,7 +320,6 @@ const NovelPage = () => {
         ) : (
           <View className="flex flex-col gap-3">
             {filteredCharacters.map((char) => {
-              const hasDetail = char.persona || char.background || char.biography
               return (
                 <View
                   key={char.id}
@@ -348,10 +347,10 @@ const NovelPage = () => {
                       <Text className="block text-base font-medium text-gray-900">
                         {char.name}
                       </Text>
-                      {hasDetail && (
-                        <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
-                          <Text className="text-xs text-rose-500">已设定</Text>
-                        </Badge>
+                      {char.status === 'flaming' && (
+                        <View className="flex items-center">
+                          <Flame size={16} color="#f97316" />
+                        </View>
                       )}
                     </View>
                     {char.tagline && (

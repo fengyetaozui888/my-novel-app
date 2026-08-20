@@ -483,9 +483,19 @@ const ChatPage = () => {
                     className={`flex flex-col items-center gap-2 p-3 rounded-xl ${
                       isSelected ? status.bgColor : 'bg-gray-50'
                     }`}
-                    onClick={() => {
+                    onClick={async () => {
                       setCurrentStatus(status)
                       setShowStatusPicker(false)
+                      // 同步保存到后端
+                      try {
+                        await Network.request({
+                          url: `/api/characters/${characterId}`,
+                          method: 'PUT',
+                          data: { status: status.id }
+                        })
+                      } catch (e) {
+                        console.error('Failed to save status:', e)
+                      }
                     }}
                   >
                     <View

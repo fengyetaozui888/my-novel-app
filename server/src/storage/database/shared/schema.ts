@@ -56,6 +56,7 @@ export const characters = pgTable(
     principles: text("principles"),
     examples: text("examples"),
     tagline: varchar("tagline", { length: 500 }),
+    status: varchar("status", { length: 20 }).default("normal"),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

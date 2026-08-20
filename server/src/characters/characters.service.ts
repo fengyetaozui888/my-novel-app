@@ -33,7 +33,7 @@ export class CharactersService {
   async findByNovelId(novelId: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, created_at, updated_at')
       .eq('novel_id', novelId)
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询角色列表失败: ${error.message}`);
@@ -47,7 +47,7 @@ export class CharactersService {
   async findById(id: string) {
     const { data, error } = await this.client
       .from('characters')
-      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, created_at, updated_at')
+      .select('id, novel_id, name, category, gender, tagline, avatar_key, portrait_key, portrait_crop_offset, persona, background, biography, principles, examples, status, created_at, updated_at')
       .eq('id', id)
       .maybeSingle();
     if (error) throw new Error(`查询角色详情失败: ${error.message}`);
@@ -83,6 +83,7 @@ export class CharactersService {
       biography?: string;
       principles?: string;
       examples?: string;
+      status?: string;
     },
   ) {
     const { data, error } = await this.client
