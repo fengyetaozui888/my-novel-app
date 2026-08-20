@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, ChevronRight } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -391,54 +391,6 @@ const NovelPage = () => {
             </View>
           )
         })}
-      </View>
-
-      {/* 世界信息入口 */}
-      <View className="px-4 mb-3">
-        <View className="bg-white rounded-2xl p-4 flex items-center justify-between" onClick={() => Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}&era=${novelEra}` })}>
-          <View className="flex items-center gap-3">
-            <View className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-              <BookOpen size={20} color="#a855f7" />
-            </View>
-            <View>
-              <Text className="block text-base font-semibold text-gray-900">世界信息</Text>
-              <Text className="block text-xs text-gray-500">{worldInfoFilled ? '已填写' : '未填写'}</Text>
-            </View>
-          </View>
-          <ChevronRight size={20} color="#9ca3af" />
-        </View>
-      </View>
-      {/* World News Entry: 奇闻轶事(古代) / 世界日常(现代) */}
-      <View className="px-4 mt-3">
-        <View
-          className="flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl px-4 py-3 border border-rose-100"
-          onClick={() => {
-            if (!worldInfoFilled) {
-              setShowWorldInfoDialog(true)
-            } else {
-              Taro.navigateTo({ url: `/pages/world-news/index?id=${novelId}` })
-            }
-          }}
-        >
-          <View className="flex items-center gap-2.5">
-            <View className="w-9 h-9 rounded-xl bg-rose-500 bg-opacity-10 flex items-center justify-center">
-              {novelEra === 'modern' ? (
-                <Newspaper size={18} color="#f43f5e" />
-              ) : (
-                <ScrollText size={18} color="#f43f5e" />
-              )}
-            </View>
-            <View>
-              <Text className="block text-sm font-semibold text-gray-900">
-                {novelEra === 'modern' ? '世界日常' : '奇闻轶事'}
-              </Text>
-              <Text className="block text-xs text-gray-500">
-                {novelEra === 'modern' ? '本世界的新鲜动向与八卦' : '本世界的趣事与传闻'}
-              </Text>
-            </View>
-          </View>
-          <ChevronRight size={16} color="#d4a0a8" />
-        </View>
       </View>
 
       {/* Character List */}
