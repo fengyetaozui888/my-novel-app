@@ -23,7 +23,7 @@ export class WorldNewsService {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from('novels')
-      .select('id, name, era, news_refreshed_date')
+      .select('id, name, era, news_refreshed_date, world_score')
       .eq('id', novelId)
       .single();
     if (error || !data) throw new Error('世界不存在');
@@ -48,6 +48,8 @@ export class WorldNewsService {
       refreshedToday: novel.news_refreshed_date === today,
       lastRefreshedDate: novel.news_refreshed_date || null,
       era: novel.era,
+      canGenerateNews: !!(novel.world_score && novel.world_score >= 60),
+      worldScore: novel.world_score || null,
     };
   }
 
@@ -65,6 +67,15 @@ export class WorldNewsService {
 
     if (novel.news_refreshed_date === today) {
       return { refreshed: false, reason: '今日已刷新，明天再来吧', news: [] };
+    }
+
+    // 检查世界信息评分是否达标
+    if (!novel.world_score || novel.world_score < 60) {
+      return {
+        refreshed: false,
+        reason: '世界信息不足，请先完善世界信息（势力、地图、世界观等）并评分达到60分以上',
+        news: [],
+      };
     }
 
     const era = novel.era === 'modern' ? 'modern' : 'ancient';

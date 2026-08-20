@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, ChevronRight } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, ChevronRight } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -106,15 +106,17 @@ const NovelPage = () => {
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [novelEra, setNovelEra] = useState<'ancient' | 'modern'>('ancient')
+  const [worldScore, setWorldScore] = useState<number | null>(null)
 
   const fetchNovelEra = useCallback(async () => {
     if (!novelId) return
     try {
       const res = await Network.request({ url: `/api/novels` })
       console.log('fetchNovelEra response:', res.data)
-      const list = (res.data as { data?: Array<{ id: string; era?: string }> })?.data || []
+      const list = (res.data as { data?: Array<{ id: string; era?: string; world_score?: number }> })?.data || []
       const current = list.find((n) => n.id === novelId)
       if (current?.era) setNovelEra(current.era === 'modern' ? 'modern' : 'ancient')
+      setWorldScore(current?.world_score ?? null)
     } catch (e) {
       console.error('fetchNovelEra failed:', e)
     }
@@ -338,6 +340,21 @@ const NovelPage = () => {
         })}
       </View>
 
+      {/* 世界信息入口 */}
+      <View className="px-4 mb-3">
+        <View className="bg-white rounded-2xl p-4 flex items-center justify-between" onClick={() => Taro.navigateTo({ url: `/pages/world-info/index?novelId=${novelId}` })}>
+          <View className="flex items-center gap-3">
+            <View className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <BookOpen size={20} color="#a855f7" />
+            </View>
+            <View>
+              <Text className="block text-base font-semibold text-gray-900">世界信息</Text>
+              <Text className="block text-xs text-gray-500">{worldScore === null ? '未评分' : worldScore >= 60 ? `已评分 ${worldScore} 分（可生成）` : `已评分 ${worldScore} 分（需完善）`}</Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color="#9ca3af" />
+        </View>
+      </View>
       {/* World News Entry: 奇闻轶事(古代) / 世界日常(现代) */}
       <View className="px-4 mt-3">
         <View

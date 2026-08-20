@@ -14,6 +14,8 @@ export const novels = pgTable(
     id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
     name: varchar("name", { length: 255 }).notNull(),
     era: text("era").default("ancient"),
+    world_info: text("world_info").default(""),
+    world_score: integer("world_score"),
     news_refreshed_date: text("news_refreshed_date"),
     cover_key: varchar("cover_key", { length: 500 }),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

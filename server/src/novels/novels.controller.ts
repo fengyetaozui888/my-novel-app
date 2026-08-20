@@ -44,4 +44,21 @@ export class NovelsController {
     const data = await this.novelsService.remove(id);
     return { code: 200, msg: 'success', data };
   }
+
+  @Put(':id/world-info')
+  @HttpCode(200)
+  async updateWorldInfo(
+    @Param('id') id: string,
+    @Body() body: { world_info: string },
+  ) {
+    const data = await this.novelsService.updateWorldInfo(id, body.world_info);
+    return { code: 200, msg: 'success', data };
+  }
+
+  @Post(':id/evaluate')
+  @HttpCode(200)
+  async evaluateWorld(@Param('id') id: string) {
+    const data = await this.novelsService.evaluateWorld(id);
+    return { code: 200, msg: 'success', data };
+  }
 }

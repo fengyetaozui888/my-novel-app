@@ -15,6 +15,7 @@ export default defineAppConfig({
     'pages/group-create/index',
     'pages/group-chat/index',
     'pages/world-news/index',
+    'pages/world-info/index',
   ],
   window: {
     backgroundTextStyle: 'light',
