@@ -3,12 +3,16 @@ import Taro from '@tarojs/taro'
 
 // 开屏密码（可通过环境变量或配置文件修改）
 const ACCESS_PASSWORD = '6602877'
+// 存储键（v2：避免旧版本残留的解锁状态影响）
+const STORAGE_KEY = 'app_unlocked_v2'
 
 export default function PasswordGate() {
   useEffect(() => {
-    // 检查是否已解锁
-    const isUnlocked = Taro.getStorageSync('app_unlocked')
-    if (isUnlocked) return
+    // 仅在 H5 端启用开屏（小程序端无 document 对象）
+    if (Taro.getEnv() !== Taro.ENV_TYPE.WEB) return
+
+    // 检查是否已解锁（必须明确存储了 true 才跳过）
+    if (Taro.getStorageSync(STORAGE_KEY) === true) return
 
     // 创建开屏容器
     const container = document.createElement('div')
@@ -89,7 +93,7 @@ export default function PasswordGate() {
     // 验证逻辑
     const handleVerify = () => {
       if (input.value === ACCESS_PASSWORD) {
-        Taro.setStorageSync('app_unlocked', true)
+        Taro.setStorageSync(STORAGE_KEY, true)
         container.remove()
       } else {
         errorMsg.textContent = '密码错误，请重试'
@@ -115,7 +119,7 @@ export default function PasswordGate() {
     // 自动聚焦
     setTimeout(() => input.focus(), 100)
 
-    // 清理
+    // 清理（仅卸载时移除，避免影响正常显示）
     return () => {
       if (container.parentNode) {
         container.remove()
