@@ -92,10 +92,19 @@ export default function MomentsPage() {
   const [publishImage, setPublishImage] = useState('')
   const [submittingPublish, setSubmittingPublish] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [characterName, setCharacterName] = useState('')
 
   useEffect(() => {
     initContext()
   }, [])
+
+  /** 动态设置导航栏标题 */
+  useEffect(() => {
+    const title = characterIdParam && characterName ? `${characterName}的朋友圈` : '朋友圈'
+    if (typeof Taro.setNavigationBarTitle === 'function') {
+      Taro.setNavigationBarTitle({ title })
+    }
+  }, [characterIdParam, characterName])
 
   /** 获取小说上下文：优先从参数，否则取第一本小说 */
   const initContext = async () => {
@@ -125,7 +134,12 @@ export default function MomentsPage() {
       })
       console.log('Moments response:', res.data)
       if (res.data?.code === 200 && Array.isArray(res.data.data)) {
-        setMoments(res.data.data.map(mapMoment))
+        const mapped = res.data.data.map(mapMoment)
+        setMoments(mapped)
+        // 提取角色名用于导航栏标题
+        if (characterIdParam && mapped.length > 0) {
+          setCharacterName(mapped[0].characterName)
+        }
       } else {
         setMoments([])
       }
@@ -469,12 +483,15 @@ export default function MomentsPage() {
           <Camera size={18} color="#8a8a8a" />
         </View>
       )}
-      <View
-        style={{ position: 'fixed', bottom: '90px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        onClick={() => setShowPublish(true)}
-      >
-        <Plus size={24} color="#e91e63" strokeWidth={2.5} />
-      </View>
+      {/* 发布按钮：仅在自己的朋友圈显示（无 characterIdParam 时） */}
+      {!characterIdParam && (
+        <View
+          style={{ position: 'fixed', bottom: '90px', right: '16px', zIndex: 50, backgroundColor: '#ffffff', borderRadius: '9999px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowPublish(true)}
+        >
+          <Plus size={24} color="#e91e63" strokeWidth={2.5} />
+        </View>
+      )}
 
       {/* 微信风格评论输入栏：底部固定弹出的单行输入 */}
       {showCommentInput && (
