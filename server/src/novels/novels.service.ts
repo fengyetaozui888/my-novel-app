@@ -13,7 +13,7 @@ export class NovelsService {
   async findAll() {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, world_info, news_refreshed_date, cover_key, created_at, updated_at')
     if (error) throw new Error(`查询小说列表失败: ${error.message}`);
 
     // Generate presigned URLs for cover images
