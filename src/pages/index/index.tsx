@@ -239,18 +239,16 @@ const IndexPage = () => {
 
                   {/* Actions */}
                   <View className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2"
+                    <View
+                      className="p-2 active:opacity-60"
                       onClick={() => setShowActionMenu(novel.id)}
                     >
-                      <View className="flex flex-col items-center justify-center gap-0.5">
+                      <View className="flex flex-row items-center justify-center gap-0.5">
                         <View className="w-1 h-1 rounded-full bg-pink-500" />
                         <View className="w-1 h-1 rounded-full bg-pink-500" />
                         <View className="w-1 h-1 rounded-full bg-pink-500" />
                       </View>
-                    </Button>
+                    </View>
                     {showActionMenu === novel.id && (
                       <View
                         className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 min-w-32"
