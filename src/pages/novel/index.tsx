@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen } from 'lucide-react-taro'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -420,6 +421,23 @@ const NovelPage = () => {
     })
   }
 
+  const togglePin = async (characterId: string) => {
+    try {
+      const res = await Network.request({
+        url: '/api/chat/toggle-pin',
+        method: 'POST',
+        data: { characterId },
+      })
+      if (res.data?.data?.pinned) {
+        Taro.showToast({ title: '已置顶', icon: 'success' })
+      } else {
+        Taro.showToast({ title: '已取消置顶', icon: 'success' })
+      }
+    } catch (err) {
+      Taro.showToast({ title: '操作失败', icon: 'none' })
+    }
+  }
+
   const categories: CategoryType[] = ['protagonist', 'supporting', 'minor']
 
   return (
@@ -560,7 +578,7 @@ const NovelPage = () => {
                       {group.member_count}位成员 · {group.message_count}条消息
                     </Text>
                   </View>
-                  <MessageCircle size={18} color="#d1a3ad" />
+                  <MessagesSquare size={18} color="#d1a3ad" />
                 </View>
               ))}
             </View>
@@ -586,7 +604,7 @@ const NovelPage = () => {
                 <View
                   key={char.id}
                   className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2"
-                  onClick={() => openDetail(char)}
+                  onClick={() => goToChat(char)}
                 >
                   {/* Avatar */}
                   <View className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
@@ -619,18 +637,26 @@ const NovelPage = () => {
                       <Text className="block text-xs text-gray-500 truncate mt-1">{char.tagline}</Text>
                     )}
                   </View>
-                  {/* Chat Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-2"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      goToChat(char)
-                    }}
-                  >
-                    <MessageCircle size={20} color="#e8587a" />
-                  </Button>
+                  {/* Settings Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <View
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: '#f48fb1' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Wrench size={20} color="#ffffff" />
+                      </View>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem onClick={() => openDetail(char)}>
+                        <Text className="block text-sm">编辑角色</Text>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => togglePin(char.id)}>
+                        <Text className="block text-sm">置顶聊天</Text>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </View>
               )
             })}
