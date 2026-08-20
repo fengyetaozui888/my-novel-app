@@ -120,7 +120,7 @@ export default function WorldInfoPage() {
     try {
       await Network.request({
         url: `/api/novels/${novelId}/world-info`,
-        method: 'POST',
+        method: 'PUT',
         data: { world_info: JSON.stringify(formData) },
       })
       setSaved(true)
