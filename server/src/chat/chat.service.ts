@@ -541,4 +541,48 @@ ${existingRels}
 
     return { nodes, edges };
   }
+
+  async updatePinStatus(characterId: string, isPinned: boolean) {
+    const userId = 'default_user';
+
+    const { data: existing } = await this.client
+      .from('chat_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('character_id', characterId);
+
+    if (existing && existing.length > 0) {
+      const { error } = await this.client
+        .from('chat_sessions')
+        .update({ is_pinned: isPinned, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('character_id', characterId);
+
+      if (error) throw error;
+    } else {
+      const { error } = await this.client
+        .from('chat_sessions')
+        .insert({
+          user_id: userId,
+          character_id: characterId,
+          is_pinned: isPinned,
+        });
+
+      if (error) throw error;
+    }
+
+    return { success: true };
+  }
+
+  async getPinStatus(characterId: string) {
+    const userId = 'default_user';
+
+    const { data } = await this.client
+      .from('chat_sessions')
+      .select('is_pinned')
+      .eq('user_id', userId)
+      .eq('character_id', characterId);
+
+    return data && data.length > 0 ? data[0].is_pinned : false;
+  }
 }

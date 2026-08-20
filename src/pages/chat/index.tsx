@@ -97,6 +97,27 @@ const ChatPage = () => {
     fetchUserProfile()
   }, [])
 
+  // Fetch pin status
+  useEffect(() => {
+    const fetchPinStatus = async () => {
+      if (!characterId) return
+      try {
+        const res = await Network.request({
+          url: '/api/chat/pin-status',
+          method: 'GET',
+          data: { characterId },
+        })
+        const data = res.data?.data || res.data
+        if (data?.isPinned !== undefined) {
+          setIsPinned(data.isPinned)
+        }
+      } catch (err) {
+        console.error('fetch pin status error:', err)
+      }
+    }
+    fetchPinStatus()
+  }, [characterId])
+
   // Fetch available speakers from relationships
   useEffect(() => {
     const fetchSpeakers = async () => {
@@ -196,13 +217,24 @@ const ChatPage = () => {
     }
   }
 
-  const handleTogglePin = () => {
-    setIsPinned(!isPinned)
+  const handleTogglePin = async () => {
+    const newPinned = !isPinned
+    try {
+      await Network.request({
+        url: '/api/chat/pin',
+        method: 'POST',
+        data: { characterId, isPinned: newPinned },
+      })
+      setIsPinned(newPinned)
+      Taro.showToast({
+        title: newPinned ? '已置顶聊天' : '已取消置顶',
+        icon: 'none',
+      })
+    } catch (err) {
+      console.error('pin error:', err)
+      Taro.showToast({ title: '置顶失败', icon: 'none' })
+    }
     setShowMoreMenu(false)
-    Taro.showToast({
-      title: isPinned ? '已取消置顶' : '已置顶聊天',
-      icon: 'none',
-    })
   }
 
   const handleSetBackground = () => {
