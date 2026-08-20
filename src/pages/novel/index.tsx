@@ -573,20 +573,22 @@ const NovelPage = () => {
             </Text>
           </View>
           <View className="relative">
-            <Button
-              size="sm"
-              className="bg-rose-500 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center"
-              onClick={() => setShowPlusMenu(!showPlusMenu)}
-            >
-              <Plus size={16} color="#ffffff" className={showPlusMenu ? 'rotate-45 transition-transform' : 'transition-transform'} />
-            </Button>
-            {showPlusMenu && (
+            {activeBottomTab === 'friends' && (
               <>
-                <View
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowPlusMenu(false)}
-                />
-                <View className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-36">
+                <Button
+                  size="sm"
+                  className="bg-rose-500 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center"
+                  onClick={() => setShowPlusMenu(!showPlusMenu)}
+                >
+                  <Plus size={16} color="#ffffff" className={showPlusMenu ? 'rotate-45 transition-transform' : 'transition-transform'} />
+                </Button>
+                {showPlusMenu && (
+                  <>
+                    <View
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowPlusMenu(false)}
+                    />
+                    <View className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-36">
                   <View
                     className="flex items-center gap-3 px-4 py-3 active:bg-gray-50"
                     onClick={() => {
@@ -612,6 +614,8 @@ const NovelPage = () => {
                     <Text className="text-sm text-gray-800">添加朋友</Text>
                   </View>
                 </View>
+              </>
+            )}
               </>
             )}
           </View>
