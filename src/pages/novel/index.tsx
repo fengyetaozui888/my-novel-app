@@ -1,16 +1,14 @@
 import { useState, useCallback } from 'react'
 import { View, Text, Image } from '@tarojs/components'
-import Taro, { useRouter, useDidShow } from '@tarojs/taro'
+import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Slider } from '@/components/ui/slider'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Sparkles, User } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -19,9 +17,6 @@ interface Character {
   category: string
   avatar_key: string | null
   avatar_url: string | null
-  portrait_key: string | null
-  portrait_url: string | null
-  portrait_crop_offset: number | null
   gender: string
   tagline: string | null
   persona: string | null
@@ -31,15 +26,6 @@ interface Character {
   examples: string | null
   created_at: string
   updated_at: string
-}
-
-interface InitialPortrait {
-  id: string
-  gender: 'female' | 'male'
-  style: 'ancient' | 'modern'
-  label: string
-  key: string
-  url: string
 }
 
 type CategoryType = 'protagonist' | 'supporting' | 'minor'
@@ -66,14 +52,6 @@ const NovelPage = () => {
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-
-  // Initial portraits
-  const [initialPortraits, setInitialPortraits] = useState<InitialPortrait[]>([])
-  const [showPortraitPicker, setShowPortraitPicker] = useState(false)
-  const [portraitTab, setPortraitTab] = useState<'female' | 'male'>('female')
-  const [portraitStyleTab, setPortraitStyleTab] = useState<'ancient' | 'modern'>('ancient')
-  const [selectedPortrait, setSelectedPortrait] = useState<InitialPortrait | null>(null)
-  const [cropOffset, setCropOffset] = useState(0) // 0-100, percentage from top
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -113,24 +91,6 @@ const NovelPage = () => {
       setLoading(false)
     }
   }, [novelId])
-
-  const fetchInitialPortraits = useCallback(async () => {
-    try {
-      const res = await Network.request({ url: '/api/portrait/initial' })
-      console.log('fetchInitialPortraits response:', res.data)
-      const data = res.data?.data || res.data || []
-      setInitialPortraits(Array.isArray(data) ? data : [])
-    } catch (err) {
-      console.error('fetchInitialPortraits error:', err)
-    }
-  }, [])
-
-  useDidShow(() => {
-    if (novelId) {
-      fetchCharacters()
-      fetchInitialPortraits()
-    }
-  })
 
   const filteredCharacters = characters.filter((c) => c.category === activeCategory)
 
@@ -223,28 +183,6 @@ const NovelPage = () => {
       Taro.showToast({ title: '上传失败', icon: 'none' })
     } finally {
       setUploadingAvatar(false)
-    }
-  }
-
-  const handleConfirmPortrait = async (portrait: InitialPortrait, offset: number) => {
-    if (!selectedChar) return
-    try {
-      await Network.request({
-        url: `/api/characters/${selectedChar.id}`,
-        method: 'PUT',
-        data: { portrait_key: portrait.key, portrait_crop_offset: offset },
-      })
-      setSelectedChar((prev) =>
-        prev ? { ...prev, portrait_key: portrait.key, portrait_url: portrait.url, portrait_crop_offset: offset } : null,
-      )
-      setShowPortraitPicker(false)
-      setSelectedPortrait(null)
-      setCropOffset(0)
-      fetchCharacters()
-      Taro.showToast({ title: '立绘已选择', icon: 'success' })
-    } catch (err) {
-      console.error('selectPortrait error:', err)
-      Taro.showToast({ title: '选择失败', icon: 'none' })
     }
   }
 
@@ -391,40 +329,14 @@ const NovelPage = () => {
             {filteredCharacters.map((char) => {
               const hasDetail = char.persona || char.background || char.biography
               return (
-                <Card key={char.id} className="bg-white rounded-2xl border-0 shadow-sm overflow-hidden">
-                  {/* Portrait / Avatar Header */}
-                  <View className="h-20 bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center relative">
-                    {/* Portrait selection button */}
-                    <View
-                      className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white bg-opacity-80 flex items-center justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedChar(char)
-                        setCropOffset(Number(char.portrait_crop_offset ?? 0))
-                        setDetailForm({
-                          gender: char.gender || 'female',
-                          persona: char.persona || '',
-                          background: char.background || '',
-                          biography: char.biography || '',
-                          principles: char.principles || '',
-                          examples: char.examples || '',
-                          tagline: char.tagline || '',
-                        })
-                        setShowPortraitPicker(true)
-                      }}
-                    >
-                      <User size={14} color="#7c3aed" />
-                    </View>
-                    {char.portrait_url ? (
-                      <Image
-                        src={char.portrait_url}
-                        className="w-full h-full"
-                        mode="aspectFill"
-                        style={{
-                          objectPosition: `center ${Number(char.portrait_crop_offset ?? 0)}%`,
-                        }}
-                      />
-                    ) : char.avatar_url ? (
+                <View
+                  key={char.id}
+                  className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-100 active:bg-gray-50"
+                  onClick={() => openDetail(char)}
+                >
+                  {/* Avatar */}
+                  <View className="w-12 h-12 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                    {char.avatar_url ? (
                       <Image
                         src={char.avatar_url}
                         className="w-full h-full"
@@ -432,52 +344,40 @@ const NovelPage = () => {
                         style={{ objectPosition: 'top center' }}
                       />
                     ) : (
-                      <View className="flex items-center justify-center">
-                        {char.gender === 'male' ? (
-                          <View className="flex flex-col items-center">
-                            <View className="w-10 h-10 rounded-full bg-gray-400 bg-opacity-30" />
-                            <View className="w-14 h-6 bg-gray-400 bg-opacity-30 rounded-t-lg -mt-1" />
-                          </View>
-                        ) : (
-                          <View className="flex flex-col items-center">
-                            <View className="w-10 h-10 rounded-full bg-gray-400 bg-opacity-30" />
-                            <View className="w-16 h-8 bg-gray-400 bg-opacity-30 rounded-t-lg -mt-1" />
-                            <View className="w-12 h-4 bg-gray-400 bg-opacity-30 -mt-1" />
-                          </View>
-                        )}
+                      <View className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <User size={24} color="#9ca3af" />
                       </View>
                     )}
                   </View>
-                  <CardContent className="p-3">
-                    <View className="flex items-center justify-between">
-                      <View className="flex-1" onClick={() => openDetail(char)}>
-                        <View className="flex items-center gap-2">
-                          <Text className="block text-sm font-semibold text-gray-900">
-                            {char.name}
-                          </Text>
-                          {hasDetail && (
-                            <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
-                              <Text className="text-xs text-rose-500">已设定</Text>
-                            </Badge>
-                          )}
-                        </View>
-                        {char.tagline && (
-                          <View className="mt-1">
-                            <Text className="text-xs text-gray-500 line-clamp-1">{char.tagline}</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-2"
-                        onClick={() => goToChat(char)}
-                      >
-                        <MessageCircle size={16} color="#e8587a" />
-                      </Button>
+                  {/* Name & Info */}
+                  <View className="flex-1 min-w-0">
+                    <View className="flex items-center gap-2">
+                      <Text className="block text-base font-medium text-gray-900">
+                        {char.name}
+                      </Text>
+                      {hasDetail && (
+                        <Badge className="bg-pink-50 text-rose-500 border-0 text-xs">
+                          <Text className="text-xs text-rose-500">已设定</Text>
+                        </Badge>
+                      )}
                     </View>
-                  </CardContent>
-                </Card>
+                    {char.tagline && (
+                      <Text className="block text-xs text-gray-500 truncate mt-1">{char.tagline}</Text>
+                    )}
+                  </View>
+                  {/* Chat Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      goToChat(char)
+                    }}
+                  >
+                    <MessageCircle size={20} color="#e8587a" />
+                  </Button>
+                </View>
               )
             })}
           </View>
@@ -628,13 +528,7 @@ const NovelPage = () => {
                   className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
                   onClick={handleChooseAvatar}
                 >
-                  {selectedChar?.portrait_url ? (
-                    <Image
-                      src={selectedChar.portrait_url}
-                      className="w-full h-full"
-                      mode="aspectFill"
-                    />
-                  ) : selectedChar?.avatar_url ? (
+                  {selectedChar?.avatar_url ? (
                     <Image
                       src={selectedChar.avatar_url}
                       className="w-full h-full"
@@ -680,23 +574,6 @@ const NovelPage = () => {
               </View>
             </View>
           </DialogHeader>
-
-          {/* Portrait Selection */}
-          <View className="px-4 py-2">
-            <View
-              className="flex items-center justify-between bg-purple-50 rounded-xl px-4 py-3"
-              onClick={() => setShowPortraitPicker(true)}
-            >
-              <View className="flex items-center gap-3 flex-1">
-                <Sparkles size={18} color="#7c3aed" />
-                <Text className="text-sm font-medium text-gray-700">选择初始立绘</Text>
-                {selectedChar?.portrait_url && (
-                  <Image src={selectedChar.portrait_url} className="w-8 h-8 rounded-lg" mode="aspectFill" />
-                )}
-              </View>
-              <Pencil size={16} color="#7c3aed" />
-            </View>
-          </View>
 
           {/* Gender Selection */}
           <View className="flex items-center justify-center gap-6 py-2">
@@ -934,172 +811,6 @@ const NovelPage = () => {
               onClick={saveFieldEditor}
             >
               <Text className="text-white">保存</Text>
-            </Button>
-          </View>
-        </DialogContent>
-      </Dialog>
-
-      {/* Portrait Picker Dialog */}
-      <Dialog open={showPortraitPicker} onOpenChange={setShowPortraitPicker}>
-        <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto w-full max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              <Text className="block text-lg font-bold text-gray-800">选择初始立绘</Text>
-            </DialogTitle>
-            <DialogDescription>
-              <Text className="block text-xs text-gray-500">为{selectedChar?.name}选择一张初始立绘</Text>
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Gender Tab */}
-          <View className="flex gap-2 mt-4 mb-3">
-            <View
-              className="flex-1 py-2 rounded-xl text-center"
-              style={{
-                backgroundColor: portraitTab === 'female' ? '#fce4ec' : '#f5f5f5',
-              }}
-              onClick={() => setPortraitTab('female')}
-            >
-              <Text className="text-sm font-medium" style={{ color: portraitTab === 'female' ? '#ec4899' : '#999' }}>
-                ♀ 女性立绘
-              </Text>
-            </View>
-            <View
-              className="flex-1 py-2 rounded-xl text-center"
-              style={{
-                backgroundColor: portraitTab === 'male' ? '#e3f2fd' : '#f5f5f5',
-              }}
-              onClick={() => setPortraitTab('male')}
-            >
-              <Text className="text-sm font-medium" style={{ color: portraitTab === 'male' ? '#2196f3' : '#999' }}>
-                ♂ 男性立绘
-              </Text>
-            </View>
-          </View>
-
-          {/* Style Tab */}
-          <View className="flex gap-2 mb-4">
-            <View
-              className="flex-1 py-2 rounded-xl text-center"
-              style={{
-                backgroundColor: portraitStyleTab === 'ancient' ? '#fff3e0' : '#f5f5f5',
-              }}
-              onClick={() => setPortraitStyleTab('ancient')}
-            >
-              <Text className="text-sm font-medium" style={{ color: portraitStyleTab === 'ancient' ? '#f57c00' : '#999' }}>
-                古代装
-              </Text>
-            </View>
-            <View
-              className="flex-1 py-2 rounded-xl text-center"
-              style={{
-                backgroundColor: portraitStyleTab === 'modern' ? '#e8f5e9' : '#f5f5f5',
-              }}
-              onClick={() => setPortraitStyleTab('modern')}
-            >
-              <Text className="text-sm font-medium" style={{ color: portraitStyleTab === 'modern' ? '#43a047' : '#999' }}>
-                现代装
-              </Text>
-            </View>
-          </View>
-
-          {/* Portrait Grid */}
-          <View className="grid grid-cols-3 gap-3 mb-4">
-            {initialPortraits
-              .filter((p) => p.gender === portraitTab && p.style === portraitStyleTab)
-              .map((portrait) => {
-                const isSelected = selectedPortrait?.id === portrait.id
-                return (
-                  <View
-                    key={portrait.id}
-                    className="rounded-xl overflow-hidden border-2 relative"
-                    style={{
-                      borderColor: isSelected ? '#ec4899' : 'transparent',
-                    }}
-                    onClick={() => setSelectedPortrait(portrait)}
-                  >
-                    <View className="aspect-[3/4] bg-gray-100">
-                      <Image src={portrait.url} className="w-full h-full" mode="aspectFill" style={{ objectPosition: 'top center' }} />
-                    </View>
-                    <View className="py-1 px-2 bg-white">
-                      <Text className="text-xs text-gray-600 text-center block truncate">{portrait.label}</Text>
-                    </View>
-                    {/* 选中勾 */}
-                    {isSelected && (
-                      <View className="absolute top-1 right-1 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                        <Text className="text-white text-xs">✓</Text>
-                      </View>
-                    )}
-                  </View>
-                )
-              })}
-          </View>
-
-          {/* 裁切界面：预览效果与角色卡完全一致 */}
-          {selectedPortrait && (
-            <View className="mb-4">
-              <Text className="block text-xs text-gray-500 mb-2">
-                缩略图显示区域预览（与角色卡显示一致）
-              </Text>
-              <View className="relative bg-gray-100 rounded-xl overflow-hidden aspect-[4/3]">
-                <Image
-                  src={selectedPortrait.url}
-                  className="w-full h-full"
-                  mode="aspectFill"
-                  style={{ objectPosition: `center ${cropOffset}%` }}
-                />
-                <View className="absolute top-1 left-2 px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
-                  <Text className="text-white" style={{ fontSize: '10px' }}>角色卡显示效果</Text>
-                </View>
-              </View>
-              {/* 全身参考图 */}
-              <View className="mt-3 bg-gray-100 rounded-xl overflow-hidden" style={{ height: '160px' }}>
-                <Image
-                  src={selectedPortrait.url}
-                  className="w-full h-full"
-                  mode="aspectFill"
-                  style={{ objectPosition: 'top center' }}
-                />
-              </View>
-              <Text className="block text-xs text-gray-400 mt-1 text-center">↑ 立绘全身参考（头部朝上）</Text>
-              {/* 滑块控制 */}
-              <View className="mt-3 px-2">
-                <Slider
-                  value={[cropOffset]}
-                  min={0}
-                  max={100}
-                  step={1}
-                  onValueChange={(val) => setCropOffset(val[0])}
-                />
-                <Text className="block text-xs text-gray-400 text-center mt-1">
-                  ← 显示头部 / 显示脚部 →（当前 {cropOffset}%）
-                </Text>
-              </View>
-            </View>
-          )}
-
-          <View className="flex gap-3 mt-4">
-            <Button
-              variant="outline"
-              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
-              onClick={() => {
-                setShowPortraitPicker(false)
-                setSelectedPortrait(null)
-                setCropOffset(0)
-              }}
-            >
-              <Text className="text-gray-700">取消</Text>
-            </Button>
-            <Button
-              className="flex-1 bg-pink-500 text-white rounded-xl"
-              disabled={!selectedPortrait}
-              onClick={() => {
-                if (selectedPortrait) {
-                  handleConfirmPortrait(selectedPortrait, cropOffset)
-                }
-              }}
-            >
-              <Text className="text-white">确认</Text>
             </Button>
           </View>
         </DialogContent>
