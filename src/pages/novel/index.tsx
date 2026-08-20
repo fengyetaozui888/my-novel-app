@@ -670,41 +670,6 @@ const NovelPage = () => {
         {/* Friends Tab Content */}
         {activeBottomTab === 'friends' && (
           <>
-            {/* Group Chats Section */}
-            {groupChats.length > 0 && (
-              <View className="mb-4">
-                <Text className="block text-sm text-gray-500 mb-2">群聊({groupChats.length})</Text>
-                <View className="flex flex-col gap-1 bg-white rounded-2xl overflow-hidden">
-                  {groupChats.map((group) => (
-                    <View
-                      key={group.id}
-                      className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-b-0 active:bg-gray-50"
-                      onClick={() =>
-                        Taro.navigateTo({
-                          url: `/pages/group-chat/index?id=${group.id}`,
-                        })
-                      }
-                    >
-                      <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-                        <Users size={22} color="#e8587a" />
-                      </View>
-                      <View className="flex-1 min-w-0">
-                        <View className="flex items-center gap-2">
-                          <Text className="block text-base font-medium text-gray-900 truncate">
-                            {group.name}
-                          </Text>
-                        </View>
-                        <Text className="block text-xs text-gray-500 mt-1 truncate">
-                          {group.member_count}位成员 · {group.message_count}条消息
-                        </Text>
-                      </View>
-                      <MessagesSquare size={18} color="#d1a3ad" />
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
             {loading ? (
               <View className="grid grid-cols-3 gap-3">
                 {[1, 2].map((i) => (

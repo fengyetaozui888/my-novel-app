@@ -295,11 +295,11 @@ const GroupChatPage = () => {
       >
         <Button
           size="sm"
-          className="bg-white bg-opacity-20 text-white rounded-full w-10 h-10 p-0 flex items-center justify-center"
+          className="bg-stone-100 text-stone-600 rounded-full w-10 h-10 p-0 flex items-center justify-center"
           onClick={() => setShowMentionPicker(true)}
           disabled={sending}
         >
-          <AtSign size={18} color="#ffffff" />
+          <AtSign size={18} color="#78716c" />
         </Button>
         <View
           style={{
