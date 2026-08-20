@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Heart, MessageCircle, Camera, ImagePlus, Plus, X, RefreshCw } from 'lucide-react-taro'
+import { Heart, MessageCircle, Camera, ImagePlus, Plus, X, RefreshCw, Bot } from 'lucide-react-taro'
 
 interface Comment {
   id: string
@@ -84,6 +84,7 @@ export default function MomentsPage() {
   const [novelId, setNovelId] = useState('')
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [backgroundImage, setBackgroundImage] = useState<string>('')
   const [expandedMomentId, setExpandedMomentId] = useState<string>('')
   const [showCommentInput, setShowCommentInput] = useState(false)
@@ -344,7 +345,8 @@ export default function MomentsPage() {
   const isUserMoment = (m: Moment) => m.authorType === 'user'
 
   const handleRefreshMoments = async () => {
-    if (!novelId) return
+    if (!novelId || refreshing) return
+    setRefreshing(true)
     try {
       const res = await Network.request({
         url: '/api/moments/refresh',
@@ -357,12 +359,28 @@ export default function MomentsPage() {
           Taro.showToast({ title: '今日刷新次数已用完，明天再来吧~', icon: 'none', duration: 2000 })
         } else {
           Taro.showToast({ title: '刷新成功', icon: 'success' })
-          await loadMoments()
+          // 获取新刷新的朋友圈，追加到列表顶部（保留旧数据）
+          const newMomentsRes = await Network.request({
+            url: '/api/moments',
+            method: 'GET',
+            data: { novelId }
+          })
+          if (newMomentsRes.data?.code === 200) {
+            const newMoments = newMomentsRes.data.data?.moments || []
+            // 去重：只添加不存在的新朋友圈
+            setMoments(prev => {
+              const existingIds = new Set(prev.map(m => m.id))
+              const uniqueNew = newMoments.filter((m: Moment) => !existingIds.has(m.id))
+              return [...uniqueNew, ...prev]
+            })
+          }
         }
       }
     } catch (error) {
       console.error('Failed to refresh moments:', error)
       Taro.showToast({ title: '刷新失败', icon: 'error' })
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -401,10 +419,17 @@ export default function MomentsPage() {
             </View>
             {!characterIdParam && (
               <View
-                style={{ backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{
+                  backgroundColor: refreshing ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)',
+                  borderRadius: '9999px',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
                 onClick={handleRefreshMoments}
               >
-                <RefreshCw size={18} color="#ffffff" />
+                <RefreshCw size={18} color="#ffffff" className={refreshing ? 'animate-spin' : ''} />
               </View>
             )}
           </View>
@@ -420,7 +445,11 @@ export default function MomentsPage() {
                 <View style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                   <Avatar className="w-10 h-10">
                     <AvatarImage src={moment.characterAvatar} />
-                    <AvatarFallback>{moment.characterName.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>
+                      <View style={{ width: '100%', height: '100%', backgroundColor: '#f48fb1', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '9999px' }}>
+                        <Bot size={20} color="#ffffff" />
+                      </View>
+                    </AvatarFallback>
                   </Avatar>
                   <View className="flex-1">
                     <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' }}>
