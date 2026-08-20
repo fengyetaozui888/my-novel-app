@@ -240,13 +240,16 @@ const IndexPage = () => {
                   {/* Actions */}
                   <View className="relative">
                     <View
-                      className="p-2 active:opacity-60"
-                      onClick={() => setShowActionMenu(novel.id)}
+                      className="p-3 active:opacity-60"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowActionMenu(novel.id)
+                      }}
                     >
-                      <View className="flex flex-row items-center justify-center gap-0.5">
-                        <View className="w-1 h-1 rounded-full bg-pink-500" />
-                        <View className="w-1 h-1 rounded-full bg-pink-500" />
-                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                      <View className="flex flex-row items-center justify-center gap-1">
+                        <View className="w-2 h-2 rounded-full bg-pink-500" />
+                        <View className="w-2 h-2 rounded-full bg-pink-500" />
+                        <View className="w-2 h-2 rounded-full bg-pink-500" />
                       </View>
                     </View>
                     {showActionMenu === novel.id && (
@@ -255,8 +258,9 @@ const IndexPage = () => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <View
-                          className="px-4 py-2 active:bg-gray-50"
-                          onClick={() => {
+                          className="px-4 py-3 active:bg-gray-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setShowActionMenu(null)
                             setSelectedNovel(novel)
                             setNewName(novel.name)
@@ -266,8 +270,9 @@ const IndexPage = () => {
                           <Text className="block text-sm text-gray-700 text-center">修改世界名称</Text>
                         </View>
                         <View
-                          className="px-4 py-2 active:bg-gray-50"
-                          onClick={() => {
+                          className="px-4 py-3 active:bg-gray-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setShowActionMenu(null)
                             handleTogglePin(novel)
                           }}
@@ -277,14 +282,15 @@ const IndexPage = () => {
                           </Text>
                         </View>
                         <View
-                          className="px-4 py-2 active:bg-gray-50"
-                          onClick={() => {
+                          className="px-4 py-3 active:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setShowActionMenu(null)
                             setSelectedNovel(novel)
                             setShowDeleteDialog(true)
                           }}
                         >
-                          <Text className="block text-sm text-red-500 text-center">删除世界</Text>
+                          <Text className="block text-sm text-red-600 text-center">删除世界</Text>
                         </View>
                       </View>
                     )}
