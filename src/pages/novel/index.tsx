@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench } from 'lucide-react-taro'
+import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench, Sparkles } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -621,8 +621,8 @@ const NovelPage = () => {
                         style={{ objectPosition: 'top center' }}
                       />
                     ) : (
-                      <View className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <User size={24} color="#9ca3af" />
+                      <View className="w-full h-full flex items-center justify-center bg-pink-100">
+                        <Sparkles size={24} color="#e8587a" />
                       </View>
                     )}
                   </View>
