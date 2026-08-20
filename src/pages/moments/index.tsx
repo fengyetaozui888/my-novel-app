@@ -359,21 +359,13 @@ export default function MomentsPage() {
           Taro.showToast({ title: '今日刷新次数已用完，明天再来吧~', icon: 'none', duration: 2000 })
         } else {
           Taro.showToast({ title: '刷新成功', icon: 'success' })
-          // 获取新刷新的朋友圈，追加到列表顶部（保留旧数据）
-          const newMomentsRes = await Network.request({
-            url: '/api/moments',
-            method: 'GET',
-            data: { novelId }
+          // 使用后端返回的新朋友圈数据，直接追加到列表顶部（保留旧数据）
+          const newMoments: Moment[] = (res.data?.data?.moments || []).map(mapMoment)
+          setMoments(prev => {
+            const existingIds = new Set(prev.map(m => m.id))
+            const uniqueNew = newMoments.filter(m => !existingIds.has(m.id))
+            return [...uniqueNew, ...prev]
           })
-          if (newMomentsRes.data?.code === 200) {
-            const newMoments = newMomentsRes.data.data?.moments || []
-            // 去重：只添加不存在的新朋友圈
-            setMoments(prev => {
-              const existingIds = new Set(prev.map(m => m.id))
-              const uniqueNew = newMoments.filter((m: Moment) => !existingIds.has(m.id))
-              return [...uniqueNew, ...prev]
-            })
-          }
         }
       }
     } catch (error) {

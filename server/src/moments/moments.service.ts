@@ -525,21 +525,31 @@ ${relationContext}
 
   /** 每日刷新朋友圈：每天只能刷新一次，一次生成3-5条 */
   async refreshMoments(novelId: string) {
-    // 检查今天是否已经刷新过
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    // 检查今天是否已经刷新过（使用数据库当前日期，避免时区问题）
+    // 数据库时区为 Asia/Shanghai (UTC+8)，需要获取该时区的当前日期
+    const shanghaiNow = new Date(new Date().getTime() + 8 * 3600000);
+    const todayStr = shanghaiNow.toISOString().split('T')[0];
+    const tomorrowStr = new Date(shanghaiNow.getTime() + 86400000).toISOString().split('T')[0];
 
     const { data: existingRefresh } = await this.client
       .from('moment_refresh_logs')
       .select('id')
       .eq('novel_id', novelId)
-      .eq('refresh_date', todayStr)
+      .gte('refresh_date', todayStr)
+      .lt('refresh_date', tomorrowStr)
       .maybeSingle();
 
     if (existingRefresh) {
       return { alreadyRefreshed: true, count: 0 };
     }
+
+    // 获取小说名称
+    const { data: novel } = await this.client
+      .from('novels')
+      .select('name')
+      .eq('id', novelId)
+      .single();
+    const novelName = novel?.name || '';
 
     // 获取该小说下的所有角色
     const { data: characters } = await this.client
@@ -559,20 +569,37 @@ ${relationContext}
     const selected = shuffled.slice(0, Math.min(count, characters.length));
 
     // 为每个选中的角色生成朋友圈
+    const createdMoments: any[] = [];
     for (const character of selected) {
       try {
         const content = await this.generateMomentContent(character.id, novelId);
 
         // 插入朋友圈记录
-        await this.client.from('moments').insert({
-          character_id: character.id,
-          novel_id: novelId,
-          content,
-          image_url: null,
-          visibility: 'public',
-          author_type: 'character',
-          author_name: character.name,
-        });
+        const { data: inserted } = await this.client
+          .from('moments')
+          .insert({
+            character_id: character.id,
+            novel_id: novelId,
+            content,
+            image_url: null,
+            visibility: 'public',
+            author_type: 'character',
+            author_name: character.name,
+          })
+          .select('*, character:characters(id, name, avatar_key)')
+          .single();
+
+        if (inserted) {
+          createdMoments.push({
+            ...inserted,
+            novel_name: novelName,
+            likes_count: 0,
+            comments_count: 0,
+            is_liked: false,
+            likers: [],
+            comments: [],
+          });
+        }
       } catch {
         // 单个角色生成失败不影响其他
       }
@@ -585,6 +612,6 @@ ${relationContext}
       count: selected.length,
     });
 
-    return { alreadyRefreshed: false, count: selected.length };
+    return { alreadyRefreshed: false, count: createdMoments.length, moments: createdMoments };
   }
 }
