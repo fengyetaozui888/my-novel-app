@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+/* 点阵网格背景（工作流画布风格） */
+.graph-grid {
+  background-image: radial-gradient(circle, #fbcfe8 1.2px, transparent 1.2px);
+  background-size: 26px 26px;
+  background-position: 0 0;
+}
+
+/* 节点头像底部渐变遮罩，让圆内白色名字可读 */
+.node-name-mask {
+  background-image: linear-gradient(to top, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
+}
