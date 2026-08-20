@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Sparkles, Plus, Camera, Coffee } from 'lucide-react-taro'
+import { Sparkles, Plus, Camera, Coffee, Pin } from 'lucide-react-taro'
 
 interface Novel {
   id: string
@@ -211,7 +211,9 @@ const IndexPage = () => {
               className="relative bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow overflow-hidden"
             >
               {novel.is_pinned && (
-                <View className="absolute top-0 left-0 w-6 h-6 bg-pink-400 rounded-tl-2xl z-10" />
+                <View className="absolute top-2 left-2 z-10 bg-pink-400 rounded-full p-1 shadow-sm">
+                  <Pin size={12} color="#ffffff" strokeWidth={2.5} />
+                </View>
               )}
               <CardContent className="p-4">
                 <View className="flex items-center gap-3">

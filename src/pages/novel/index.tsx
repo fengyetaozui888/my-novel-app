@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench, Bot } from 'lucide-react-taro'
+import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -669,9 +669,11 @@ const NovelPage = () => {
                   className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2 relative"
                   onClick={() => goToChat(char)}
                 >
-                  {/* Pinned corner indicator */}
+                  {/* Pinned pin icon */}
                   {char.is_pinned && (
-                    <View className="absolute top-0 left-0 w-5 h-5 bg-pink-400 rounded-tl-xl rounded-br-full" />
+                    <View className="absolute top-2 left-2 z-10 bg-pink-400 rounded-full p-1 shadow-sm">
+                      <Pin size={12} color="#ffffff" strokeWidth={2.5} />
+                    </View>
                   )}
                   {/* Avatar */}
                   <View className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
