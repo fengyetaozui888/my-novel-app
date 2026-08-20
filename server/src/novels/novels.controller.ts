@@ -81,4 +81,11 @@ export class NovelsController {
     const data = await this.novelsService.updateCategoryNames(id, body.category_names);
     return { code: 200, msg: 'success', data };
   }
+
+  @Put(':id/toggle-pin')
+  @HttpCode(200)
+  async togglePin(@Param('id') id: string) {
+    const data = await this.novelsService.togglePin(id);
+    return { code: 200, msg: 'success', data };
+  }
 }

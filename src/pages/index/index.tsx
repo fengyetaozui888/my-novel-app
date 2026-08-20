@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Sparkles, Plus, Pencil, Trash2, Camera, Coffee } from 'lucide-react-taro'
+import { Sparkles, Plus, Camera, Coffee } from 'lucide-react-taro'
 
 interface Novel {
   id: string
   name: string
   cover_key: string | null
   cover_url: string | null
+  is_pinned?: boolean
   created_at: string
   updated_at: string
 }
@@ -27,6 +28,7 @@ const IndexPage = () => {
   const [newEra, setNewEra] = useState<'ancient' | 'modern'>('ancient')
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [showActionMenu, setShowActionMenu] = useState<string | null>(null) // 当前打开菜单的小说 ID
 
   const fetchNovels = useCallback(async () => {
     try {
@@ -95,6 +97,20 @@ const IndexPage = () => {
     }
   }
 
+  const handleTogglePin = async (novel: Novel) => {
+    try {
+      await Network.request({
+        url: `/api/novels/${novel.id}/toggle-pin`,
+        method: 'POST',
+      })
+      setShowActionMenu(null)
+      Taro.showToast({ title: novel.is_pinned ? '已取消置顶' : '已置顶', icon: 'success' })
+      fetchNovels()
+    } catch (err) {
+      console.error('togglePin error:', err)
+    }
+  }
+
   const handleChooseCover = async (novel: Novel) => {
     try {
       const res = await Taro.chooseImage({
@@ -135,7 +151,7 @@ const IndexPage = () => {
   }
 
   return (
-    <View className="min-h-screen bg-stone-50 px-4 py-6">
+    <View className="min-h-screen bg-stone-50 px-4 py-6" onClick={() => setShowActionMenu(null)}>
       {/* Header */}
       <View className="flex items-center justify-between mb-6">
         <View className="flex items-center gap-2">
@@ -222,30 +238,58 @@ const IndexPage = () => {
                   </View>
 
                   {/* Actions */}
-                  <View className="flex items-center gap-1">
+                  <View className="relative">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="p-2"
-                      onClick={() => {
-                        setSelectedNovel(novel)
-                        setNewName(novel.name)
-                        setShowRenameDialog(true)
-                      }}
+                      onClick={() => setShowActionMenu(novel.id)}
                     >
-                      <Pencil size={16} color="#9e8e92" />
+                      <View className="flex flex-col items-center justify-center gap-0.5">
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                        <View className="w-1 h-1 rounded-full bg-pink-500" />
+                      </View>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2"
-                      onClick={() => {
-                        setSelectedNovel(novel)
-                        setShowDeleteDialog(true)
-                      }}
-                    >
-                      <Trash2 size={16} color="#ef4444" />
-                    </Button>
+                    {showActionMenu === novel.id && (
+                      <View
+                        className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 min-w-32"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <View
+                          className="px-4 py-2 active:bg-gray-50"
+                          onClick={() => {
+                            setShowActionMenu(null)
+                            setSelectedNovel(novel)
+                            setNewName(novel.name)
+                            setShowRenameDialog(true)
+                          }}
+                        >
+                          <Text className="block text-sm text-gray-700 text-center">修改世界名称</Text>
+                        </View>
+                        <View
+                          className="px-4 py-2 active:bg-gray-50"
+                          onClick={() => {
+                            setShowActionMenu(null)
+                            handleTogglePin(novel)
+                          }}
+                        >
+                          <Text className="block text-sm text-gray-700 text-center">
+                            {novel.is_pinned ? '取消置顶' : '置顶世界'}
+                          </Text>
+                        </View>
+                        <View
+                          className="px-4 py-2 active:bg-gray-50"
+                          onClick={() => {
+                            setShowActionMenu(null)
+                            setSelectedNovel(novel)
+                            setShowDeleteDialog(true)
+                          }}
+                        >
+                          <Text className="block text-sm text-red-500 text-center">删除世界</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 </View>
               </CardContent>
@@ -364,7 +408,7 @@ const IndexPage = () => {
             </DialogTitle>
             <DialogDescription>
               <Text className="text-gray-400 text-sm">
-                确定要删除「{selectedNovel?.name}」吗？{'\n'}该操作将同时删除所有角色数据，不可恢复。
+                确定删除「{selectedNovel?.name}」吗？一旦删除所有数据不可找回。
               </Text>
             </DialogDescription>
           </DialogHeader>

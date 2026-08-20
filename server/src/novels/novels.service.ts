@@ -115,4 +115,23 @@ export class NovelsService {
     if (error) throw new Error(`保存分类名称失败: ${error.message}`);
     return data;
   }
+
+  async togglePin(id: string) {
+    const { data: novel, error: fetchError } = await this.client
+      .from('novels')
+      .select('is_pinned')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw new Error(`获取小说信息失败: ${fetchError.message}`);
+
+    const newPinned = !novel.is_pinned;
+    const { data, error } = await this.client
+      .from('novels')
+      .update({ is_pinned: newPinned, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, name, is_pinned')
+      .single();
+    if (error) throw new Error(`切换置顶状态失败: ${error.message}`);
+    return data;
+  }
 }
