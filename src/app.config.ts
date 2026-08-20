@@ -12,6 +12,8 @@ export default defineAppConfig({
     'pages/help/index',
     'pages/cafe/index',
     'pages/help-ask/index',
+    'pages/group-create/index',
+    'pages/group-chat/index',
   ],
   window: {
     backgroundTextStyle: 'light',

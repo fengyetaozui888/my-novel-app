@@ -337,10 +337,20 @@ export class ChatService {
     // Add current message
     messages.push({ role: 'user', content: params.message });
 
-    // 调用扣子 Bot API
+    // 调用扣子 Bot API（失败时降级到 LLMClient）
     const BOT_ID = '7675587755577458722';
     const userId = params.userId || 'default_user';
-    const content = await this.callCozeBot(BOT_ID, userId, messages);
+    let content: string;
+    try {
+      content = await this.callCozeBot(BOT_ID, userId, messages);
+    } catch (botErr) {
+      // Bot 未发布或调用失败时，降级到 LLMClient（提示词相同）
+      console.warn('[Chat] Bot 调用失败，降级到 LLMClient:', (botErr as Error).message);
+      const config = new Config();
+      const llmClient = new LLMClient(config);
+      const llmResponse = await llmClient.invoke(messages as any, { temperature: 0.8 });
+      content = llmResponse.content || '（未返回内容）';
+    }
 
     // 更新亲密度（仅当以用户身份对话时）
     if (params.userId && !params.speakerId) {

@@ -66,6 +66,37 @@ export const characters = pgTable(
   ]
 );
 
+export const groupChats = pgTable(
+  "group_chats",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    novel_id: varchar("novel_id", { length: 36 }).notNull().references(() => novels.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    member_ids: text("member_ids").notNull().default("[]"),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("group_chats_novel_id_idx").on(table.novel_id),
+  ]
+);
+
+export const groupMessages = pgTable(
+  "group_messages",
+  {
+    id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+    group_id: varchar("group_id", { length: 36 }).notNull().references(() => groupChats.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 20 }).notNull(),
+    character_id: varchar("character_id", { length: 36 }),
+    sender_name: varchar("sender_name", { length: 255 }),
+    content: text("content").notNull(),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("group_messages_group_id_idx").on(table.group_id),
+  ]
+);
+
 export const relationships = pgTable(
   "relationships",
   {

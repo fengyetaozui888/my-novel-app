@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from 'react'
 import { View, Text, Image } from '@tarojs/components'
-import Taro, { useRouter } from '@tarojs/taro'
+import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -24,6 +24,17 @@ interface Character {
   biography: string | null
   principles: string | null
   examples: string | null
+  created_at: string
+  updated_at: string
+}
+
+interface GroupChat {
+  id: string
+  novel_id: string
+  name: string
+  member_ids: string[]
+  member_count: number
+  message_count: number
   created_at: string
   updated_at: string
 }
@@ -56,8 +67,16 @@ const NovelPage = () => {
   useEffect(() => {
     if (novelId) {
       fetchCharacters()
+      fetchGroupChats()
     }
   }, [novelId])
+
+  // Refresh group chats when page shows again (returning from group pages)
+  useDidShow(() => {
+    if (novelId) {
+      fetchGroupChats()
+    }
+  })
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -81,6 +100,24 @@ const NovelPage = () => {
   // Detail dialog three-dot menu
   const [showDetailMenu, setShowDetailMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Plus menu & group chats
+  const [showPlusMenu, setShowPlusMenu] = useState(false)
+  const [groupChats, setGroupChats] = useState<GroupChat[]>([])
+
+  const fetchGroupChats = useCallback(async () => {
+    if (!novelId) return
+    try {
+      const res = await Network.request({
+        url: `/api/group-chats?novel_id=${novelId}`,
+      })
+      console.log('fetchGroupChats response:', res.data)
+      const data = res.data?.data || res.data || []
+      setGroupChats(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.error('fetchGroupChats error:', err)
+    }
+  }, [novelId])
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -292,18 +329,85 @@ const NovelPage = () => {
           <Text className="block text-base font-semibold text-gray-900">
             {CATEGORY_CONFIG[activeCategory].label}
           </Text>
-          <Button
-            size="sm"
-            className="bg-rose-500 text-white rounded-full px-4"
-            onClick={() => {
-              setNewName('')
-              setShowAddDialog(true)
-            }}
-          >
-            <Plus size={14} color="#ffffff" className="mr-1" />
-            <Text className="text-white text-xs">添加角色卡</Text>
-          </Button>
+          <View className="relative">
+            <Button
+              size="sm"
+              className="bg-rose-500 text-white rounded-full w-9 h-9 p-0 flex items-center justify-center"
+              onClick={() => setShowPlusMenu(!showPlusMenu)}
+            >
+              <Plus size={18} color="#ffffff" className={showPlusMenu ? 'rotate-45 transition-transform' : 'transition-transform'} />
+            </Button>
+            {showPlusMenu && (
+              <>
+                <View
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowPlusMenu(false)}
+                />
+                <View className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-lg border border-gray-100 py-2 min-w-36">
+                  <View
+                    className="flex items-center gap-3 px-4 py-3 active:bg-gray-50"
+                    onClick={() => {
+                      setShowPlusMenu(false)
+                      Taro.navigateTo({
+                        url: `/pages/group-create/index?novelId=${novelId}`,
+                      })
+                    }}
+                  >
+                    <MessagesSquare size={18} color="#e8587a" />
+                    <Text className="text-sm text-gray-800">发起群聊</Text>
+                  </View>
+                  <View className="h-px bg-gray-100 mx-2" />
+                  <View
+                    className="flex items-center gap-3 px-4 py-3 active:bg-gray-50"
+                    onClick={() => {
+                      setShowPlusMenu(false)
+                      setNewName('')
+                      setShowAddDialog(true)
+                    }}
+                  >
+                    <UserPlus size={18} color="#e8587a" />
+                    <Text className="text-sm text-gray-800">添加朋友</Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
         </View>
+
+        {/* Group Chats Section */}
+        {groupChats.length > 0 && (
+          <View className="mb-4">
+            <Text className="block text-sm text-gray-500 mb-2">群聊({groupChats.length})</Text>
+            <View className="flex flex-col gap-1 bg-white rounded-2xl overflow-hidden">
+              {groupChats.map((group) => (
+                <View
+                  key={group.id}
+                  className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-b-0 active:bg-gray-50"
+                  onClick={() =>
+                    Taro.navigateTo({
+                      url: `/pages/group-chat/index?id=${group.id}`,
+                    })
+                  }
+                >
+                  <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                    <Users size={22} color="#e8587a" />
+                  </View>
+                  <View className="flex-1 min-w-0">
+                    <View className="flex items-center gap-2">
+                      <Text className="block text-base font-medium text-gray-900 truncate">
+                        {group.name}
+                      </Text>
+                    </View>
+                    <Text className="block text-xs text-gray-500 mt-1 truncate">
+                      {group.member_count}位成员 · {group.message_count}条消息
+                    </Text>
+                  </View>
+                  <MessageCircle size={18} color="#d1a3ad" />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {loading ? (
           <View className="grid grid-cols-3 gap-3">
@@ -314,7 +418,7 @@ const NovelPage = () => {
         ) : filteredCharacters.length === 0 ? (
           <View className="flex flex-col items-center py-12">
             <Text className="block text-gray-400 text-center text-sm">
-              暂无{CATEGORY_CONFIG[activeCategory].label}{'\n'}点击上方按钮添加
+              暂无{CATEGORY_CONFIG[activeCategory].label}{'\n'}点击右上角 + 添加朋友
             </Text>
           </View>
         ) : (
@@ -386,7 +490,7 @@ const NovelPage = () => {
               </Text>
             </DialogTitle>
             <DialogDescription>
-              <Text className="text-gray-400 text-sm">输入角色名称</Text>
+              <Text className="text-gray-400 text-sm">输入角色名称（添加朋友）</Text>
             </DialogDescription>
           </DialogHeader>
           <View className="mt-4">
