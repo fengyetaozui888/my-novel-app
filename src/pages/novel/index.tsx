@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
@@ -55,6 +55,7 @@ const NovelPage = () => {
   const [characters, setCharacters] = useState<Character[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState<CategoryType>('protagonist')
+  const [customCategoryNames, setCustomCategoryNames] = useState<Record<string, string>>({})
 
   // Dialogs
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -123,16 +124,70 @@ const NovelPage = () => {
   // World info check dialog
   const [showWorldInfoDialog, setShowWorldInfoDialog] = useState(false)
 
+  // Category name editing
+  const [editingCategoryKey, setEditingCategoryKey] = useState<CategoryType | null>(null)
+  const [editingCategoryName, setEditingCategoryName] = useState('')
+  const lastCategoryTapRef = useRef<Record<string, number>>({})
+
+  // Helper: get display name for category (custom or default)
+  const getCategoryName = (key: CategoryType): string => {
+    return customCategoryNames[key] || CATEGORY_CONFIG[key].label
+  }
+
+  // Handle double-tap on category tab
+  const handleCategoryTap = (cat: CategoryType) => {
+    const now = Date.now()
+    const lastTap = lastCategoryTapRef.current[cat] || 0
+    if (now - lastTap < 300) {
+      // Double tap - open editor
+      setEditingCategoryKey(cat)
+      setEditingCategoryName(getCategoryName(cat))
+    } else {
+      // Single tap - switch category
+      setActiveCategory(cat)
+    }
+    lastCategoryTapRef.current[cat] = now
+  }
+
+  const handleSaveCategoryName = async () => {
+    if (!novelId || !editingCategoryKey) return
+    const trimmed = editingCategoryName.trim()
+    if (!trimmed) {
+      setEditingCategoryKey(null)
+      return
+    }
+    try {
+      const updated = { ...customCategoryNames, [editingCategoryKey]: trimmed }
+      await Network.request({
+        url: `/api/novels/${novelId}/category-names`,
+        method: 'PUT',
+        data: { category_names: updated },
+      })
+      setCustomCategoryNames(updated)
+      setEditingCategoryKey(null)
+    } catch (e) {
+      console.error('Failed to save category name:', e)
+    }
+  }
+
   const fetchNovelEra = useCallback(async () => {
     if (!novelId) return
     try {
-      const res = await Network.request({ url: `/api/novels` })
+      const res = await Network.request({ url: `/api/novels/${novelId}` })
       console.log('fetchNovelEra response:', res.data)
-      const list = (res.data as { data?: Array<{ id: string; era?: string; world_info?: string; name?: string; world_nickname?: string }> })?.data || []
-      const current = list.find((n) => n.id === novelId)
+      const current = res.data?.data
       if (current?.era) setNovelEra(current.era === 'modern' ? 'modern' : 'ancient')
       if (current?.name) setNovelName(current.name)
       if (current?.world_nickname) setWorldNickname(current.world_nickname)
+      // Parse custom category names
+      if (current?.category_names) {
+        try {
+          const parsed = typeof current.category_names === 'string' ? JSON.parse(current.category_names) : current.category_names
+          setCustomCategoryNames(parsed)
+        } catch {
+          setCustomCategoryNames({})
+        }
+      }
       // Check if world_info has content (JSON string or plain text)
       const hasInfo = current?.world_info && current.world_info.trim() && current.world_info !== '{}' && current.world_info !== '""'
       setWorldInfoFilled(!!hasInfo)
@@ -399,6 +454,7 @@ const NovelPage = () => {
           const config = CATEGORY_CONFIG[cat]
           const isActive = activeCategory === cat
           const count = characters.filter((c) => c.category === cat).length
+          const displayName = getCategoryName(cat)
           return (
             <View
               key={cat}
@@ -406,13 +462,13 @@ const NovelPage = () => {
               style={{
                 backgroundColor: isActive ? config.bgColor : 'transparent',
               }}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => handleCategoryTap(cat)}
             >
               <Text
                 className="text-sm font-medium"
                 style={{ color: isActive ? config.color : '#9e8e92' }}
               >
-                {config.label}({count})
+                {displayName}({count})
               </Text>
             </View>
           )
@@ -1070,6 +1126,48 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveNovelName}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Name Editor Dialog */}
+      <Dialog open={editingCategoryKey !== null} onOpenChange={(open) => !open && setEditingCategoryKey(null)}>
+        <DialogContent className="bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="text-gray-900 text-lg font-bold">修改分类名称</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="text-gray-400 text-sm">双击分类标签可自定义名称</Text>
+            </DialogDescription>
+          </DialogHeader>
+          <View className="mt-4">
+            <View className="bg-stone-50 rounded-xl px-4 py-3">
+              <Input
+                className="w-full bg-transparent text-gray-900"
+                placeholder="分类名称"
+                value={editingCategoryName}
+                onInput={(e) => setEditingCategoryName(e.detail.value)}
+                confirmType="done"
+                onConfirm={handleSaveCategoryName}
+              />
+            </View>
+          </View>
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setEditingCategoryKey(null)}
+            >
+              <Text>取消</Text>
+            </Button>
+            <Button
+              className="flex-1"
+              style={{ backgroundColor: '#e8587a' }}
+              onClick={handleSaveCategoryName}
             >
               <Text className="text-white">保存</Text>
             </Button>

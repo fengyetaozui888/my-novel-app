@@ -37,7 +37,7 @@ export class NovelsService {
   async findOne(id: string) {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, world_info, world_nickname, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, world_info, world_nickname, category_names, news_refreshed_date, cover_key, created_at, updated_at')
       .eq('id', id)
       .single();
     if (error) throw new Error(`获取小说详情失败: ${error.message}`);
@@ -102,6 +102,17 @@ export class NovelsService {
       .select('id, name, world_nickname')
       .single();
     if (error) throw new Error(`保存世界昵称失败: ${error.message}`);
+    return data;
+  }
+
+  async updateCategoryNames(id: string, category_names: Record<string, string>) {
+    const { data, error } = await this.client
+      .from('novels')
+      .update({ category_names: JSON.stringify(category_names), updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, name, category_names')
+      .single();
+    if (error) throw new Error(`保存分类名称失败: ${error.message}`);
     return data;
   }
 }

@@ -68,7 +68,8 @@ export default function WorldNewsPage() {
     try {
       const res = await Network.request({ url: `/api/world-news/${id}/state` })
       console.log('[world-news] state:', res.data)
-      setCanRefresh(res.data?.data?.can_refresh !== false)
+      const d = res.data?.data || {}
+      setCanRefresh(d.refreshedToday !== true)
     } catch (e) {
       console.error('[world-news] fetchState error:', e)
     }
