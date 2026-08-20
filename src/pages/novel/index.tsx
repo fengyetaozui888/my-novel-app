@@ -738,13 +738,13 @@ const NovelPage = () => {
           </DialogHeader>
 
           {/* Gender Selection - Dropdown */}
-          <View className="flex items-center gap-4 py-2">
+          <View className="flex items-end gap-4 py-2">
             {/* Gender Dropdown */}
-            <View className="flex-1">
+            <View className="w-24">
               <Text className="block text-sm text-gray-600 mb-2">性别</Text>
               <View className="relative w-full">
                 <View
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between w-full"
+                  className="bg-white border border-gray-200 rounded-lg px-3 py-3 flex items-center justify-between w-full"
                   onClick={() => setShowGenderDropdown(!showGenderDropdown)}
                 >
                   <Text className="text-sm text-gray-700">
