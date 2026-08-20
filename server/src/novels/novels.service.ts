@@ -34,6 +34,16 @@ export class NovelsService {
     return novelsWithUrls;
   }
 
+  async findOne(id: string) {
+    const { data, error } = await this.client
+      .from('novels')
+      .select('id, name, era, world_info, news_refreshed_date, cover_key, created_at, updated_at')
+      .eq('id', id)
+      .single();
+    if (error) throw new Error(`获取小说详情失败: ${error.message}`);
+    return data;
+  }
+
   async create(name: string, era?: string) {
     const { data, error } = await this.client
       .from('novels')

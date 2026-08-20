@@ -28,6 +28,13 @@ export class NovelsController {
     return { code: 200, msg: 'success', data };
   }
 
+  @Get(':id')
+  @HttpCode(200)
+  async findOne(@Param('id') id: string) {
+    const data = await this.novelsService.findOne(id);
+    return { code: 200, msg: 'success', data };
+  }
+
   @Put(':id')
   @HttpCode(200)
   async update(
