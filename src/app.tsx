@@ -1,124 +1,143 @@
-import { PropsWithChildren, useState, useEffect } from 'react';
-import Taro from '@tarojs/taro';
-import { LucideTaroProvider } from 'lucide-react-taro';
-import { View, Text, Input } from '@tarojs/components';
-import '@/app.css';
-import { Toaster } from '@/components/ui/toast';
-import { Preset } from './presets';
+import Taro, { useLaunch } from '@tarojs/taro'
+import { useState } from 'react'
+import './app.css'
 
-// 访问密码（你可以修改这个密码）
-const ACCESS_PASSWORD = '6602877';
-const STORAGE_KEY = 'app_access_verified';
+const ACCESS_PASSWORD = '6602877'
 
-// 跨端存储工具
-const storage = {
-  get: (key: string) => {
+function App({ children }) {
+  useLaunch(() => {
+    console.log('App launched.')
+  })
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      return Taro.getStorageSync(key);
+      return Taro.getStorageSync('app_access_verified') === 'true'
     } catch {
-      return null;
+      return false
     }
-  },
-  set: (key: string, value: string) => {
-    try {
-      Taro.setStorageSync(key, value);
-    } catch {
-      // 忽略错误
-    }
-  },
-};
-
-const App = ({ children }: PropsWithChildren) => {
-  const [isVerified, setIsVerified] = useState(false);
-  const [inputPassword, setInputPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isChecking, setIsChecking] = useState(true);
-
-  useEffect(() => {
-    // 检查是否已经验证过
-    const verified = storage.get(STORAGE_KEY);
-    if (verified === 'true') {
-      setIsVerified(true);
-    }
-    setIsChecking(false);
-  }, []);
+  })
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   const handleVerify = () => {
-    if (inputPassword === ACCESS_PASSWORD) {
-      storage.set(STORAGE_KEY, 'true');
-      setIsVerified(true);
-      setError('');
+    if (password === ACCESS_PASSWORD) {
+      try {
+        Taro.setStorageSync('app_access_verified', 'true')
+      } catch {}
+      setIsAuthenticated(true)
+      setError('')
     } else {
-      setError('密码错误，请重试');
+      setError('密码错误，请重新输入')
+      setPassword('')
     }
-  };
-
-  // 正在检查验证状态
-  if (isChecking) {
-    return null;
   }
 
-  // 未验证，显示密码输入页面
-  if (!isVerified) {
-    return (
-      <View className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center p-8">
-        <View className="w-full max-w-sm">
-          <View className="text-center mb-8">
-            <Text className="block text-3xl font-bold text-gray-800 mb-2">
-              欢迎来到
-            </Text>
-            <Text className="block text-xl text-rose-500 font-medium">
-              小说角色互动世界
-            </Text>
-          </View>
-
-          <View className="bg-white rounded-2xl shadow-lg p-8">
-            <Text className="block text-sm text-gray-600 mb-4 text-center">
-              请输入访问密码
-            </Text>
-
-            <View className="mb-4">
-              <Input
-                type="text"
-                password
-                placeholder="请输入密码"
-                value={inputPassword}
-                onInput={(e: any) => setInputPassword(e.detail.value)}
-                onConfirm={handleVerify}
-                confirmType="done"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-center text-lg focus:outline-none focus:border-rose-400 transition-colors"
-              />
-            </View>
-
-            {error && (
-              <Text className="block text-sm text-red-500 text-center mb-4">
-                {error}
-              </Text>
-            )}
-
-            <View
-              onClick={handleVerify}
-              className="w-full bg-rose-500 text-white text-center py-3 rounded-xl font-medium active:bg-rose-600 transition-colors cursor-pointer"
-            >
-              <Text className="block">确认进入</Text>
-            </View>
-
-            <Text className="block text-xs text-gray-400 text-center mt-6">
-              忘记密码？请联系应用管理员
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  // 已验证，显示正常应用
   return (
-    <LucideTaroProvider defaultColor="#000" defaultSize={24}>
-      <Preset>{children}</Preset>
-      <Toaster />
-    </LucideTaroProvider>
-  );
-};
+    <>
+      {children}
+      {!isAuthenticated && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99999,
+            background: 'linear-gradient(135deg, #fff1f2 0%, #fce7f3 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+        >
+          <div style={{ width: '100%', maxWidth: '320px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  background: 'linear-gradient(135deg, #fb7185 0%, #ec4899 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
+                <span style={{ fontSize: '28px' }}>🔒</span>
+              </div>
+              <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
+                访问验证
+              </h1>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>
+                请输入访问密码以继续使用
+              </p>
+            </div>
 
-export default App;
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              }}
+            >
+              <input
+                type="password"
+                value={password}
+                onInput={(e: any) => {
+                  setPassword(e.target.value)
+                  setError('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleVerify()
+                }}
+                placeholder="请输入密码"
+                style={{
+                  width: '100%',
+                  background: '#f9fafb',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  textAlign: 'center',
+                  fontSize: '18px',
+                  letterSpacing: '4px',
+                  border: 'none',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {error && (
+                <p style={{ color: '#ef4444', fontSize: '14px', textAlign: 'center', marginTop: '12px' }}>
+                  {error}
+                </p>
+              )}
+              <button
+                onClick={handleVerify}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #fb7185 0%, #ec4899 100%)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginTop: '16px',
+                  fontWeight: '500',
+                  border: 'none',
+                  fontSize: '16px',
+                }}
+              >
+                确认
+              </button>
+            </div>
+
+            <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'center', marginTop: '24px' }}>
+              忘记密码请联系应用管理员
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+export default App
