@@ -566,10 +566,10 @@ const NovelPage = () => {
         <View className="flex items-center justify-between mb-3">
           <View
             className="flex-1"
-            onClick={() => handleSectionTitleTap(activeCategory)}
+            onClick={() => activeBottomTab === 'friends' && handleSectionTitleTap(activeCategory)}
           >
             <Text className="block text-base font-semibold text-gray-900">
-              {getSectionTitle(activeCategory)}
+              {activeBottomTab === 'groupChat' ? '群聊' : getSectionTitle(activeCategory)}
             </Text>
           </View>
           <View className="relative">
