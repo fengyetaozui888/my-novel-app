@@ -107,9 +107,12 @@ const NovelPage = () => {
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
   const [novelEra, setNovelEra] = useState<'ancient' | 'modern'>('ancient')
   const [worldInfoFilled, setWorldInfoFilled] = useState(false)
+  const [worldNickname, setWorldNickname] = useState<string | null>(null)
   const [novelName, setNovelName] = useState('')
   const [showNameEditor, setShowNameEditor] = useState(false)
-  const [editingName, setEditingName] = useState('')
+  const [editingName, setEditingName] = useState<string>('')
+  const [showNicknameEditor, setShowNicknameEditor] = useState(false)
+  const [editingNickname, setEditingNickname] = useState('')
   const [activeBottomTab, setActiveBottomTab] = useState<'friends' | 'news'>('friends')
 
   // World info check dialog
@@ -127,10 +130,11 @@ const NovelPage = () => {
     try {
       const res = await Network.request({ url: `/api/novels` })
       console.log('fetchNovelEra response:', res.data)
-      const list = (res.data as { data?: Array<{ id: string; era?: string; world_info?: string; name?: string }> })?.data || []
+      const list = (res.data as { data?: Array<{ id: string; era?: string; world_info?: string; name?: string; world_nickname?: string }> })?.data || []
       const current = list.find((n) => n.id === novelId)
       if (current?.era) setNovelEra(current.era === 'modern' ? 'modern' : 'ancient')
       if (current?.name) setNovelName(current.name)
+      if (current?.world_nickname) setWorldNickname(current.world_nickname)
       // Check if world_info has content (JSON string or plain text)
       const hasInfo = current?.world_info && current.world_info.trim() && current.world_info !== '{}' && current.world_info !== '""'
       setWorldInfoFilled(!!hasInfo)
@@ -152,6 +156,23 @@ const NovelPage = () => {
       Taro.showToast({ title: '修改成功', icon: 'success' })
     } catch (err) {
       console.error('saveNovelName error:', err)
+      Taro.showToast({ title: '修改失败', icon: 'error' })
+    }
+  }
+
+  const handleSaveNickname = async () => {
+    if (!novelId) return
+    try {
+      await Network.request({
+        url: `/api/novels/${novelId}/nickname`,
+        method: 'PUT',
+        data: { world_nickname: editingNickname.trim() || null },
+      })
+      setWorldNickname(editingNickname.trim() || null)
+      setShowNicknameEditor(false)
+      Taro.showToast({ title: '修改成功', icon: 'success' })
+    } catch (err) {
+      console.error('saveNickname error:', err)
       Taro.showToast({ title: '修改失败', icon: 'error' })
     }
   }
@@ -348,10 +369,10 @@ const NovelPage = () => {
 
   return (
     <View className="min-h-screen bg-stone-50 pb-20">
-      {/* World Name Row */}
+      {/* World Nickname Row */}
       <View className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
         <View className="flex items-center gap-2 flex-1 min-w-0">
-          <Text className="text-lg font-bold text-gray-900 truncate">{novelName || '未命名世界'}</Text>
+          <Text className="text-lg font-bold text-gray-900 truncate">{worldNickname || novelName || '未命名世界'}</Text>
           <Text className="text-xs text-gray-400">{novelEra === 'modern' ? '现代' : '古代'}</Text>
         </View>
         <Button
@@ -359,8 +380,8 @@ const NovelPage = () => {
           size="sm"
           className="p-2"
           onClick={() => {
-            setEditingName(novelName)
-            setShowNameEditor(true)
+            setEditingName(String(worldNickname || novelName))
+            setShowNicknameEditor(true)
           }}
         >
           <Pencil size={16} color="#e8587a" />
@@ -1038,6 +1059,45 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveNovelName}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* World Nickname Editor Dialog */}
+      <Dialog open={showNicknameEditor} onOpenChange={setShowNicknameEditor}>
+        <DialogContent className="bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="text-gray-900 text-lg font-bold">修改世界特色昵称</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="text-gray-400 text-sm">为你的世界取一个独特的昵称</Text>
+            </DialogDescription>
+          </DialogHeader>
+          <View className="mt-4">
+            <View className="bg-stone-50 rounded-xl px-4 py-3">
+              <Input
+                className="w-full bg-transparent text-gray-900"
+                placeholder="世界特色昵称"
+                value={editingNickname}
+                onInput={(e) => setEditingNickname(e.detail.value)}
+              />
+            </View>
+          </View>
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowNicknameEditor(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={handleSaveNickname}
             >
               <Text className="text-white">保存</Text>
             </Button>

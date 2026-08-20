@@ -15,6 +15,7 @@ export const novels = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     era: text("era").default("ancient"),
     world_info: text("world_info").default(""),
+    world_nickname: text("world_nickname"),
     world_score: integer("world_score"),
     news_refreshed_date: text("news_refreshed_date"),
     cover_key: varchar("cover_key", { length: 500 }),

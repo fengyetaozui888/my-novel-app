@@ -61,4 +61,14 @@ export class NovelsController {
     const data = await this.novelsService.updateWorldInfo(id, body.world_info);
     return { code: 200, msg: 'success', data };
   }
+
+  @Put(':id/world-nickname')
+  @HttpCode(200)
+  async updateWorldNickname(
+    @Param('id') id: string,
+    @Body() body: { world_nickname: string },
+  ) {
+    const data = await this.novelsService.updateWorldNickname(id, body.world_nickname);
+    return { code: 200, msg: 'success', data };
+  }
 }

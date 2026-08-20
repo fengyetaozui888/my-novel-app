@@ -13,7 +13,7 @@ export class NovelsService {
   async findAll() {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, world_info, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, world_info, world_nickname, news_refreshed_date, cover_key, created_at, updated_at')
     if (error) throw new Error(`查询小说列表失败: ${error.message}`);
 
     // Generate presigned URLs for cover images
@@ -37,7 +37,7 @@ export class NovelsService {
   async findOne(id: string) {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, era, world_info, news_refreshed_date, cover_key, created_at, updated_at')
+      .select('id, name, era, world_info, world_nickname, news_refreshed_date, cover_key, created_at, updated_at')
       .eq('id', id)
       .single();
     if (error) throw new Error(`获取小说详情失败: ${error.message}`);
@@ -91,6 +91,17 @@ export class NovelsService {
       .select('id, name, world_info')
       .single();
     if (error) throw new Error(`保存世界信息失败: ${error.message}`);
+    return data;
+  }
+
+  async updateWorldNickname(id: string, world_nickname: string) {
+    const { data, error } = await this.client
+      .from('novels')
+      .update({ world_nickname, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, name, world_nickname')
+      .single();
+    if (error) throw new Error(`保存世界昵称失败: ${error.message}`);
     return data;
   }
 }
