@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色 === */
+      --color-primary:              #e8587a;
+      --color-primary-container:    #fce4ec;
+      --color-on-primary:           #ffffff;
+      /* === 背景 / 表面 === */
+      --color-background:                 #f8f5f2;
+      --color-surface-container-lowest:   #ffffff;
+      --color-surface:                    #fdf9f6;
+      --color-surface-container:          #f0ebe7;
+      --color-surface-container-high:     #e8e2dd;
+      --color-surface-container-highest:  #dfd8d3;
+      /* === 文字 === */
+      --color-on-surface:           #2d2233;
+      --color-on-surface-variant:   #9e8e92;
+      /* === 功能色 === */
+      --color-success:  #22c55e;
+      --color-error:    #ef4444;
+      --color-warning:  #f59e0b;
+      /* === 边框 === */
+      --color-outline:          #d4c5c9;
+      --color-outline-variant:  #e8dfe2;
+      /* === 圆角 === */
+      --radius-sm:   0.375rem;
+      --radius-md:   0.5rem;
+      --radius-lg:   0.75rem;
+      --radius-xl:   1rem;
+      --radius-2xl:  1.25rem;
+      --radius-full: 9999px;
+      /* === 阴影 === */
+      --shadow-card:   0 4px 12px rgba(45,34,51,0.10);
+      --shadow-float:  0 10px 25px rgba(45,34,51,0.10);
+      --shadow-dialog: 0 25px 50px rgba(45,34,51,0.15);
+      /* === 字体 === */
+      --font-sans: system-ui, -apple-system, sans-serif;
+    }
+  </style>
+
+  <style>
+    body {
+      min-height: max(812px, 100dvh);
+      font-family: system-ui, sans-serif;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans flex flex-col">
+
+  <!-- 顶部 Header（二级页带返回按钮） -->
+  <header class="bg-background sticky top-0 z-40 h-14 flex items-center justify-between px-4">
+    <button id="btn-back" class="w-10 h-10 flex items-center justify-center text-on-surface-variant rounded-full hover:bg-surface-container active:bg-surface-container-high transition-colors">
+      <i data-lucide="arrow-left" class="w-5 h-5"></i>
+    </button>
+    <h1 class="text-base font-semibold text-on-surface">角色管理</h1>
+    <div class="w-10"></div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+    <!-- @main-content:start -->
+
+    <!-- 分类标签栏 -->
+    <div class="flex items-center gap-2 px-4 py-3">
+      <!-- 标签-主角（选中态） -->
+      <button id="tab-protagonist" class="px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-on-primary transition-colors">主角</button>
+      <!-- 标签-重要配角 -->
+      <button id="tab-supporting" class="px-4 py-1.5 rounded-full text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors">重要配角</button>
+      <!-- 标签-不重要角色 -->
+      <button id="tab-minor" class="px-4 py-1.5 rounded-full text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors">不重要角色</button>
+    </div>
+
+    <!-- 世界信息入口卡片 -->
+    <div id="card-world-info" class="bg-surface rounded-xl shadow-card mx-4 mb-3 p-4 flex items-center justify-between cursor-pointer active:bg-surface-container transition-colors">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="globe" class="w-5 h-5 text-primary"></i>
+        </div>
+        <div>
+          <p class="text-base font-semibold text-on-surface">世界信息</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">青云世界 · 古代</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-warning/15 text-warning">未填写</span>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50"></i>
+      </div>
+    </div>
+
+    <!-- 奇闻轶事入口卡片（古代显示"奇闻轶事"） -->
+    <div id="card-anecdotes" class="mx-4 mb-3 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary-container/60 cursor-pointer active:opacity-90 transition-opacity">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="book-open" class="w-5 h-5 text-primary"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-base font-semibold text-on-surface">奇闻轶事</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">完善世界信息后可生成</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50"></i>
+      </div>
+    </div>
+
+    <!-- 角色列表区域 -->
+    <div class="px-4 mt-5">
+      <h2 class="text-sm font-semibold text-on-surface-variant mb-3 tracking-wide">主角列表</h2>
+
+      <!-- 列表-角色1：林清风 -->
+      <div id="char-1" class="bg-surface rounded-xl shadow-card mb-3 p-4 flex items-center gap-3 cursor-pointer active:bg-surface-container transition-colors">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <span class="text-lg font-bold text-primary">林</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-base font-semibold text-on-surface">林清风</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">主角 · 青云宗弟子</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50 flex-shrink-0"></i>
+      </div>
+
+      <!-- 列表-角色2：苏婉儿 -->
+      <div id="char-2" class="bg-surface rounded-xl shadow-card mb-3 p-4 flex items-center gap-3 cursor-pointer active:bg-surface-container transition-colors">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <span class="text-lg font-bold text-primary">苏</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-base font-semibold text-on-surface">苏婉儿</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">主角 · 天灵根修士</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50 flex-shrink-0"></i>
+      </div>
+
+      <!-- 列表-角色3：王长老 -->
+      <div id="char-3" class="bg-surface rounded-xl shadow-card mb-3 p-4 flex items-center gap-3 cursor-pointer active:bg-surface-container transition-colors">
+        <div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center flex-shrink-0">
+          <span class="text-lg font-bold text-on-surface-variant">王</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-base font-semibold text-on-surface">王长老</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">重要配角 · 青云宗长老</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50 flex-shrink-0"></i>
+      </div>
+
+      <!-- 列表-角色4：赵灵儿 -->
+      <div id="char-4" class="bg-surface rounded-xl shadow-card mb-3 p-4 flex items-center gap-3 cursor-pointer active:bg-surface-container transition-colors">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <span class="text-lg font-bold text-primary">赵</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-base font-semibold text-on-surface">赵灵儿</p>
+          <p class="text-xs text-on-surface-variant mt-0.5">主角 · 散修剑客</p>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-on-surface-variant/50 flex-shrink-0"></i>
+      </div>
+    </div>
+
+    <!-- 底部间距 -->
+    <div class="h-6"></div>
+
+    <!-- @main-content:end -->
+  </main>
+
+  <!-- 弹窗覆盖层：提示用户完善世界信息 -->
+  <div id="dialog-overlay" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div id="dialog-box" class="bg-surface rounded-2xl w-[calc(100%-3rem)] max-w-sm p-6 shadow-dialog">
+      <!-- 弹窗图标 -->
+      <div class="flex justify-center mb-4">
+        <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+          <i data-lucide="alert-circle" class="w-7 h-7 text-primary"></i>
+        </div>
+      </div>
+      <!-- 弹窗标题 -->
+      <h3 id="dialog-title" class="text-lg font-bold text-on-surface text-center">请先完善世界信息</h3>
+      <!-- 弹窗描述 -->
+      <p id="dialog-desc" class="text-sm text-on-surface-variant text-center mt-3 leading-relaxed">当前世界信息尚未填写，完善后可生成更真实的奇闻轶事内容哦~</p>
+      <!-- 弹窗按钮 -->
+      <div class="flex items-center gap-3 mt-6">
+        <button id="btn-cancel" class="flex-1 py-3 rounded-xl text-sm font-semibold bg-surface-container text-on-surface-variant border-none active:scale-[0.98] transition-all">暂时不了</button>
+        <button id="btn-go-complete" class="flex-1 py-3 rounded-xl text-sm font-semibold bg-primary text-on-primary border-none active:scale-[0.98] transition-all">去完善</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 导航辅助函数
+    function navPush(route) {
+      console.log('[原型演示] PUSH 到: ' + route);
+      window.location.href = route;
+    }
+
+    function navReplace(route) {
+      console.log('[原型演示] REPLACE 为: ' + route);
+      window.location.replace(route);
+    }
+
+    function navReset(route) {
+      console.log('[原型演示] RESET 到: ' + route);
+      window.location.href = route;
+    }
+
+    function navBack() {
+      console.log('[原型演示] BACK 返回上一页');
+      if (window.history.length > 1) window.history.back();
+    }
+
+    $(function() {
+      // 返回按钮
+      $('#btn-back').on('click', function() {
+        navBack();
+      });
+
+      // 关闭弹窗 - 点击"暂时不了"
+      $('#btn-cancel').on('click', function() {
+        $('#dialog-overlay').hide();
+      });
+
+      // 跳转到世界信息编辑页 - 点击"去完善"
+      $('#btn-go-complete').on('click', function() {
+        navPush('world-info.html');
+      });
+
+      // 点击遮罩层关闭弹窗
+      $('#dialog-overlay').on('click', function(e) {
+        if (e.target === this) {
+          $(this).hide();
+        }
+      });
+
+      // 世界信息入口卡片点击 - 跳转到世界信息编辑页
+      $('#card-world-info').on('click', function() {
+        navPush('world-info.html');
+      });
+
+      // 奇闻轶事入口卡片点击 - 显示弹窗提示
+      $('#card-anecdotes').on('click', function() {
+        $('#dialog-overlay').show();
+      });
+
+      // 分类标签切换
+      $('#tab-protagonist, #tab-supporting, #tab-minor').on('click', function() {
+        // 重置所有标签样式
+        $('#tab-protagonist, #tab-supporting, #tab-minor')
+          .removeClass('bg-primary text-on-primary')
+          .addClass('bg-surface-container text-on-surface-variant');
+        // 设置当前标签为激活态
+        $(this)
+          .removeClass('bg-surface-container text-on-surface-variant')
+          .addClass('bg-primary text-on-primary');
+      });
+    });
+  </script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

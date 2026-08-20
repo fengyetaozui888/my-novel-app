@@ -1,0 +1,20 @@
+{
+  "elements": [
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/mobile/world-info.html"
+      },
+      "title": "世界信息编辑",
+      "size": "mobile"
+    },
+    {
+      "type": "html",
+      "options": {
+        "path": ".cozeproj/prototype/mobile/novel-dialog.html"
+      },
+      "title": "角色管理-弹窗提示",
+      "size": "mobile"
+    }
+  ]
+}
