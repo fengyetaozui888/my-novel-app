@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench } from 'lucide-react-taro'
 
 interface Character {
@@ -122,6 +121,9 @@ const NovelPage = () => {
   const [showNicknameEditor, setShowNicknameEditor] = useState(false)
   const [editingNickname, setEditingNickname] = useState('')
   const [activeBottomTab, setActiveBottomTab] = useState<'friends' | 'news'>('friends')
+
+  // Character settings menu
+  const [settingsMenuCharId, setSettingsMenuCharId] = useState<string | null>(null)
 
   // World info check dialog
   const [showWorldInfoDialog, setShowWorldInfoDialog] = useState(false)
@@ -436,7 +438,10 @@ const NovelPage = () => {
     } catch (err) {
       Taro.showToast({ title: '操作失败', icon: 'none' })
     }
+    setSettingsMenuCharId(null)
   }
+
+  const closeSettingsMenu = () => setSettingsMenuCharId(null)
 
   const categories: CategoryType[] = ['protagonist', 'supporting', 'minor']
 
@@ -637,25 +642,49 @@ const NovelPage = () => {
                       <Text className="block text-xs text-gray-500 truncate mt-1">{char.tagline}</Text>
                     )}
                   </View>
-                  {/* Settings Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      <View
-                        className="flex items-center justify-center flex-shrink-0 p-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Wrench size={20} color="#ec4899" />
-                      </View>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40">
-                      <DropdownMenuItem onClick={() => openDetail(char)}>
-                        <Text className="block text-sm">编辑角色</Text>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => togglePin(char.id)}>
-                        <Text className="block text-sm">置顶聊天</Text>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* Settings Menu */}
+                  <View className="relative">
+                    <View
+                      className="flex items-center justify-center flex-shrink-0 p-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSettingsMenuCharId(char.id)
+                      }}
+                    >
+                      <Wrench size={20} color="#ec4899" />
+                    </View>
+
+                    {/* Popup Menu */}
+                    {settingsMenuCharId === char.id && (
+                      <>
+                        <View className="fixed inset-0 z-40" onClick={closeSettingsMenu} />
+                        <View
+                          className="absolute right-0 top-10 z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                          style={{ minWidth: '120px' }}
+                        >
+                          <View
+                            className="px-4 py-3 active:bg-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openDetail(char)
+                              closeSettingsMenu()
+                            }}
+                          >
+                            <Text className="block text-sm text-gray-700 text-center">编辑角色</Text>
+                          </View>
+                          <View
+                            className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              togglePin(char.id)
+                            }}
+                          >
+                            <Text className="block text-sm text-gray-700 text-center">置顶聊天</Text>
+                          </View>
+                        </View>
+                      </>
+                    )}
+                  </View>
                 </View>
               )
             })}
