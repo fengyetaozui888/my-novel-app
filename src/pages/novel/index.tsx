@@ -61,6 +61,7 @@ const NovelPage = () => {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [showCategoryNameEditor, setShowCategoryNameEditor] = useState(false)
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -478,9 +479,14 @@ const NovelPage = () => {
       {/* Character List */}
       <View className="px-4 py-4">
         <View className="flex items-center justify-between mb-3">
-          <Text className="block text-base font-semibold text-gray-900">
-            {CATEGORY_CONFIG[activeCategory].label}
-          </Text>
+          <View
+            className="flex-1"
+            onClick={() => handleCategoryTap(activeCategory)}
+          >
+            <Text className="block text-base font-semibold text-gray-900">
+              {getCategoryName(activeCategory)}
+            </Text>
+          </View>
           <View className="relative">
             <Button
               size="sm"
@@ -1207,6 +1213,45 @@ const NovelPage = () => {
             <Button
               className="flex-1 bg-rose-500 text-white rounded-xl"
               onClick={handleSaveNickname}
+            >
+              <Text className="text-white">保存</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Name Editor Dialog */}
+      <Dialog open={showCategoryNameEditor} onOpenChange={setShowCategoryNameEditor}>
+        <DialogContent className="bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="text-gray-900 text-lg font-bold">修改分类名称</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="text-gray-400 text-sm">双击分类标题可自定义显示名称</Text>
+            </DialogDescription>
+          </DialogHeader>
+          <View className="mt-4">
+            <View className="bg-stone-50 rounded-xl px-4 py-3">
+              <Input
+                className="w-full bg-transparent text-gray-900"
+                placeholder="分类名称"
+                value={editingCategoryName}
+                onInput={(e) => setEditingCategoryName(e.detail.value)}
+              />
+            </View>
+          </View>
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowCategoryNameEditor(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={handleSaveCategoryName}
             >
               <Text className="text-white">保存</Text>
             </Button>
