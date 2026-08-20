@@ -4,7 +4,7 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, Trash2, Sparkles } from 'lucide-react-taro'
+import { Brain, Trash2, Sparkles, BookOpen } from 'lucide-react-taro'
 
 interface Memory {
   id: number
@@ -22,19 +22,43 @@ interface Character {
   category: string
 }
 
+interface Novel {
+  id: string
+  name: string
+}
+
 const MemoriesPage = () => {
+  const [novels, setNovels] = useState<Novel[]>([])
+  const [selectedNovel, setSelectedNovel] = useState<string | null>(null)
   const [characters, setCharacters] = useState<Character[]>([])
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null)
   const [memories, setMemories] = useState<Memory[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [novelsLoading, setNovelsLoading] = useState(true)
 
-  const fetchCharacters = useCallback(async () => {
+  const fetchNovels = useCallback(async () => {
     try {
-      const res = await Network.request({ url: '/api/characters' })
+      setNovelsLoading(true)
+      const res = await Network.request({ url: '/api/novels' })
+      const data = res.data?.data || res.data
+      setNovels(data || [])
+    } catch (err) {
+      console.error('fetch novels error:', err)
+    } finally {
+      setNovelsLoading(false)
+    }
+  }, [])
+
+  const fetchCharacters = useCallback(async (novelId: string) => {
+    try {
+      setLoading(true)
+      const res = await Network.request({ url: `/api/characters?novel_id=${novelId}` })
       const data = res.data?.data || res.data
       setCharacters(data || [])
     } catch (err) {
       console.error('fetch characters error:', err)
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -54,8 +78,15 @@ const MemoriesPage = () => {
   }, [])
 
   useDidShow(() => {
-    fetchCharacters()
+    fetchNovels()
   })
+
+  const handleSelectNovel = (novelId: string) => {
+    setSelectedNovel(novelId)
+    setSelectedCharacter(null)
+    setMemories([])
+    fetchCharacters(novelId)
+  }
 
   const handleSelectCharacter = (characterId: string) => {
     setSelectedCharacter(characterId)
@@ -113,7 +144,7 @@ const MemoriesPage = () => {
     return colors[type] || '#6b7280'
   }
 
-  if (loading && memories.length === 0) {
+  if (novelsLoading) {
     return (
       <View className="flex items-center justify-center h-screen">
         <Text className="text-gray-400">加载中...</Text>
@@ -134,26 +165,54 @@ const MemoriesPage = () => {
         </Text>
       </View>
 
-      {/* Character Selection */}
+      {/* Novel Selection */}
       <View className="px-4 mt-4">
-        <Text className="block text-sm font-medium text-gray-700 mb-3">选择角色</Text>
+        <Text className="block text-sm font-medium text-gray-700 mb-3">选择世界</Text>
         <View className="flex flex-wrap gap-2">
-          {characters.map((char) => (
+          {novels.map((novel) => (
             <Button
-              key={char.id}
-              variant={selectedCharacter === char.id ? 'default' : 'outline'}
+              key={novel.id}
+              variant={selectedNovel === novel.id ? 'default' : 'outline'}
               className={`text-sm ${
-                selectedCharacter === char.id
+                selectedNovel === novel.id
                   ? 'bg-rose-500 text-white border-0'
                   : 'border-rose-200 text-gray-700'
               }`}
-              onClick={() => handleSelectCharacter(char.id)}
+              onClick={() => handleSelectNovel(novel.id)}
             >
-              {char.name}
+              <BookOpen size={14} color={selectedNovel === novel.id ? '#fff' : '#e8587a'} />
+              <Text className="text-sm ml-1">{novel.name}</Text>
             </Button>
           ))}
         </View>
       </View>
+
+      {/* Character Selection */}
+      {selectedNovel && (
+        <View className="px-4 mt-4">
+          <Text className="block text-sm font-medium text-gray-700 mb-3">选择角色</Text>
+          {characters.length === 0 ? (
+            <Text className="block text-sm text-gray-400">该世界暂无角色</Text>
+          ) : (
+            <View className="flex flex-wrap gap-2">
+              {characters.map((char) => (
+                <Button
+                  key={char.id}
+                  variant={selectedCharacter === char.id ? 'default' : 'outline'}
+                  className={`text-sm ${
+                    selectedCharacter === char.id
+                      ? 'bg-rose-500 text-white border-0'
+                      : 'border-rose-200 text-gray-700'
+                  }`}
+                  onClick={() => handleSelectCharacter(char.id)}
+                >
+                  {char.name}
+                </Button>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Memories List */}
       {selectedCharacter && (
@@ -174,7 +233,11 @@ const MemoriesPage = () => {
             )}
           </View>
 
-          {memories.length === 0 ? (
+          {loading ? (
+            <View className="flex items-center justify-center py-8">
+              <Text className="text-gray-400">加载中...</Text>
+            </View>
+          ) : memories.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="p-8 text-center">
                 <Sparkles size={48} color="#d1d5db" />
@@ -238,10 +301,10 @@ const MemoriesPage = () => {
               关于记忆系统
             </Text>
             <Text className="block text-xs text-blue-700 leading-relaxed">
-              • 记忆系统让角色能够记住重要信息，不会因对话过长而遗忘{'\n'}
-              • 每次对话有 20% 概率提取关键记忆（重要性 {'>'} 70% 才会保存）{'\n'}
-              • 对话时会自动加载关键记忆到上下文，让角色表现更连贯{'\n'}
-              • 定期清理旧记忆，保持上下文窗口高效利用
+              {'\u2022'} 记忆系统让角色能够记住重要信息，不会因对话过长而遗忘{'\n'}
+              {'\u2022'} 每次对话有 20% 概率提取关键记忆（重要性 {'>'} 70% 才会保存）{'\n'}
+              {'\u2022'} 对话时会自动加载关键记忆到上下文，让角色表现更连贯{'\n'}
+              {'\u2022'} 定期清理旧记忆，保持上下文窗口高效利用
             </Text>
           </CardContent>
         </Card>
