@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin } from 'lucide-react-taro'
+import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, MessageCircle, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -121,7 +121,11 @@ const NovelPage = () => {
   const [editingName, setEditingName] = useState<string>('')
   const [showNicknameEditor, setShowNicknameEditor] = useState(false)
   const [editingNickname, setEditingNickname] = useState('')
-  const [activeBottomTab, setActiveBottomTab] = useState<'friends' | 'news'>('friends')
+  const [activeBottomTab, setActiveBottomTab] = useState<'friends' | 'groupChat' | 'news'>('friends')
+
+  // Group chat loading state (groupChats already declared above)
+  const [groupChatLoading] = useState(false)
+  const [showCreateGroupDialog, setShowCreateGroupDialog] = useState(false)
 
   // Character settings menu
   const [settingsMenuCharId, setSettingsMenuCharId] = useState<string | null>(null)
@@ -613,156 +617,222 @@ const NovelPage = () => {
           </View>
         </View>
 
-        {/* Group Chats Section */}
-        {groupChats.length > 0 && (
-          <View className="mb-4">
-            <Text className="block text-sm text-gray-500 mb-2">群聊({groupChats.length})</Text>
-            <View className="flex flex-col gap-1 bg-white rounded-2xl overflow-hidden">
-              {groupChats.map((group) => (
-                <View
-                  key={group.id}
-                  className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-b-0 active:bg-gray-50"
-                  onClick={() =>
-                    Taro.navigateTo({
-                      url: `/pages/group-chat/index?id=${group.id}`,
-                    })
-                  }
-                >
-                  <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
-                    <Users size={22} color="#e8587a" />
-                  </View>
-                  <View className="flex-1 min-w-0">
-                    <View className="flex items-center gap-2">
+        {/* Friends Tab Content */}
+        {activeBottomTab === 'friends' && (
+          <>
+            {/* Group Chats Section */}
+            {groupChats.length > 0 && (
+              <View className="mb-4">
+                <Text className="block text-sm text-gray-500 mb-2">群聊({groupChats.length})</Text>
+                <View className="flex flex-col gap-1 bg-white rounded-2xl overflow-hidden">
+                  {groupChats.map((group) => (
+                    <View
+                      key={group.id}
+                      className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-b-0 active:bg-gray-50"
+                      onClick={() =>
+                        Taro.navigateTo({
+                          url: `/pages/group-chat/index?id=${group.id}`,
+                        })
+                      }
+                    >
+                      <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                        <Users size={22} color="#e8587a" />
+                      </View>
+                      <View className="flex-1 min-w-0">
+                        <View className="flex items-center gap-2">
+                          <Text className="block text-base font-medium text-gray-900 truncate">
+                            {group.name}
+                          </Text>
+                        </View>
+                        <Text className="block text-xs text-gray-500 mt-1 truncate">
+                          {group.member_count}位成员 · {group.message_count}条消息
+                        </Text>
+                      </View>
+                      <MessagesSquare size={18} color="#d1a3ad" />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {loading ? (
+              <View className="grid grid-cols-3 gap-3">
+                {[1, 2].map((i) => (
+                  <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+                ))}
+              </View>
+            ) : filteredCharacters.length === 0 ? (
+              <View className="flex flex-col items-center py-12">
+                <Text className="block text-gray-400 text-center text-sm">
+                  暂无{CATEGORY_CONFIG[activeCategory].label}{'\n'}点击右上角 + 添加朋友
+                </Text>
+              </View>
+            ) : (
+              <View className="flex flex-col gap-3">
+                {filteredCharacters.map((char) => {
+                  return (
+                    <View
+                      key={char.id}
+                      className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2 relative"
+                      onClick={() => goToChat(char)}
+                    >
+                      {char.is_pinned && (
+                        <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, transform: 'rotate(-45deg)' }}>
+                          <Pin size={12} color="#e8587a" strokeWidth={2.5} />
+                        </View>
+                      )}
+                      {/* Avatar */}
+                      <View className="relative w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                        {char.avatar_url ? (
+                          <Image
+                            src={char.avatar_url}
+                            className="w-full h-full"
+                            mode="aspectFill"
+                            style={{ objectPosition: 'top center' }}
+                          />
+                        ) : (
+                          <View className="w-full h-full flex items-center justify-center bg-pink-100">
+                            <Bot size={24} color="#e8587a" />
+                          </View>
+                        )}
+                      </View>
+                      {/* Name & Info */}
+                      <View className="flex-1 min-w-0">
+                        <View className="flex items-center gap-2">
+                          <Text className="block text-base font-medium text-gray-900">
+                            {char.name}
+                          </Text>
+                          {char.status === 'flaming' && (
+                            <View className="flex items-center">
+                              <Flame size={16} color="#f97316" />
+                            </View>
+                          )}
+                        </View>
+                        {char.tagline && (
+                          <Text className="block text-xs text-gray-500 truncate mt-1">{char.tagline}</Text>
+                        )}
+                      </View>
+                      {/* Settings Menu */}
+                      <View className="relative">
+                        <View
+                          className="flex items-center justify-center flex-shrink-0 p-2"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSettingsMenuCharId(char.id)
+                          }}
+                        >
+                          <Wrench size={20} color="#ec4899" />
+                        </View>
+
+                        {/* Popup Menu */}
+                        {settingsMenuCharId === char.id && (
+                          <>
+                            <View className="fixed inset-0 z-40" onClick={closeSettingsMenu} />
+                            <View
+                              className="absolute right-0 top-10 z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                              style={{ minWidth: '120px' }}
+                            >
+                              <View
+                                className="px-4 py-3 active:bg-gray-100"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openDetail(char)
+                                  closeSettingsMenu()
+                                }}
+                              >
+                                <Text className="block text-sm text-gray-700 text-center">编辑角色</Text>
+                              </View>
+                              <View
+                                className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  togglePin(char.id)
+                                }}
+                              >
+                                <Text className="block text-sm text-gray-700 text-center">
+                                  {char.is_pinned ? '取消置顶' : '置顶聊天'}
+                                </Text>
+                              </View>
+                              <View
+                                className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  Taro.navigateTo({ url: '/pages/agent-feedback/index' })
+                                  closeSettingsMenu()
+                                }}
+                              >
+                                <Text className="block text-sm text-gray-700 text-center">Agent 反馈</Text>
+                              </View>
+                            </View>
+                          </>
+                        )}
+                      </View>
+                    </View>
+                  )
+                })}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Group Chat Tab Content */}
+        {activeBottomTab === 'groupChat' && (
+          <View className="flex flex-col gap-4">
+            {/* Create Group Chat Button */}
+            <View
+              className="flex items-center gap-3 px-4 py-4 bg-white rounded-xl active:bg-gray-50"
+              onClick={() => setShowCreateGroupDialog(true)}
+            >
+              <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                <Plus size={24} color="#e8587a" />
+              </View>
+              <View className="flex-1">
+                <Text className="block text-base font-medium text-gray-900">创建群聊</Text>
+                <Text className="block text-xs text-gray-500 mt-1">选择角色创建新的群聊</Text>
+              </View>
+            </View>
+
+            {/* Group Chat List */}
+            {groupChatLoading ? (
+              <View className="flex flex-col gap-3">
+                {[1, 2].map((i) => (
+                  <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+                ))}
+              </View>
+            ) : groupChats.length === 0 ? (
+              <View className="flex flex-col items-center py-12">
+                <Text className="block text-gray-400 text-center text-sm">
+                  暂无群聊{'\n'}点击上方按钮创建群聊
+                </Text>
+              </View>
+            ) : (
+              <View className="flex flex-col gap-3">
+                {groupChats.map((group) => (
+                  <View
+                    key={group.id}
+                    className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50"
+                    onClick={() =>
+                      Taro.navigateTo({
+                        url: `/pages/group-chat/index?id=${group.id}`,
+                      })
+                    }
+                  >
+                    <View className="w-12 h-12 rounded-lg bg-rose-50 flex items-center justify-center flex-shrink-0">
+                      <Users size={22} color="#e8587a" />
+                    </View>
+                    <View className="flex-1 min-w-0">
                       <Text className="block text-base font-medium text-gray-900 truncate">
                         {group.name}
                       </Text>
-                    </View>
-                    <Text className="block text-xs text-gray-500 mt-1 truncate">
-                      {group.member_count}位成员 · {group.message_count}条消息
-                    </Text>
-                  </View>
-                  <MessagesSquare size={18} color="#d1a3ad" />
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {loading ? (
-          <View className="grid grid-cols-3 gap-3">
-            {[1, 2].map((i) => (
-              <View key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
-            ))}
-          </View>
-        ) : filteredCharacters.length === 0 ? (
-          <View className="flex flex-col items-center py-12">
-            <Text className="block text-gray-400 text-center text-sm">
-              暂无{CATEGORY_CONFIG[activeCategory].label}{'\n'}点击右上角 + 添加朋友
-            </Text>
-          </View>
-        ) : (
-          <View className="flex flex-col gap-3">
-            {filteredCharacters.map((char) => {
-              return (
-                <View
-                  key={char.id}
-                  className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl active:bg-gray-50 mb-2 relative"
-                  onClick={() => goToChat(char)}
-                >
-                  {char.is_pinned && (
-                    <View style={{ position: 'absolute', top: 6, left: 6, zIndex: 10, transform: 'rotate(-45deg)' }}>
-                      <Pin size={12} color="#e8587a" strokeWidth={2.5} />
-                    </View>
-                  )}
-                  {/* Avatar */}
-                  <View className="relative w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                    {char.avatar_url ? (
-                      <Image
-                        src={char.avatar_url}
-                        className="w-full h-full"
-                        mode="aspectFill"
-                        style={{ objectPosition: 'top center' }}
-                      />
-                    ) : (
-                      <View className="w-full h-full flex items-center justify-center bg-pink-100">
-                        <Bot size={24} color="#e8587a" />
-                      </View>
-                    )}
-                  </View>
-                  {/* Name & Info */}
-                  <View className="flex-1 min-w-0">
-                    <View className="flex items-center gap-2">
-                      <Text className="block text-base font-medium text-gray-900">
-                        {char.name}
+                      <Text className="block text-xs text-gray-500 mt-1 truncate">
+                        {group.member_count}位成员 · {group.message_count}条消息
                       </Text>
-                      {char.status === 'flaming' && (
-                        <View className="flex items-center">
-                          <Flame size={16} color="#f97316" />
-                        </View>
-                      )}
                     </View>
-                    {char.tagline && (
-                      <Text className="block text-xs text-gray-500 truncate mt-1">{char.tagline}</Text>
-                    )}
+                    <MessagesSquare size={18} color="#d1a3ad" />
                   </View>
-                  {/* Settings Menu */}
-                  <View className="relative">
-                    <View
-                      className="flex items-center justify-center flex-shrink-0 p-2"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSettingsMenuCharId(char.id)
-                      }}
-                    >
-                      <Wrench size={20} color="#ec4899" />
-                    </View>
-
-                    {/* Popup Menu */}
-                    {settingsMenuCharId === char.id && (
-                      <>
-                        <View className="fixed inset-0 z-40" onClick={closeSettingsMenu} />
-                        <View
-                          className="absolute right-0 top-10 z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
-                          style={{ minWidth: '120px' }}
-                        >
-                          <View
-                            className="px-4 py-3 active:bg-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openDetail(char)
-                              closeSettingsMenu()
-                            }}
-                          >
-                            <Text className="block text-sm text-gray-700 text-center">编辑角色</Text>
-                          </View>
-                          <View
-                            className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              togglePin(char.id)
-                            }}
-                          >
-                            <Text className="block text-sm text-gray-700 text-center">
-                              {char.is_pinned ? '取消置顶' : '置顶聊天'}
-                            </Text>
-                          </View>
-                          <View
-                            className="px-4 py-3 active:bg-gray-100 border-t border-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              Taro.navigateTo({ url: '/pages/agent-feedback/index' })
-                              closeSettingsMenu()
-                            }}
-                          >
-                            <Text className="block text-sm text-gray-700 text-center">Agent 反馈</Text>
-                          </View>
-                        </View>
-                      </>
-                    )}
-                  </View>
-                </View>
-              )
-            })}
+                ))}
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -1427,13 +1497,55 @@ const NovelPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Create Group Chat Dialog */}
+      <Dialog open={showCreateGroupDialog} onOpenChange={setShowCreateGroupDialog}>
+        <DialogContent className="bg-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              <Text className="text-gray-900 text-lg font-bold">创建群聊</Text>
+            </DialogTitle>
+            <DialogDescription>
+              <Text className="text-gray-400 text-sm">输入群聊名称</Text>
+            </DialogDescription>
+          </DialogHeader>
+          <View className="mt-4">
+            <View className="bg-stone-50 rounded-xl px-4 py-3">
+              <Input
+                className="w-full bg-transparent text-gray-900"
+                placeholder="群聊名称"
+                value=""
+                onInput={() => {}}
+              />
+            </View>
+          </View>
+          <View className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1 border-gray-200 text-gray-700 rounded-xl"
+              onClick={() => setShowCreateGroupDialog(false)}
+            >
+              <Text className="text-gray-700">取消</Text>
+            </Button>
+            <Button
+              className="flex-1 bg-rose-500 text-white rounded-xl"
+              onClick={() => {
+                setShowCreateGroupDialog(false)
+                Taro.showToast({ title: '群聊创建功能开发中', icon: 'none' })
+              }}
+            >
+              <Text className="text-white">创建</Text>
+            </Button>
+          </View>
+        </DialogContent>
+      </Dialog>
+
       {/* Bottom Navigation Bar */}
       <View
         className="fixed left-0 right-0 bottom-0 z-40 bg-white border-t border-gray-100 flex items-center justify-around py-2 pb-safe"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       >
         <View
-          className="flex flex-col items-center py-1 px-6"
+          className="flex flex-col items-center py-1 px-4"
           onClick={() => setActiveBottomTab('friends')}
         >
           <Users size={24} color={activeBottomTab === 'friends' ? '#e8587a' : '#9ca3af'} />
@@ -1445,7 +1557,19 @@ const NovelPage = () => {
           </Text>
         </View>
         <View
-          className="flex flex-col items-center py-1 px-6"
+          className="flex flex-col items-center py-1 px-4"
+          onClick={() => setActiveBottomTab('groupChat')}
+        >
+          <MessageCircle size={24} color={activeBottomTab === 'groupChat' ? '#e8587a' : '#9ca3af'} />
+          <Text
+            className="text-xs mt-1"
+            style={{ color: activeBottomTab === 'groupChat' ? '#e8587a' : '#9ca3af' }}
+          >
+            群聊
+          </Text>
+        </View>
+        <View
+          className="flex flex-col items-center py-1 px-4"
           onClick={() => {
             if (!worldInfoFilled) {
               setShowWorldInfoDialog(true)
