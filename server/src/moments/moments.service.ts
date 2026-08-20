@@ -513,4 +513,67 @@ ${relationContext}
     }
     return data;
   }
+
+  /** 每日刷新朋友圈：每天只能刷新一次，一次生成3-5条 */
+  async refreshMoments(novelId: string) {
+    // 检查今天是否已经刷新过
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    const { data: existingRefresh } = await this.client
+      .from('moment_refresh_logs')
+      .select('id')
+      .eq('novel_id', novelId)
+      .eq('refresh_date', todayStr)
+      .maybeSingle();
+
+    if (existingRefresh) {
+      return { alreadyRefreshed: true, count: 0 };
+    }
+
+    // 获取该小说下的所有角色
+    const { data: characters } = await this.client
+      .from('characters')
+      .select('id, name, persona, tagline, avatar_key')
+      .eq('novel_id', novelId);
+
+    if (!characters || characters.length === 0) {
+      return { alreadyRefreshed: false, count: 0 };
+    }
+
+    // 随机选择3-5个角色
+    const count = 3 + Math.floor(Math.random() * 3); // 3-5
+    const shuffled = [...characters].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(count, characters.length));
+
+    // 为每个选中的角色生成朋友圈
+    for (const character of selected) {
+      try {
+        const content = await this.generateMomentContent(character.id, novelId);
+
+        // 插入朋友圈记录
+        await this.client.from('moments').insert({
+          character_id: character.id,
+          novel_id: novelId,
+          content,
+          image_url: null,
+          visibility: 'public',
+          author_type: 'character',
+          author_name: character.name,
+        });
+      } catch {
+        // 单个角色生成失败不影响其他
+      }
+    }
+
+    // 记录今天已刷新
+    await this.client.from('moment_refresh_logs').insert({
+      novel_id: novelId,
+      refresh_date: todayStr,
+      count: selected.length,
+    });
+
+    return { alreadyRefreshed: false, count: selected.length };
+  }
 }

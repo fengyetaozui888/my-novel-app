@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Heart, MessageCircle, Camera, ImagePlus, Plus, X } from 'lucide-react-taro'
+import { Heart, MessageCircle, Camera, ImagePlus, Plus, X, RefreshCw } from 'lucide-react-taro'
 
 interface Comment {
   id: string
@@ -341,6 +341,29 @@ export default function MomentsPage() {
 
   const isUserMoment = (m: Moment) => m.authorType === 'user'
 
+  const handleRefreshMoments = async () => {
+    if (!novelId) return
+    try {
+      const res = await Network.request({
+        url: '/api/moments/refresh',
+        method: 'POST',
+        data: { novelId }
+      })
+      console.log('Refresh moments response:', res.data)
+      if (res.data?.code === 200) {
+        if (res.data.data?.alreadyRefreshed) {
+          Taro.showToast({ title: '今日刷新次数已用完，明天再来吧~', icon: 'none', duration: 2000 })
+        } else {
+          Taro.showToast({ title: '刷新成功', icon: 'success' })
+          await loadMoments()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh moments:', error)
+      Taro.showToast({ title: '刷新失败', icon: 'error' })
+    }
+  }
+
   return (
     <View className="bg-pink-50" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* 整页滚动：背景与标题随内容一起上滑（微信朋友圈式） */}
@@ -369,8 +392,20 @@ export default function MomentsPage() {
 
         {/* 头部内容 */}
         <View className="relative h-full flex flex-col justify-end px-4 pb-4">
-          <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{characterIdParam && moments.length > 0 ? `${moments[0].characterName}的朋友圈` : '朋友圈'}</Text>
-          <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>{characterIdParam ? 'TA 发布过的动态' : '角色们的日常动态'}</Text>
+          <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <View>
+              <Text className="text-white text-xl font-bold mb-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{characterIdParam && moments.length > 0 ? `${moments[0].characterName}的朋友圈` : '朋友圈'}</Text>
+              <Text className="text-white text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>{characterIdParam ? 'TA 发布过的动态' : '角色们的日常动态'}</Text>
+            </View>
+            {!characterIdParam && (
+              <View
+                style={{ backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: '9999px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={handleRefreshMoments}
+              >
+                <RefreshCw size={18} color="#ffffff" />
+              </View>
+            )}
+          </View>
         </View>
 
       </View>

@@ -77,4 +77,10 @@ export class MomentsController {
     const content = await this.momentsService.generateMomentContent(body.characterId, body.novelId)
     return { code: 200, msg: 'success', data: { content } }
   }
+
+  @Post('refresh')
+  async refreshMoments(@Body() body: { novelId: string }) {
+    const result = await this.momentsService.refreshMoments(body.novelId)
+    return { code: 200, msg: 'success', data: result }
+  }
 }
