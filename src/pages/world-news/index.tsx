@@ -4,7 +4,7 @@ import { View, Text, ScrollView } from '@tarojs/components'
 import { Network } from '@/network'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RefreshCw, Newspaper, ScrollText, Sparkles, Clock } from 'lucide-react-taro'
+import { RefreshCw, Newspaper, ScrollText, Sparkles, Clock, Settings } from 'lucide-react-taro'
 
 interface NewsItem {
   id: string
@@ -126,6 +126,18 @@ export default function WorldNewsPage() {
             <Text className="block text-xl font-bold text-gray-800">{pageTitle}</Text>
             <Text className="block text-xs text-gray-500 mt-1">{novel?.name || ''} · {pageDesc}</Text>
           </View>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (novelId) {
+                Taro.navigateTo({ url: `/pages/world-info/index?id=${novelId}` })
+              }
+            }}
+            className="w-10 h-10 rounded-full bg-white bg-opacity-60 flex items-center justify-center"
+          >
+            <Settings size={18} color="#666" />
+          </Button>
         </View>
       </View>
 
