@@ -194,7 +194,7 @@ const IndexPage = () => {
                     className="relative w-16 h-20 rounded-xl overflow-hidden bg-pink-50 flex items-center justify-center flex-shrink-0"
                     onClick={() => handleChooseCover(novel)}
                   >
-                    {novel.cover_url ? (
+                    {novel.cover_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(novel.cover_url) ? (
                       <Image
                         src={novel.cover_url}
                         className="w-full h-full"
