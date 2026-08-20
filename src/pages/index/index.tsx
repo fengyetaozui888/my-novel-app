@@ -285,16 +285,16 @@ const IndexPage = () => {
             <Text className="block text-gray-400 text-sm mt-4 mb-2">世界时代</Text>
             <View className="flex gap-3">
               <View
-                className={`flex-1 rounded-xl px-4 py-3 border ${newEra === 'ancient' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
+                className={`flex-1 rounded-xl px-3 py-2 border ${newEra === 'ancient' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
                 onClick={() => setNewEra('ancient')}
               >
-                <Text className={`block text-center ${newEra === 'ancient' ? 'text-rose-600' : 'text-gray-500'}`}>古代世界</Text>
+                <Text className={`block text-center text-sm ${newEra === 'ancient' ? 'text-rose-600' : 'text-gray-500'}`}>古代世界</Text>
               </View>
               <View
-                className={`flex-1 rounded-xl px-4 py-3 border ${newEra === 'modern' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
+                className={`flex-1 rounded-xl px-3 py-2 border ${newEra === 'modern' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
                 onClick={() => setNewEra('modern')}
               >
-                <Text className={`block text-center ${newEra === 'modern' ? 'text-rose-600' : 'text-gray-500'}`}>现代世界</Text>
+                <Text className={`block text-center text-sm ${newEra === 'modern' ? 'text-rose-600' : 'text-gray-500'}`}>现代世界</Text>
               </View>
             </View>
           </View>
