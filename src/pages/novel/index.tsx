@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
-import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare } from 'lucide-react-taro'
+import { Plus, Pencil, MessageCircle, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, User, Flame, UserPlus, MessagesSquare, Newspaper, ScrollText, ChevronRight } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -68,6 +68,7 @@ const NovelPage = () => {
     if (novelId) {
       fetchCharacters()
       fetchGroupChats()
+      fetchNovelEra()
     }
   }, [novelId])
 
@@ -104,6 +105,20 @@ const NovelPage = () => {
   // Plus menu & group chats
   const [showPlusMenu, setShowPlusMenu] = useState(false)
   const [groupChats, setGroupChats] = useState<GroupChat[]>([])
+  const [novelEra, setNovelEra] = useState<'ancient' | 'modern'>('ancient')
+
+  const fetchNovelEra = useCallback(async () => {
+    if (!novelId) return
+    try {
+      const res = await Network.request({ url: `/api/novels` })
+      console.log('fetchNovelEra response:', res.data)
+      const list = (res.data as { data?: Array<{ id: string; era?: string }> })?.data || []
+      const current = list.find((n) => n.id === novelId)
+      if (current?.era) setNovelEra(current.era === 'modern' ? 'modern' : 'ancient')
+    } catch (e) {
+      console.error('fetchNovelEra failed:', e)
+    }
+  }, [novelId])
 
   const fetchGroupChats = useCallback(async () => {
     if (!novelId) return
@@ -321,6 +336,33 @@ const NovelPage = () => {
             </View>
           )
         })}
+      </View>
+
+      {/* World News Entry: 奇闻轶事(古代) / 世界日常(现代) */}
+      <View className="px-4 mt-3">
+        <View
+          className="flex items-center justify-between bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl px-4 py-3 border border-rose-100"
+          onClick={() => Taro.navigateTo({ url: `/pages/world-news/index?id=${novelId}` })}
+        >
+          <View className="flex items-center gap-2.5">
+            <View className="w-9 h-9 rounded-xl bg-rose-500 bg-opacity-10 flex items-center justify-center">
+              {novelEra === 'modern' ? (
+                <Newspaper size={18} color="#f43f5e" />
+              ) : (
+                <ScrollText size={18} color="#f43f5e" />
+              )}
+            </View>
+            <View>
+              <Text className="block text-sm font-semibold text-gray-900">
+                {novelEra === 'modern' ? '世界日常' : '奇闻轶事'}
+              </Text>
+              <Text className="block text-xs text-gray-500">
+                {novelEra === 'modern' ? '本世界的新鲜动向与八卦' : '本世界的趣事与传闻'}
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={16} color="#d4a0a8" />
+        </View>
       </View>
 
       {/* Character List */}

@@ -13,7 +13,7 @@ export class NovelsService {
   async findAll() {
     const { data, error } = await this.client
       .from('novels')
-      .select('id, name, cover_key, created_at, updated_at')
+      .select('id, name, era, news_refreshed_date, cover_key, created_at, updated_at')
       .order('created_at', { ascending: false });
     if (error) throw new Error(`查询小说列表失败: ${error.message}`);
 
@@ -35,10 +35,10 @@ export class NovelsService {
     return novelsWithUrls;
   }
 
-  async create(name: string) {
+  async create(name: string, era?: string) {
     const { data, error } = await this.client
       .from('novels')
-      .insert({ name })
+      .insert({ name, era: era || 'ancient' })
       .select()
       .single();
     if (error) throw new Error(`创建小说失败: ${error.message}`);

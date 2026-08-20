@@ -23,8 +23,8 @@ export class NovelsController {
 
   @Post()
   @HttpCode(200)
-  async create(@Body() body: { name: string }) {
-    const data = await this.novelsService.create(body.name);
+  async create(@Body() body: { name: string; era?: string }) {
+    const data = await this.novelsService.create(body.name, body.era);
     return { code: 200, msg: 'success', data };
   }
 

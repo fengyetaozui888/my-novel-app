@@ -14,9 +14,10 @@ import { AgentFeedbackModule } from '@/agent-feedback/agent-feedback.module';
 import { CafeModule } from '@/cafe/cafe.module';
 import { HelpAskModule } from '@/help-ask/help-ask.module';
 import { GroupChatModule } from '@/group-chat/group-chat.module';
+import { WorldNewsModule } from '@/world-news/world-news.module';
 
 @Module({
-  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule, RelationshipsModule, PortraitModule, MomentsModule, AffinityModule, AgentFeedbackModule, CafeModule, HelpAskModule, GroupChatModule],
+  imports: [NovelsModule, CharactersModule, ChatModule, UploadModule, UsersModule, RelationshipsModule, PortraitModule, MomentsModule, AffinityModule, AgentFeedbackModule, CafeModule, HelpAskModule, GroupChatModule, WorldNewsModule],
   controllers: [AppController],
   providers: [AppService],
 })

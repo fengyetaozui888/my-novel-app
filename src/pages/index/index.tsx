@@ -24,6 +24,7 @@ const IndexPage = () => {
   const [showRenameDialog, setShowRenameDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [newName, setNewName] = useState('')
+  const [newEra, setNewEra] = useState<'ancient' | 'modern'>('ancient')
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
 
@@ -51,9 +52,10 @@ const IndexPage = () => {
       await Network.request({
         url: '/api/novels',
         method: 'POST',
-        data: { name: newName.trim() },
+        data: { name: newName.trim(), era: newEra },
       })
       setNewName('')
+      setNewEra('ancient')
       setShowAddDialog(false)
       fetchNovels()
     } catch (err) {
@@ -279,6 +281,21 @@ const IndexPage = () => {
                 value={newName}
                 onInput={(e) => setNewName(e.detail.value)}
               />
+            </View>
+            <Text className="block text-gray-400 text-sm mt-4 mb-2">世界时代</Text>
+            <View className="flex gap-3">
+              <View
+                className={`flex-1 rounded-xl px-4 py-3 border ${newEra === 'ancient' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
+                onClick={() => setNewEra('ancient')}
+              >
+                <Text className={`block text-center ${newEra === 'ancient' ? 'text-rose-600' : 'text-gray-500'}`}>古代世界</Text>
+              </View>
+              <View
+                className={`flex-1 rounded-xl px-4 py-3 border ${newEra === 'modern' ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-stone-50'}`}
+                onClick={() => setNewEra('modern')}
+              >
+                <Text className={`block text-center ${newEra === 'modern' ? 'text-rose-600' : 'text-gray-500'}`}>现代世界</Text>
+              </View>
             </View>
           </View>
           <View className="flex gap-3 mt-6">
