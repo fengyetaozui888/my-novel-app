@@ -737,7 +737,7 @@ const ChatPage = () => {
                           {speaker.name}
                         </Text>
                         <Text className="block text-xs text-gray-500">
-                          {speaker.relation_type}
+                          信息
                         </Text>
                       </View>
                       {isSelected && <Check size={18} color="#ec4899" />}

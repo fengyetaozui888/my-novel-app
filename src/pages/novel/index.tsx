@@ -17,6 +17,7 @@ interface Character {
   avatar_key: string | null
   avatar_url: string | null
   gender: string
+  age: string | null
   tagline: string | null
   status: string | null
   persona: string | null
@@ -88,7 +89,11 @@ const NovelPage = () => {
     examples: '',
     gender: 'unknown',
     tagline: '',
+    age: null as string | null,
   })
+
+  // Gender dropdown
+  const [showGenderDropdown, setShowGenderDropdown] = useState(false)
 
   // Field editor
   const [showFieldEditor, setShowFieldEditor] = useState(false)
@@ -296,6 +301,7 @@ const NovelPage = () => {
       examples: char.examples || '',
       gender: char.gender || 'unknown',
       tagline: char.tagline || '',
+      age: char.age || null,
     })
     setShowDetailDialog(true)
   }
@@ -423,10 +429,10 @@ const NovelPage = () => {
           <View className="relative">
             <Button
               size="sm"
-              className="bg-rose-500 text-white rounded-full w-9 h-9 p-0 flex items-center justify-center"
+              className="bg-rose-500 text-white rounded-full w-8 h-8 p-0 flex items-center justify-center"
               onClick={() => setShowPlusMenu(!showPlusMenu)}
             >
-              <Plus size={18} color="#ffffff" className={showPlusMenu ? 'rotate-45 transition-transform' : 'transition-transform'} />
+              <Plus size={16} color="#ffffff" className={showPlusMenu ? 'rotate-45 transition-transform' : 'transition-transform'} />
             </Button>
             {showPlusMenu && (
               <>
@@ -731,50 +737,56 @@ const NovelPage = () => {
             </View>
           </DialogHeader>
 
-          {/* Gender Selection */}
-          <View className="flex items-center justify-center gap-6 py-2">
-            <View className="flex flex-col items-center gap-2">
-              <View
-                className="relative w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  background:
-                    detailForm.gender === 'female'
-                      ? 'linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%)'
-                      : '#f5f5f5',
-                  border: detailForm.gender === 'female' ? '2px solid #ec4899' : '2px solid #e0e0e0',
-                }}
-                onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'female' }))}
-              >
-                <Text className="text-4xl" style={{ color: '#ec4899', fontWeight: 400 }}>♀</Text>
-                {detailForm.gender === 'female' && (
-                  <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                    <Text className="text-white text-xs font-bold">✓</Text>
+          {/* Gender Selection - Dropdown */}
+          <View className="flex items-center gap-4 py-2">
+            {/* Gender Dropdown */}
+            <View className="flex-1">
+              <Text className="block text-sm text-gray-600 mb-2">性别</Text>
+              <View className="relative">
+                <View
+                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between"
+                  onClick={() => setShowGenderDropdown(!showGenderDropdown)}
+                >
+                  <Text className="text-sm text-gray-700">
+                    {detailForm.gender === 'female' ? '女' : detailForm.gender === 'male' ? '男' : '请选择'}
+                  </Text>
+                  <Text className="text-gray-400">▼</Text>
+                </View>
+                {showGenderDropdown && (
+                  <View className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <View
+                      className="px-4 py-3 border-b border-gray-100 active:bg-gray-50"
+                      onClick={() => {
+                        setDetailForm((prev) => ({ ...prev, gender: 'female' }))
+                        setShowGenderDropdown(false)
+                      }}
+                    >
+                      <Text className="text-sm text-gray-700">女</Text>
+                    </View>
+                    <View
+                      className="px-4 py-3 active:bg-gray-50"
+                      onClick={() => {
+                        setDetailForm((prev) => ({ ...prev, gender: 'male' }))
+                        setShowGenderDropdown(false)
+                      }}
+                    >
+                      <Text className="text-sm text-gray-700">男</Text>
+                    </View>
                   </View>
                 )}
               </View>
-              <Text className="text-xs text-gray-600">女生</Text>
             </View>
 
-            <View className="flex flex-col items-center gap-2">
-              <View
-                className="relative w-16 h-16 rounded-full flex items-center justify-center"
-                style={{
-                  background:
-                    detailForm.gender === 'male'
-                      ? 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)'
-                      : '#f5f5f5',
-                  border: detailForm.gender === 'male' ? '2px solid #2196f3' : '2px solid #e0e0e0',
-                }}
-                onClick={() => setDetailForm((prev) => ({ ...prev, gender: 'male' }))}
-              >
-                <Text className="text-4xl" style={{ color: '#2196f3', fontWeight: 400 }}>♂</Text>
-                {detailForm.gender === 'male' && (
-                  <View className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center">
-                    <Text className="text-white text-xs font-bold">✓</Text>
-                  </View>
-                )}
-              </View>
-              <Text className="text-xs text-gray-600">男生</Text>
+            {/* Age Input */}
+            <View className="flex-1">
+              <Text className="block text-sm text-gray-600 mb-2">年龄</Text>
+              <Input
+                className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700 w-full"
+                placeholder="请输入年龄"
+                value={detailForm.age || ''}
+                type="number"
+                onInput={(e) => setDetailForm((prev) => ({ ...prev, age: e.detail.value.replace(/\D/g, '') }))}
+              />
             </View>
           </View>
 
