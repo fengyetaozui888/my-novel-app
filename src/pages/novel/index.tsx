@@ -737,12 +737,12 @@ const NovelPage = () => {
             </View>
           </DialogHeader>
 
-          {/* Gender Selection - Dropdown */}
-          <View className="flex items-center gap-4 py-2">
+          {/* Gender and Age Row */}
+          <View className="flex items-start gap-4 py-2">
             {/* Gender Dropdown */}
             <View className="flex-1">
               <Text className="block text-sm text-gray-600 mb-2">性别</Text>
-              <View className="relative w-full">
+              <View className="relative">
                 <View
                   className="bg-white border border-gray-200 rounded-lg px-4 py-3 flex items-center justify-between w-full"
                   onClick={() => setShowGenderDropdown(!showGenderDropdown)}
