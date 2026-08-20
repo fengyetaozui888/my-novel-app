@@ -10,28 +10,6 @@ const DialogContext = React.createContext<{
   onOpenChange?: (open: boolean) => void
 } | null>(null)
 
-const usePresence = (open: boolean | undefined, durationMs: number) => {
-  const [present, setPresent] = React.useState(!!open)
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  React.useEffect(() => {
-    if (open) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-      setPresent(true)
-      return
-    }
-
-    timeoutRef.current = setTimeout(() => setPresent(false), durationMs)
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }, [open, durationMs])
-
-  return present
-}
-
 interface DialogProps {
   children: React.ReactNode
   open?: boolean
@@ -81,9 +59,7 @@ DialogTrigger.displayName = "DialogTrigger"
 
 const DialogPortal = ({ children }: { children: React.ReactNode }) => {
     const context = React.useContext(DialogContext)
-    const present = usePresence(context?.open, 200)
-    if (!present) return null
-    
+    if (!context?.open) return null
     return <Portal>{children}</Portal>
 }
 

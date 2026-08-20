@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
@@ -52,6 +52,13 @@ const NovelPage = () => {
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  // Fetch characters on mount
+  useEffect(() => {
+    if (novelId) {
+      fetchCharacters()
+    }
+  }, [novelId])
 
   // Detail form
   const [detailForm, setDetailForm] = useState({
@@ -138,11 +145,13 @@ const NovelPage = () => {
         url: `/api/characters/${selectedChar.id}`,
         method: 'DELETE',
       })
+    } catch (err) {
+      console.error('deleteCharacter error:', err)
+    } finally {
+      // Always close dialog, even if API fails
       setShowDeleteDialog(false)
       setSelectedChar(null)
       fetchCharacters()
-    } catch (err) {
-      console.error('deleteCharacter error:', err)
     }
   }
 
