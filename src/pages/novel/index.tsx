@@ -66,6 +66,8 @@ const NovelPage = () => {
   const [showCategoryNameEditor, setShowCategoryNameEditor] = useState(false)
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
+  // 暂存的新头像（点保存才生效，点取消则丢弃）
+  const [pendingAvatar, setPendingAvatar] = useState<{ key: string | null; localUrl: string } | null>(null)
 
   // Fetch characters on mount
   useEffect(() => {
@@ -550,29 +552,30 @@ const NovelPage = () => {
         sourceType: ['album', 'camera'],
       })
 
-      // 演示数据：仅本地预览，不调后端
-      if (selectedChar.id.startsWith('demo-')) {
-        const file = res.tempFiles[0]?.originalFileObj
-        let localUrl = res.tempFilePaths[0]
+      // 生成本地预览 URL
+      const file = res.tempFiles[0]?.originalFileObj
+      const localUrl = await new Promise<string>((resolve, reject) => {
         if (file) {
-          localUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        } else {
+          resolve(res.tempFilePaths[0])
         }
-        setCharacters((prev) => prev.map((c) => (c.id === selectedChar.id ? { ...c, avatar_url: localUrl } : c)))
-        setSelectedChar((prev) => (prev ? { ...prev, avatar_url: localUrl } : null))
-        Taro.showToast({ title: '头像已更新', icon: 'success' })
+      })
+
+      // 演示数据：仅本地暂存，不调后端
+      if (selectedChar.id.startsWith('demo-')) {
+        setPendingAvatar({ key: null, localUrl })
         return
       }
 
+      // 真实数据：上传图片到服务器拿 key，但先不保存到角色（等点保存）
       const isH5 = Taro.getEnv() === Taro.ENV_TYPE.WEB
       let uploadRes: any
 
-      if (isH5 && res.tempFiles[0]?.originalFileObj) {
-        const file = res.tempFiles[0].originalFileObj
+      if (isH5 && file) {
         const reader = new FileReader()
         reader.readAsArrayBuffer(file)
         const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
@@ -600,16 +603,7 @@ const NovelPage = () => {
         return
       }
 
-      await Network.request({
-        url: `/api/characters/${selectedChar.id}`,
-        method: 'PUT',
-        data: { avatar_key: key },
-      })
-      fetchCharacters()
-      setSelectedChar((prev) =>
-        prev ? { ...prev, avatar_key: key } : null,
-      )
-      Taro.showToast({ title: '头像已更新', icon: 'success' })
+      setPendingAvatar({ key, localUrl })
     } catch (err: any) {
       console.error('uploadAvatar error:', err)
       const msg = err?.message ? String(err.message).slice(0, 20) : '请重试'
@@ -619,6 +613,7 @@ const NovelPage = () => {
 
   const openDetail = (char: Character) => {
     setSelectedChar(char)
+    setPendingAvatar(null)
     setDetailForm({
       persona: char.persona || '',
       background: char.background || '',
@@ -670,6 +665,18 @@ const NovelPage = () => {
   const handleSaveDetail = async () => {
     if (!selectedChar) return
     try {
+      // 演示数据：本地生效即可
+      if (selectedChar.id.startsWith('demo-')) {
+        if (pendingAvatar) {
+          setCharacters((prev) => prev.map((c) => (c.id === selectedChar.id ? { ...c, avatar_url: pendingAvatar.localUrl } : c)))
+          setSelectedChar((prev) => (prev ? { ...prev, avatar_url: pendingAvatar.localUrl } : null))
+        }
+        setPendingAvatar(null)
+        setShowDetailDialog(false)
+        Taro.showToast({ title: '已保存', icon: 'success' })
+        return
+      }
+
       await Network.request({
         url: `/api/characters/${selectedChar.id}`,
         method: 'PUT',
@@ -682,13 +689,21 @@ const NovelPage = () => {
           biography: detailForm.biography,
           principles: detailForm.principles,
           examples: detailForm.examples,
+          avatar_key: pendingAvatar ? pendingAvatar.key : undefined,
         },
       })
+      setPendingAvatar(null)
       setShowDetailDialog(false)
       fetchCharacters()
     } catch (err) {
       console.error('saveDetail error:', err)
     }
+  }
+
+  // Close detail dialog (discard pending avatar)
+  const closeDetailDialog = () => {
+    setPendingAvatar(null)
+    setShowDetailDialog(false)
   }
 
   const goToChat = (char: Character) => {
@@ -1099,7 +1114,7 @@ const NovelPage = () => {
       </Dialog>
 
       {/* Character Detail Dialog (Pink Theme) */}
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+      <Dialog open={showDetailDialog} onOpenChange={(open) => { if (!open) closeDetailDialog(); else setShowDetailDialog(true) }}>
         <DialogContent className="bg-white rounded-2xl max-h-screen overflow-y-auto w-full max-w-md" closeClassName="hidden">
           <DialogHeader className="relative w-full">
             {/* Back arrow outside the pink box, on white background */}
@@ -1108,7 +1123,7 @@ const NovelPage = () => {
                 size={22}
                 color="#c2185b"
                 strokeWidth={2.5}
-                onClick={() => setShowDetailDialog(false)}
+                onClick={closeDetailDialog}
               />
             </View>
             <View
@@ -1131,9 +1146,9 @@ const NovelPage = () => {
                   className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
                   onClick={handleChooseAvatar}
                 >
-                  {selectedChar?.avatar_url ? (
+                  {(pendingAvatar?.localUrl || selectedChar?.avatar_url) ? (
                     <Image
-                      src={selectedChar.avatar_url}
+                      src={pendingAvatar?.localUrl || selectedChar?.avatar_url || ''}
                       className="w-full h-full"
                       mode="aspectFill"
                     />
@@ -1267,7 +1282,7 @@ const NovelPage = () => {
             <Button
               variant="outline"
               className="flex-1 border-gray-200 text-gray-700 rounded-xl"
-              onClick={() => setShowDetailDialog(false)}
+              onClick={closeDetailDialog}
             >
               <Text className="text-gray-700">取消</Text>
             </Button>
