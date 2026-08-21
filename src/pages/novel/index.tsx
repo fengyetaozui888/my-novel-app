@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Portal } from '@/components/ui/portal'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, MessageCircle, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin } from 'lucide-react-taro'
+import { Plus, Pencil, Star, Users, Circle, Camera, Network as NetworkIcon, Trash2, ChevronLeft, Flame, UserPlus, MessagesSquare, MessageCircle, Newspaper, ScrollText, BookOpen, Wrench, Bot, Pin, Upload, Undo2 } from 'lucide-react-taro'
 
 interface Character {
   id: string
@@ -68,6 +68,7 @@ const NovelPage = () => {
   const [newName, setNewName] = useState('')
   // 暂存的新头像（点保存才生效，点取消则丢弃）
   const [pendingAvatar, setPendingAvatar] = useState<{ key: string | null; localUrl: string } | null>(null)
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false)
 
   // Fetch characters on mount
   useEffect(() => {
@@ -1146,20 +1147,7 @@ const NovelPage = () => {
                 {/* Avatar in detail dialog */}
                 <View
                   className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
-                  onClick={() => Taro.showActionSheet({
-                    itemList: ['恢复默认头像', '上传头像'],
-                    success: async (res) => {
-                      if (res.tapIndex === 0) {
-                        // 恢复默认头像：设置 pendingAvatar 为 null key，保存时会清除后端 avatar_key
-                        setPendingAvatar({ key: null, localUrl: '' })
-                        setSelectedChar(prev => prev ? { ...prev, avatar_key: null } : null)
-                        Taro.showToast({ title: '已恢复默认头像（点保存生效）', icon: 'none' })
-                      } else if (res.tapIndex === 1) {
-                        // 上传头像
-                        handleChooseAvatar()
-                      }
-                    }
-                  })}
+                  onClick={() => setShowAvatarMenu(true)}
                 >
                   {/* pendingAvatar.key === null 表示恢复默认，显示首字占位 */}
                   {pendingAvatar?.key === null ? null : (pendingAvatar?.localUrl || selectedChar?.avatar_url) ? (
@@ -1378,6 +1366,84 @@ const NovelPage = () => {
                 }}
               >
                 <Text className="block text-sm text-gray-700">删除人设</Text>
+              </View>
+            </View>
+          </View>
+        </Portal>
+      )}
+
+      {/* Avatar Action Sheet */}
+      {showAvatarMenu && (
+        <Portal>
+          <View
+            className="fixed inset-0 z-[60]"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+            onClick={() => setShowAvatarMenu(false)}
+          >
+            <View
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl"
+              style={{ paddingBottom: '24px', paddingTop: '10px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag handle */}
+              <View className="flex justify-center mb-4">
+                <View className="w-10 h-1 rounded-full bg-gray-200" />
+              </View>
+
+              {/* Header */}
+              <View className="flex items-center gap-3 px-6 mb-5">
+                <View className="w-11 h-11 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+                  <Camera size={20} color="#f43f5e" />
+                </View>
+                <View className="flex-1">
+                  <Text className="block text-base font-bold text-gray-900">更换头像</Text>
+                  <Text className="block text-xs text-gray-500 mt-1">为 {selectedChar?.name} 选择一个新形象</Text>
+                </View>
+              </View>
+
+              {/* Option: Upload */}
+              <View
+                className="mx-4 mb-2 flex items-center gap-3 bg-rose-50 rounded-2xl px-4 py-4"
+                onClick={() => {
+                  setShowAvatarMenu(false)
+                  handleChooseAvatar()
+                }}
+              >
+                <View className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0">
+                  <Upload size={18} color="#ffffff" />
+                </View>
+                <View className="flex-1">
+                  <Text className="block text-sm font-semibold text-gray-900">上传新头像</Text>
+                  <Text className="block text-xs text-gray-500 mt-1">从相册选择一张图片</Text>
+                </View>
+                <ChevronLeft size={16} color="#d1d5db" className="-rotate-90" />
+              </View>
+
+              {/* Option: Reset */}
+              <View
+                className="mx-4 mb-3 flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-4"
+                onClick={() => {
+                  setShowAvatarMenu(false)
+                  setPendingAvatar({ key: null, localUrl: '' })
+                  setSelectedChar(prev => prev ? { ...prev, avatar_key: null } : null)
+                  Taro.showToast({ title: '已恢复默认头像，记得保存', icon: 'none' })
+                }}
+              >
+                <View className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 border border-gray-100">
+                  <Undo2 size={18} color="#f43f5e" />
+                </View>
+                <View className="flex-1">
+                  <Text className="block text-sm font-semibold text-gray-900">恢复默认头像</Text>
+                  <Text className="block text-xs text-gray-500 mt-1">使用角色首字的可爱占位头像</Text>
+                </View>
+              </View>
+
+              {/* Cancel */}
+              <View
+                className="mx-4 flex items-center justify-center bg-gray-100 rounded-2xl py-3"
+                onClick={() => setShowAvatarMenu(false)}
+              >
+                <Text className="block text-sm font-medium text-gray-600">取消</Text>
               </View>
             </View>
           </View>
