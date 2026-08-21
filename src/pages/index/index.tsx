@@ -55,22 +55,6 @@ const IndexPage = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
-    {
-      id: 'demo-002',
-      name: '时空咖啡厅',
-      tagline: '不同世界的角色在此相遇，留下文字成为跨世界笔友',
-      era: 'modern',
-      is_pinned: false,
-      cover_key: '',
-      cover_url: null,
-      world_info: '',
-      world_score: 0,
-      world_nickname: '',
-      category_names: [],
-      section_titles: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
   ]
 
   const fetchNovels = useCallback(async () => {
@@ -119,6 +103,17 @@ const IndexPage = () => {
   const handleRename = async () => {
     if (!newName.trim() || !selectedNovel) return
     try {
+      // DEMO 数据：仅本地更新
+      if (selectedNovel.id.startsWith('demo-')) {
+        setNovels(prev => prev.map(n => n.id === selectedNovel.id ? { ...n, name: newName.trim(), tagline: newTagline.trim(), era: newEra } : n))
+        setNewName('')
+        setNewTagline('')
+        setNewEra('ancient')
+        setShowRenameDialog(false)
+        setSelectedNovel(null)
+        Taro.showToast({ title: '演示模式：信息已更新（仅本地）', icon: 'none' })
+        return
+      }
       await Network.request({
         url: `/api/novels/${selectedNovel.id}`,
         method: 'PUT',
@@ -132,6 +127,7 @@ const IndexPage = () => {
       fetchNovels()
     } catch (err) {
       console.error('renameNovel error:', err)
+      Taro.showToast({ title: '修改失败', icon: 'error' })
     }
   }
 
@@ -152,6 +148,13 @@ const IndexPage = () => {
 
   const handleTogglePin = async (novel: Novel) => {
     try {
+      // DEMO 数据：仅本地更新
+      if (novel.id.startsWith('demo-')) {
+        setNovels(prev => prev.map(n => n.id === novel.id ? { ...n, is_pinned: !n.is_pinned } : n))
+        setShowActionMenu(null)
+        Taro.showToast({ title: '演示模式：' + (novel.is_pinned ? '已取消置顶' : '已置顶'), icon: 'none' })
+        return
+      }
       await Network.request({
         url: `/api/novels/${novel.id}/toggle-pin`,
         method: 'PUT',
@@ -161,6 +164,7 @@ const IndexPage = () => {
       fetchNovels()
     } catch (err) {
       console.error('togglePin error:', err)
+      Taro.showToast({ title: '操作失败', icon: 'error' })
     }
   }
 
