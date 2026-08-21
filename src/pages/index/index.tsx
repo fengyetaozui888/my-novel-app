@@ -166,26 +166,49 @@ const IndexPage = () => {
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
       })
-      const tempFilePath = res.tempFilePaths[0]
-      setUploadingCover(true)
 
-      const result = await uploadFileToServer(tempFilePath)
-      if (result?.key) {
-        await Network.request({
-          url: `/api/novels/${novel.id}`,
-          method: 'PUT',
-          data: { cover_key: result.key },
+      const isH5 = Taro.getEnv() === Taro.ENV_TYPE.WEB
+      let uploadRes: any
+
+      if (isH5 && res.tempFiles[0]?.originalFileObj) {
+        const file = res.tempFiles[0].originalFileObj
+        const reader = new FileReader()
+        reader.readAsArrayBuffer(file)
+        const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer)
+          reader.onerror = reject
         })
-        fetchNovels()
-        Taro.showToast({ title: '封面已更新', icon: 'success' })
+        const formData = new FormData()
+        formData.append('file', new Blob([arrayBuffer], { type: file.type }), file.name)
+        const response = await fetch('/api/upload', { method: 'POST', body: formData })
+        const json = await response.json()
+        uploadRes = { data: JSON.stringify(json) }
       } else {
-        Taro.showToast({ title: '上传失败', icon: 'none' })
+        uploadRes = await Network.uploadFile({
+          url: '/api/upload',
+          filePath: res.tempFilePaths[0],
+          name: 'file',
+        })
       }
+
+      const parsed = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+      const key = parsed.data?.key
+
+      if (!key) {
+        Taro.showToast({ title: '上传失败', icon: 'none' })
+        return
+      }
+
+      await Network.request({
+        url: `/api/novels/${novel.id}`,
+        method: 'PUT',
+        data: { cover_key: key },
+      })
+      fetchNovels()
+      Taro.showToast({ title: '封面已更新', icon: 'success' })
     } catch (err) {
       console.error('uploadCover error:', err)
       Taro.showToast({ title: '上传失败', icon: 'none' })
-    } finally {
-      setUploadingCover(false)
     }
   }
 

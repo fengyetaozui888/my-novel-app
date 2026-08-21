@@ -552,30 +552,52 @@ const NovelPage = () => {
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
       })
-      const tempFilePath = res.tempFilePaths[0]
-      setUploadingAvatar(true)
 
-      const result = await uploadFileToServer(tempFilePath)
-      if (result?.key) {
-        await Network.request({
-          url: `/api/characters/${selectedChar.id}`,
-          method: 'PUT',
-          data: { avatar_key: result.key },
+      const isH5 = Taro.getEnv() === Taro.ENV_TYPE.WEB
+      let uploadRes: any
+
+      if (isH5 && res.tempFiles[0]?.originalFileObj) {
+        const file = res.tempFiles[0].originalFileObj
+        const reader = new FileReader()
+        reader.readAsArrayBuffer(file)
+        const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as ArrayBuffer)
+          reader.onerror = reject
         })
-        fetchCharacters()
-        // Update selectedChar with new avatar
-        setSelectedChar((prev) =>
-          prev ? { ...prev, avatar_key: result.key, avatar_url: result.url } : null,
-        )
-        Taro.showToast({ title: '头像已更新', icon: 'success' })
+        const formData = new FormData()
+        formData.append('file', new Blob([arrayBuffer], { type: file.type }), file.name)
+        const response = await fetch('/api/upload', { method: 'POST', body: formData })
+        const json = await response.json()
+        uploadRes = { data: JSON.stringify(json) }
       } else {
-        Taro.showToast({ title: '上传失败', icon: 'none' })
+        uploadRes = await Network.uploadFile({
+          url: '/api/upload',
+          filePath: res.tempFilePaths[0],
+          name: 'file',
+        })
       }
+
+      const parsed = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
+      const key = parsed.data?.key
+
+      if (!key) {
+        Taro.showToast({ title: '上传失败', icon: 'none' })
+        return
+      }
+
+      await Network.request({
+        url: `/api/characters/${selectedChar.id}`,
+        method: 'PUT',
+        data: { avatar_key: key },
+      })
+      fetchCharacters()
+      setSelectedChar((prev) =>
+        prev ? { ...prev, avatar_key: key } : null,
+      )
+      Taro.showToast({ title: '头像已更新', icon: 'success' })
     } catch (err) {
       console.error('uploadAvatar error:', err)
       Taro.showToast({ title: '上传失败', icon: 'none' })
-    } finally {
-      setUploadingAvatar(false)
     }
   }
 
