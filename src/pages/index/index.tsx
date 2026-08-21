@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
+import { uploadFileToServer } from '@/utils/upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -168,14 +169,7 @@ const IndexPage = () => {
       const tempFilePath = res.tempFilePaths[0]
       setUploadingCover(true)
 
-      const uploadRes = await Network.uploadFile({
-        url: '/api/upload',
-        filePath: tempFilePath,
-        name: 'file',
-      })
-      console.log('uploadCover response:', uploadRes.data)
-      const uploadData = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
-      const result = uploadData?.data || uploadData
+      const result = await uploadFileToServer(tempFilePath)
       if (result?.key) {
         await Network.request({
           url: `/api/novels/${novel.id}`,
@@ -184,6 +178,8 @@ const IndexPage = () => {
         })
         fetchNovels()
         Taro.showToast({ title: '封面已更新', icon: 'success' })
+      } else {
+        Taro.showToast({ title: '上传失败', icon: 'none' })
       }
     } catch (err) {
       console.error('uploadCover error:', err)

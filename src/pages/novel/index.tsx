@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
+import { uploadFileToServer } from '@/utils/upload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -554,14 +555,7 @@ const NovelPage = () => {
       const tempFilePath = res.tempFilePaths[0]
       setUploadingAvatar(true)
 
-      const uploadRes = await Network.uploadFile({
-        url: '/api/upload',
-        filePath: tempFilePath,
-        name: 'file',
-      })
-      console.log('uploadAvatar response:', uploadRes.data)
-      const uploadData = typeof uploadRes.data === 'string' ? JSON.parse(uploadRes.data) : uploadRes.data
-      const result = uploadData?.data || uploadData
+      const result = await uploadFileToServer(tempFilePath)
       if (result?.key) {
         await Network.request({
           url: `/api/characters/${selectedChar.id}`,
@@ -571,9 +565,11 @@ const NovelPage = () => {
         fetchCharacters()
         // Update selectedChar with new avatar
         setSelectedChar((prev) =>
-          prev ? { ...prev, avatar_key: uploadData.key, avatar_url: uploadData.url } : null,
+          prev ? { ...prev, avatar_key: result.key, avatar_url: result.url } : null,
         )
         Taro.showToast({ title: '头像已更新', icon: 'success' })
+      } else {
+        Taro.showToast({ title: '上传失败', icon: 'none' })
       }
     } catch (err) {
       console.error('uploadAvatar error:', err)
