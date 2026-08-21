@@ -356,6 +356,130 @@ const NovelPage = () => {
     )
   }
 
+  // 演示角色数据（当后端不可用时显示）
+  const DEMO_CHARACTERS: Character[] = [
+    {
+      id: 'demo-char-001',
+      novel_id: 'demo-001',
+      name: '图蓝',
+      category: 'protagonist',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'female',
+      age: '22',
+      tagline: '游戏世界的觉醒者',
+      status: 'active',
+      persona: '勇敢、聪明、有点傲娇',
+      background: '原本是普通大学生，意外进入游戏世界',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+    {
+      id: 'demo-char-002',
+      novel_id: 'demo-001',
+      name: '虞寻欢',
+      category: 'protagonist',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'male',
+      age: '25',
+      tagline: '神秘的游戏引导者',
+      status: 'active',
+      persona: '温柔、神秘、总是带着微笑',
+      background: '游戏世界的原住民，知道很多秘密',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+    {
+      id: 'demo-char-003',
+      novel_id: 'demo-001',
+      name: '定海',
+      category: 'supporting',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'male',
+      age: '30',
+      tagline: '稳重的守护者',
+      status: 'active',
+      persona: '沉默寡言、可靠、战斗力强',
+      background: '游戏世界的守护者之一',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+    {
+      id: 'demo-char-004',
+      novel_id: 'demo-001',
+      name: '雾刃',
+      category: 'supporting',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'female',
+      age: '20',
+      tagline: '敏捷的刺客',
+      status: 'active',
+      persona: '冷酷、高效、话不多',
+      background: '游戏世界的刺客组织成员',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+    {
+      id: 'demo-char-005',
+      novel_id: 'demo-001',
+      name: '苏一瞳',
+      category: 'minor',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'female',
+      age: '18',
+      tagline: '新手村的向导',
+      status: 'active',
+      persona: '活泼、热情、有点话痨',
+      background: '游戏世界的新手村 NPC',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+    {
+      id: 'demo-char-006',
+      novel_id: 'demo-001',
+      name: '梁鱼川',
+      category: 'minor',
+      avatar_key: null,
+      avatar_url: null,
+      gender: 'male',
+      age: '35',
+      tagline: '神秘的商人',
+      status: 'active',
+      persona: '圆滑、精明、消息灵通',
+      background: '游戏世界的流浪商人',
+      biography: '',
+      principles: '',
+      examples: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_pinned: false,
+    },
+  ]
+
   const fetchCharacters = useCallback(async () => {
     try {
       setLoading(true)
@@ -364,9 +488,17 @@ const NovelPage = () => {
       })
       console.log('fetchCharacters response:', res.data)
       const data = res.data?.data || res.data || []
-      setCharacters(Array.isArray(data) ? data : [])
+      const charList = Array.isArray(data) ? data : []
+      // 如果 API 返回空数据，使用演示数据
+      if (charList.length === 0) {
+        setCharacters(DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001'))
+      } else {
+        setCharacters(charList)
+      }
     } catch (err) {
       console.error('fetchCharacters error:', err)
+      // API 失败时使用演示数据
+      setCharacters(DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001'))
     } finally {
       setLoading(false)
     }

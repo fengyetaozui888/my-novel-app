@@ -33,15 +33,57 @@ const IndexPage = () => {
   const [uploadingCover, setUploadingCover] = useState(false)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null) // 当前打开菜单的小说 ID
 
+  // 演示数据（当后端不可用时显示）
+  const DEMO_NOVELS: Novel[] = [
+    {
+      id: 'demo-001',
+      name: '游戏入侵',
+      tagline: '当虚拟与现实交织，谁才是真正的主角？',
+      era: 'modern',
+      is_pinned: true,
+      cover_key: '',
+      world_info: '',
+      world_score: 0,
+      world_nickname: '',
+      category_names: [],
+      section_titles: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'demo-002',
+      name: '时空咖啡厅',
+      tagline: '不同世界的角色在此相遇，留下文字成为跨世界笔友',
+      era: 'modern',
+      is_pinned: false,
+      cover_key: '',
+      world_info: '',
+      world_score: 0,
+      world_nickname: '',
+      category_names: [],
+      section_titles: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ]
+
   const fetchNovels = useCallback(async () => {
     try {
       setLoading(true)
       const res = await Network.request({ url: '/api/novels' })
       console.log('fetchNovels response:', res.data)
       const data = res.data?.data || res.data || []
-      setNovels(Array.isArray(data) ? data : [])
+      const novelsList = Array.isArray(data) ? data : []
+      // 如果 API 返回空数据，使用演示数据
+      if (novelsList.length === 0) {
+        setNovels(DEMO_NOVELS)
+      } else {
+        setNovels(novelsList)
+      }
     } catch (err) {
       console.error('fetchNovels error:', err)
+      // API 失败时使用演示数据
+      setNovels(DEMO_NOVELS)
     } finally {
       setLoading(false)
     }

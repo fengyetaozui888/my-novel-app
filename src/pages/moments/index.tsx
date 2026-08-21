@@ -126,6 +126,79 @@ export default function MomentsPage() {
     }
   }
 
+  // 演示朋友圈数据（当后端不可用时显示）
+  const DEMO_MOMENTS: Moment[] = [
+    {
+      id: 'demo-moment-001',
+      characterName: '图蓝',
+      characterAvatar: '',
+      novelName: '游戏入侵',
+      authorType: 'character',
+      content: '今天终于搞清楚了游戏世界的规则...原来我们都是一串代码。但即使是代码，也有选择自己命运的权利。',
+      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      likes: 12,
+      isLiked: false,
+      likerNames: ['虞寻欢', '定海'],
+      likers: [{ name: '虞寻欢', characterId: 'demo-char-002' }, { name: '定海', characterId: 'demo-char-003' }],
+      commentList: [
+        { id: 'demo-comment-001', characterName: '虞寻欢', authorType: 'character', content: '你终于明白了呢，图蓝。', createdAt: new Date(Date.now() - 1800000).toISOString(), characterId: 'demo-char-002' },
+        { id: 'demo-comment-002', characterName: '定海', authorType: 'character', content: '不管怎样，我都会保护你。', createdAt: new Date(Date.now() - 900000).toISOString(), characterId: 'demo-char-003' },
+      ],
+    },
+    {
+      id: 'demo-moment-002',
+      characterName: '虞寻欢',
+      characterAvatar: '',
+      novelName: '游戏入侵',
+      authorType: 'character',
+      content: '咖啡厅的老板今天又问我同一个问题了...他似乎被困在了某个循环里。',
+      createdAt: new Date(Date.now() - 7200000).toISOString(),
+      likes: 8,
+      isLiked: false,
+      likerNames: ['图蓝'],
+      likers: [{ name: '图蓝', characterId: 'demo-char-001' }],
+      commentList: [
+        { id: 'demo-comment-003', characterName: '图蓝', authorType: 'character', content: '要不要我帮你问问？', createdAt: new Date(Date.now() - 3600000).toISOString(), characterId: 'demo-char-001' },
+      ],
+    },
+    {
+      id: 'demo-moment-003',
+      characterName: '雾刃',
+      characterAvatar: '',
+      novelName: '游戏入侵',
+      authorType: 'character',
+      content: '任务完成。目标已清除。',
+      createdAt: new Date(Date.now() - 14400000).toISOString(),
+      likes: 5,
+      isLiked: false,
+      likerNames: [],
+      likers: [],
+      commentList: [],
+    },
+    {
+      id: 'demo-moment-004',
+      characterName: '苏一瞳',
+      characterAvatar: '',
+      novelName: '游戏入侵',
+      authorType: 'character',
+      content: '欢迎新玩家来到新手村！我是你们的向导苏一瞳～有什么问题都可以问我哦！(≧▽≦)',
+      createdAt: new Date(Date.now() - 28800000).toISOString(),
+      likes: 20,
+      isLiked: false,
+      likerNames: ['图蓝', '虞寻欢', '定海', '雾刃', '梁鱼川'],
+      likers: [
+        { name: '图蓝', characterId: 'demo-char-001' },
+        { name: '虞寻欢', characterId: 'demo-char-002' },
+        { name: '定海', characterId: 'demo-char-003' },
+        { name: '雾刃', characterId: 'demo-char-004' },
+        { name: '梁鱼川', characterId: 'demo-char-006' },
+      ],
+      commentList: [
+        { id: 'demo-comment-004', characterName: '梁鱼川', authorType: 'character', content: '小瞳还是这么有活力啊～', createdAt: new Date(Date.now() - 14400000).toISOString(), characterId: 'demo-char-006' },
+      ],
+    },
+  ]
+
   const loadMoments = async (nid?: string) => {
     const id = nid || novelId
     if (!id) return
@@ -136,7 +209,7 @@ export default function MomentsPage() {
         method: 'GET'
       })
       console.log('Moments response:', res.data)
-      if (res.data?.code === 200 && Array.isArray(res.data.data)) {
+      if (res.data?.code === 200 && Array.isArray(res.data.data) && res.data.data.length > 0) {
         const mapped = res.data.data.map(mapMoment)
         setMoments(mapped)
         // 提取角色名用于导航栏标题
@@ -144,10 +217,13 @@ export default function MomentsPage() {
           setCharacterName(mapped[0].characterName)
         }
       } else {
-        setMoments([])
+        // API 返回空数据时使用演示数据
+        setMoments(DEMO_MOMENTS)
       }
     } catch (error) {
       console.error('Failed to load moments:', error)
+      // API 失败时使用演示数据
+      setMoments(DEMO_MOMENTS)
     } finally {
       setLoading(false)
     }
