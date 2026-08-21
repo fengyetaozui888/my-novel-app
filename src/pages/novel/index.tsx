@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Network } from '@/network'
-import { uploadFileToServer } from '@/utils/upload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -67,7 +66,6 @@ const NovelPage = () => {
   const [showCategoryNameEditor, setShowCategoryNameEditor] = useState(false)
   const [selectedChar, setSelectedChar] = useState<Character | null>(null)
   const [newName, setNewName] = useState('')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   // Fetch characters on mount
   useEffect(() => {
@@ -490,16 +488,15 @@ const NovelPage = () => {
       console.log('fetchCharacters response:', res.data)
       const data = res.data?.data || res.data || []
       const charList = Array.isArray(data) ? data : []
-      // 如果 API 返回空数据，使用演示数据
+      // 仅演示世界使用演示角色；真实世界角色为空时显示空列表
       if (charList.length === 0) {
-        setCharacters(DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001'))
+        setCharacters(novelId === 'demo-001' ? DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001') : [])
       } else {
         setCharacters(charList)
       }
     } catch (err) {
       console.error('fetchCharacters error:', err)
-      // API 失败时使用演示数据
-      setCharacters(DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001'))
+      setCharacters(novelId === 'demo-001' ? DEMO_CHARACTERS.filter(c => c.novel_id === 'demo-001') : [])
     } finally {
       setLoading(false)
     }
@@ -553,6 +550,24 @@ const NovelPage = () => {
         sourceType: ['album', 'camera'],
       })
 
+      // 演示数据：仅本地预览，不调后端
+      if (selectedChar.id.startsWith('demo-')) {
+        const file = res.tempFiles[0]?.originalFileObj
+        let localUrl = res.tempFilePaths[0]
+        if (file) {
+          localUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+        }
+        setCharacters((prev) => prev.map((c) => (c.id === selectedChar.id ? { ...c, avatar_url: localUrl } : c)))
+        setSelectedChar((prev) => (prev ? { ...prev, avatar_url: localUrl } : null))
+        Taro.showToast({ title: '头像已更新', icon: 'success' })
+        return
+      }
+
       const isH5 = Taro.getEnv() === Taro.ENV_TYPE.WEB
       let uploadRes: any
 
@@ -581,7 +596,7 @@ const NovelPage = () => {
       const key = parsed.data?.key
 
       if (!key) {
-        Taro.showToast({ title: '上传失败', icon: 'none' })
+        Taro.showToast({ title: '上传失败: 未获取到文件', icon: 'none' })
         return
       }
 
@@ -595,9 +610,10 @@ const NovelPage = () => {
         prev ? { ...prev, avatar_key: key } : null,
       )
       Taro.showToast({ title: '头像已更新', icon: 'success' })
-    } catch (err) {
+    } catch (err: any) {
       console.error('uploadAvatar error:', err)
-      Taro.showToast({ title: '上传失败', icon: 'none' })
+      const msg = err?.message ? String(err.message).slice(0, 20) : '请重试'
+      Taro.showToast({ title: `上传失败: ${msg}`, icon: 'none' })
     }
   }
 
@@ -1409,14 +1425,6 @@ const NovelPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Upload Loading Overlay */}
-      {uploadingAvatar && (
-        <View className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <View className="bg-white rounded-2xl px-6 py-4">
-            <Text className="block text-gray-600 text-center">上传头像中...</Text>
-          </View>
-        </View>
-      )}
 
       {/* 关系图 Floating Button */}
       <View

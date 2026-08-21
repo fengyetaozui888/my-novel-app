@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { View, Text, Image } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Network } from '@/network'
-import { uploadFileToServer } from '@/utils/upload'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,6 +16,11 @@ interface Novel {
   era?: string
   tagline?: string
   is_pinned?: boolean
+  world_info?: string
+  world_score?: number
+  world_nickname?: string
+  category_names?: string[]
+  section_titles?: string[]
   created_at: string
   updated_at: string
 }
@@ -31,7 +35,6 @@ const IndexPage = () => {
   const [newTagline, setNewTagline] = useState('')
   const [newEra, setNewEra] = useState<'ancient' | 'modern'>('ancient')
   const [selectedNovel, setSelectedNovel] = useState<Novel | null>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null) // 当前打开菜单的小说 ID
 
   // 演示数据（当后端不可用时显示）
@@ -43,6 +46,7 @@ const IndexPage = () => {
       era: 'modern',
       is_pinned: true,
       cover_key: '',
+      cover_url: null,
       world_info: '',
       world_score: 0,
       world_nickname: '',
@@ -58,6 +62,7 @@ const IndexPage = () => {
       era: 'modern',
       is_pinned: false,
       cover_key: '',
+      cover_url: null,
       world_info: '',
       world_score: 0,
       world_nickname: '',
@@ -167,6 +172,23 @@ const IndexPage = () => {
         sourceType: ['album', 'camera'],
       })
 
+      // 演示数据：仅本地预览，不调后端
+      if (novel.id.startsWith('demo-')) {
+        const file = res.tempFiles[0]?.originalFileObj
+        let localUrl = res.tempFilePaths[0]
+        if (file) {
+          localUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+        }
+        setNovels((prev) => prev.map((n) => (n.id === novel.id ? { ...n, cover_url: localUrl } : n)))
+        Taro.showToast({ title: '封面已更新', icon: 'success' })
+        return
+      }
+
       const isH5 = Taro.getEnv() === Taro.ENV_TYPE.WEB
       let uploadRes: any
 
@@ -206,9 +228,10 @@ const IndexPage = () => {
       })
       fetchNovels()
       Taro.showToast({ title: '封面已更新', icon: 'success' })
-    } catch (err) {
+    } catch (err: any) {
       console.error('uploadCover error:', err)
-      Taro.showToast({ title: '上传失败', icon: 'none' })
+      const msg = err?.message ? String(err.message).slice(0, 20) : '请重试'
+      Taro.showToast({ title: `上传失败: ${msg}`, icon: 'none' })
     }
   }
 
@@ -380,13 +403,6 @@ const IndexPage = () => {
         </View>
       )}
 
-      {uploadingCover && (
-        <View className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <View className="bg-white rounded-2xl px-6 py-4">
-            <Text className="block text-gray-600 text-center">上传封面中...</Text>
-          </View>
-        </View>
-      )}
 
       {/* Add Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
