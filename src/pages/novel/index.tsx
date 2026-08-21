@@ -668,8 +668,10 @@ const NovelPage = () => {
       // 演示数据：本地生效即可
       if (selectedChar.id.startsWith('demo-')) {
         if (pendingAvatar) {
-          setCharacters((prev) => prev.map((c) => (c.id === selectedChar.id ? { ...c, avatar_url: pendingAvatar.localUrl } : c)))
-          setSelectedChar((prev) => (prev ? { ...prev, avatar_url: pendingAvatar.localUrl } : null))
+          // pendingAvatar.key === null 表示恢复默认头像
+          const newAvatarUrl = pendingAvatar.key === null ? '' : pendingAvatar.localUrl
+          setCharacters((prev) => prev.map((c) => (c.id === selectedChar.id ? { ...c, avatar_url: newAvatarUrl, avatar_key: pendingAvatar.key } : c)))
+          setSelectedChar((prev) => (prev ? { ...prev, avatar_url: newAvatarUrl, avatar_key: pendingAvatar.key } : null))
         }
         setPendingAvatar(null)
         setShowDetailDialog(false)
@@ -1144,9 +1146,23 @@ const NovelPage = () => {
                 {/* Avatar in detail dialog */}
                 <View
                   className="relative w-16 h-16 rounded-full overflow-hidden bg-white bg-opacity-50 flex items-center justify-center flex-shrink-0"
-                  onClick={handleChooseAvatar}
+                  onClick={() => Taro.showActionSheet({
+                    itemList: ['恢复默认头像', '上传头像'],
+                    success: async (res) => {
+                      if (res.tapIndex === 0) {
+                        // 恢复默认头像：设置 pendingAvatar 为 null key，保存时会清除后端 avatar_key
+                        setPendingAvatar({ key: null, localUrl: '' })
+                        setSelectedChar(prev => prev ? { ...prev, avatar_key: null } : null)
+                        Taro.showToast({ title: '已恢复默认头像（点保存生效）', icon: 'none' })
+                      } else if (res.tapIndex === 1) {
+                        // 上传头像
+                        handleChooseAvatar()
+                      }
+                    }
+                  })}
                 >
-                  {(pendingAvatar?.localUrl || selectedChar?.avatar_url) ? (
+                  {/* pendingAvatar.key === null 表示恢复默认，显示首字占位 */}
+                  {pendingAvatar?.key === null ? null : (pendingAvatar?.localUrl || selectedChar?.avatar_url) ? (
                     <Image
                       src={pendingAvatar?.localUrl || selectedChar?.avatar_url || ''}
                       className="w-full h-full"
