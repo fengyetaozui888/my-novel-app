@@ -208,7 +208,7 @@ const IndexPage = () => {
           {novels.map((novel) => (
             <Card
               key={novel.id}
-              className="relative bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow overflow-hidden"
+              className="relative bg-white rounded-2xl border-0 shadow-sm active:shadow-md transition-shadow"
             >
               <CardContent className="p-4">
                 {novel.is_pinned && (
